@@ -1,0 +1,195 @@
+diff --git a/liblfi/elfload.c b/liblfi/elfload.c
+index 721e504f97..85990756c0 100644
+--- a/liblfi/elfload.c
++++ b/liblfi/elfload.c
+@@ -45,7 +45,7 @@ sanitize(void* p, size_t sz, int prot)
+ {
+     if ((prot & LFI_PROT_EXEC) == 0)
+         return;
+-#if (defined(__x86_64__) || defined(_M_X64)) && TUX_SANITIZE_CODE
++#if (defined(__x86_64__) || defined(_M_X64))
+     const uint8_t SAFE_BYTE = 0xcc;
+     memset(p, SAFE_BYTE, sz);
+ #endif
+diff --git a/liblfi/elfsym.c b/liblfi/elfsym.c
+index e52088cf78..d6c48ea717 100644
+--- a/liblfi/elfsym.c
++++ b/liblfi/elfsym.c
+@@ -1,5 +1,6 @@
+ #include <elf.h>
+ #include <stdlib.h>
++#include <string.h>
+ 
+ #include "pal/platform.h"
+ 
+diff --git a/liblfi/include/lfi.h b/liblfi/include/lfi.h
+index c0f858a28f..5f7ba1a98d 100644
+--- a/liblfi/include/lfi.h
++++ b/liblfi/include/lfi.h
+@@ -75,6 +75,7 @@ struct LFIAddrSpaceInfo lfi_as_info(struct LFIAddrSpace* as);
+ 
+ lfiptr_t                lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot, int flags, struct HostFile* f, off_t off);
+ lfiptr_t                lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
++lfiptr_t                lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
+ int                     lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size);
+ int                     lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
+ void                    lfi_as_copyfm(struct LFIAddrSpace* as, void* dst, lfiptr_t src, size_t size);
+diff --git a/monkeycage/lfi/liblfi/include/lfi_tux.h b/monkeycage/lfi/liblfi/include/lfi_tux.h
+index 1e98ff06a9..f16e2b70bd 100644
+--- a/liblfi/include/lfi_tux.h
++++ b/liblfi/include/lfi_tux.h
+@@ -79,6 +79,7 @@ struct LFILibCalls {
+     void                 (*lfi_thread_init)(void (*)(void*), void*);
+     struct HostFile*     (*lfi_host_fdopen)(int);
+     lfiptr_t             (*lfi_as_mapany)(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
++    lfiptr_t             (*lfi_as_mapany_no_verify)(struct LFIAddrSpace* as, size_t size, int prot, int flags, struct HostFile* f, off_t off);
+     int                  (*lfi_as_mprotect)(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot);
+     struct LFIAddrSpace* (*lfi_ctx_as)(struct LFIContext* ctx);
+ };
+diff --git a/liblfi/pal/platform.c b/liblfi/pal/platform.c
+index 7b570e9b25..f98f05076d 100644
+--- a/liblfi/pal/platform.c
++++ b/liblfi/pal/platform.c
+@@ -7,34 +7,53 @@
+ 
+ #define asm __asm__
+ 
++static void showerr(char* msg, size_t sz) {
++    (void) sz;
++    fprintf(stderr, "%s\n", msg);
++}
++
+ EXPORT struct LFIPlatform*
+ lfi_new_plat(struct LFIPlatOptions opts)
+ {
++    struct LFIVerifier* verifier = malloc(sizeof(LFIVerifier));
++    if (!verifier)
++        return NULL;
++
+     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
+     if (!plat)
+-        return NULL;
++        goto err1;
+ 
+     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
+-        .minalign = gb(512),
+-        .maxalign = gb(512),
++        .minalign = gb(256),
++        .maxalign = gb(256),
+         .guardsize = gb(0),
+     });
+     if (!bm)
+-        goto err1;
+-    if (!boxmap_reserve(bm, gb(1024)))
+         goto err2;
++    if (!boxmap_reserve(bm, gb(512)))
++        goto err3;
++
++    verifier->opts = (struct LFIVOptions) {
++        .box = LFI_BOX_STORES,
++        .guardsize = gb(2),
++        .err = showerr
++    };
++
++    verifier->verify = lfiv_verify_x64_large;
+ 
+     *plat = (struct LFIPlatform) {
+         .bm = bm,
+         .opts = opts,
+-        .verifier = NULL,
++        .verifier = verifier,
+     };
+     return plat;
+ 
+-err2:
++err3:
+     boxmap_delete(bm);
+-err1:
++err2:
+     free(plat);
++err1:
++    free(verifier);
+     return NULL;
+ }
+ 
+diff --git a/liblfi/pal/vm.c b/liblfi/pal/vm.c
+index 31a4ff2d93..a1c1a3d511 100644
+--- a/liblfi/pal/vm.c
++++ b/liblfi/pal/vm.c
+@@ -1,5 +1,6 @@
+ #include <assert.h>
+ #include <stdlib.h>
++#include <string.h>
+ #include <unistd.h>
+ #include <errno.h>
+ 
+@@ -89,9 +90,9 @@ protectverify(uintptr_t base, size_t size, int prot, LFIVerifier* verifier)
+ 
+ static int
+ mapverify(struct LFIAddrSpace* as, uintptr_t start, size_t size, int prot,
+-        int flags, struct HostFile* hf, off_t off)
++        int flags, struct HostFile* hf, off_t off, bool verify)
+ {
+-    if (!as->plat->verifier || ((prot & LFI_PROT_EXEC) == 0))
++    if (!verify || !as->plat->verifier || ((prot & LFI_PROT_EXEC) == 0))
+         return mapmem(as, start, size, prot, flags, hf, off);
+     else if ((prot & LFI_PROT_WRITE) != 0)
+         return -1;
+@@ -113,7 +114,22 @@ lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
+     uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
+     if (addr == (lfiptr_t) -1)
+         return (lfiptr_t) -1;
+-    int r = mapverify(as, addr, size, prot, flags, hf, off);
++    int r = mapverify(as, addr, size, prot, flags, hf, off, true);
++    if (r < 0) {
++        mm_unmap(&as->mm, addr, size);
++        return (lfiptr_t) -1;
++    }
++    return p2l(as, addr);
++}
++
++EXPORT lfiptr_t
++lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flags,
++        struct HostFile* hf, off_t off)
++{
++    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
++    if (addr == (lfiptr_t) -1)
++        return (lfiptr_t) -1;
++    int r = mapverify(as, addr, size, prot, flags, hf, off, false);
+     if (r < 0) {
+         mm_unmap(&as->mm, addr, size);
+         return (lfiptr_t) -1;
+@@ -139,7 +155,7 @@ lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot,
+     uintptr_t m_addr = mm_mapat_cb(&as->mm, l2p(as, addr), size, prot, flags, hf, off, cbunmap, NULL);
+     if (m_addr == (uintptr_t) -1)
+         return (lfiptr_t) -1; 
+-    int r = mapverify(as, m_addr, size, prot, flags, hf, off);
++    int r = mapverify(as, m_addr, size, prot, flags, hf, off, true);
+     if (r < 0) {
+         mm_unmap(&as->mm, m_addr, size);
+         return (lfiptr_t) -1;
+@@ -154,6 +170,12 @@ lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
+ 
+     // TODO: mark the mapping with libmmap?
+     assert(as->plat);
++
++    if ((prot & LFI_PROT_EXEC) != 0) {
++        size_t pagesize = as->plat->opts.pagesize;
++        if (size % pagesize != 0) memset((char*)(addr + size), 0xcc, pagesize - (size % pagesize));
++    }
++
+     return protectverify(l2p(as, addr), size, prot, as->plat->verifier);
+ }
+ 
+diff --git a/liblfi/tux.c b/liblfi/tux.c
+index a703d8a076..db0c4b1a87 100644
+--- a/liblfi/tux.c
++++ b/liblfi/tux.c
+@@ -89,6 +89,7 @@ static struct LFILibCalls calls = {
+     .lfi_thread_init   = &lfi_thread_init,
+     .lfi_host_fdopen   = &lfi_host_fdopen,
+     .lfi_as_mapany     = &lfi_as_mapany,
++    .lfi_as_mapany_no_verify     = &lfi_as_mapany_no_verify,
+     .lfi_as_mprotect   = &lfi_as_mprotect,
+     .lfi_ctx_as        = &lfi_ctx_as,
+ };
