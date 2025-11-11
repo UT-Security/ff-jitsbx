@@ -661,6 +661,9 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
 #ifdef JS_CODELABEL_LINKMODE
     link.mode = codeLabel.linkMode();
 #endif
+#ifdef JS_SANDBOX_CFI_MASKS
+    link.hltMasked = codeLabel.hltMasked();
+#endif
     if (!linkData_->internalLinks.append(link)) {
       return false;
     }

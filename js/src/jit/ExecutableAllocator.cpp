@@ -570,8 +570,11 @@ void ExecutableAllocator::poisonCode(JSRuntime* rt,
 }
 
 ExecutablePool::Allocation ExecutablePoolAllocator::systemExecAlloc(size_t n) {
-  void* allocation = AllocateExecutableMemory(n, ProtectionSetting::Executable,
+  void* allocation = AllocateExecutableMemory(n, ProtectionSetting::Writable,
                                               MemCheckKind::MakeNoAccess);
+#ifdef JS_SANDBOX
+  memset(allocation, 0xcc, n);
+#endif
   ExecutablePool::Allocation alloc = {reinterpret_cast<char*>(allocation), n};
   return alloc;
 }

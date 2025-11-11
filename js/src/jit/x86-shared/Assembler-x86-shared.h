@@ -1568,7 +1568,7 @@ class AssemblerX86Shared : public AssemblerShared {
 #ifdef JS_SANDBOX_CFI_MASKS
       if (label.hltMasked()) {
         uint8_t* maskedTarget =
-            (uint8_t*)((intptr_t)(raw + target) | 0xf400000000000000);
+            (uint8_t*)((intptr_t)(raw + target) << 8 | 0xf4);
         X86Encoding::SetPointer(raw + offset, maskedTarget);
       } else {
         X86Encoding::SetPointer(raw + offset, raw + target);

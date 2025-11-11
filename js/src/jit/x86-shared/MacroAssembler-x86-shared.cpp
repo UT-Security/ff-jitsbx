@@ -768,8 +768,15 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
   return std::pair(instrOffset, CodeOffset(currentOffset()));
 #else
   // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
+  CodeOffset returnPatch;
+  if (reg != SandboxScratchReg) {
+    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+    push(SandboxScratchReg);
+  } else {
+    push(SandboxScratchReg);
+    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+    xchgq(SandboxScratchReg, Operand(Address(StackPointer, 0)));
+  }
   auto instrOffset = CodeOffset(currentOffset());
   AutoBundleGroupScope bundle(*this);
 #if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_CFI_MASKS)
@@ -1106,6 +1113,7 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
   if (!Operand(addr).clobberScratch()) {
     Label sandboxed;
     movq(Operand(addr), SandboxScratchReg);
+    rorq(Imm32(8), SandboxScratchReg);
     shlq(Imm32(8), SandboxScratchReg);
     shrq(Imm32(8), SandboxScratchReg);
     push(SandboxScratchReg);
@@ -1122,6 +1130,7 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
 #endif
 
   movq(Operand(addr), SandboxScratchReg);
+  rorq(Imm32(8), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
   AutoBundleGroupScope bundle(*this);
   andq(SandboxMaskReg, SandboxScratchReg);

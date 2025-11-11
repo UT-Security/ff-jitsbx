@@ -152,6 +152,9 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 #ifdef JS_CODELABEL_LINKMODE
     label.setLinkMode(static_cast<CodeLabel::LinkMode>(link.mode));
 #endif
+#ifdef JS_SANDBOX_CFI_MASKS
+    label.setHltMasked(link.hltMasked);
+#endif
     Assembler::Bind(ms.base(), label);
   }
 

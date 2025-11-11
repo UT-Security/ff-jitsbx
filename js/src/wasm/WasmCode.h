@@ -107,10 +107,16 @@ struct LinkData : LinkDataCacheablePod {
 #ifdef JS_CODELABEL_LINKMODE
     uint32_t mode;
 #endif
+#ifdef JS_SANDBOX_CFI_MASKS
+    bool hltMasked;
+#endif
 
     WASM_CHECK_CACHEABLE_POD(patchAtOffset, targetOffset);
 #ifdef JS_CODELABEL_LINKMODE
     WASM_CHECK_CACHEABLE_POD(mode)
+#endif
+#ifdef JS_SANDBOX_CFI_MASKS
+    WASM_CHECK_CACHEABLE_POD(hltMasked)
 #endif
   };
   using InternalLinkVector = Vector<InternalLink, 0, SystemAllocPolicy>;
