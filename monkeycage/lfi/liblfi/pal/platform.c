@@ -7,34 +7,53 @@
 
 #define asm __asm__
 
+static void showerr(char* msg, size_t sz) {
+    (void) sz;
+    fprintf(stderr, "%s\n", msg);
+}
+
 EXPORT struct LFIPlatform*
 lfi_new_plat(struct LFIPlatOptions opts)
 {
-    struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
-    if (!plat)
+    struct LFIVerifier* verifier = malloc(sizeof(LFIVerifier));
+    if (!verifier)
         return NULL;
 
+    struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
+    if (!plat)
+        goto err1;
+
     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
-        .minalign = gb(512),
-        .maxalign = gb(512),
+        .minalign = gb(256),
+        .maxalign = gb(256),
         .guardsize = gb(0),
     });
     if (!bm)
-        goto err1;
-    if (!boxmap_reserve(bm, gb(1024)))
         goto err2;
+    if (!boxmap_reserve(bm, gb(512)))
+        goto err3;
+
+    verifier->opts = (struct LFIVOptions) {
+        .box = LFI_BOX_STORES,
+        .guardsize = gb(2),
+        .err = showerr
+    };
+
+    verifier->verify = lfiv_verify_x64_large;
 
     *plat = (struct LFIPlatform) {
         .bm = bm,
         .opts = opts,
-        .verifier = NULL,
+        .verifier = verifier,
     };
     return plat;
 
-err2:
+err3:
     boxmap_delete(bm);
-err1:
+err2:
     free(plat);
+err1:
+    free(verifier);
     return NULL;
 }
 
