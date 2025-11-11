@@ -1,0 +1,45 @@
+diff --git a/liblfi/pal/platform.c b/liblfi/pal/platform.c
+index f98f05076d..5520320af5 100644
+--- a/liblfi/pal/platform.c
++++ b/liblfi/pal/platform.c
+@@ -15,9 +15,13 @@ static void showerr(char* msg, size_t sz) {
+ EXPORT struct LFIPlatform*
+ lfi_new_plat(struct LFIPlatOptions opts)
+ {
++#ifdef JS_SANDBOX_VERIFY
+     struct LFIVerifier* verifier = malloc(sizeof(LFIVerifier));
+     if (!verifier)
+         return NULL;
++#else
++    struct LFIVerifier* verifier = NULL;
++#endif
+ 
+     struct LFIPlatform* plat = malloc(sizeof(struct LFIPlatform));
+     if (!plat)
+@@ -32,7 +36,7 @@ lfi_new_plat(struct LFIPlatOptions opts)
+         goto err2;
+     if (!boxmap_reserve(bm, gb(512)))
+         goto err3;
+-
++#ifdef JS_SANDBOX_VERIFY
+     verifier->opts = (struct LFIVOptions) {
+         .box = LFI_BOX_STORES,
+         .guardsize = gb(2),
+@@ -40,6 +44,7 @@ lfi_new_plat(struct LFIPlatOptions opts)
+     };
+ 
+     verifier->verify = lfiv_verify_x64_large;
++#endif
+ 
+     *plat = (struct LFIPlatform) {
+         .bm = bm,
+@@ -53,7 +58,9 @@ err3:
+ err2:
+     free(plat);
+ err1:
++#ifdef JS_SANDBOX_VERIFY
+     free(verifier);
++#endif
+     return NULL;
+ }
+ 
