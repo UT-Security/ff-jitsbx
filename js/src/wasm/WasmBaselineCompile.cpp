@@ -224,7 +224,17 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
   AutoForbidNops afn(&masm);
 #endif
 
-  masm.nopAlign(sizeof(void*));
+  masm.nopAlign(js::jit::CodeAlignment);
+#ifdef JS_SANDBOX
+  masm.bind(theTable);
+  for (const auto& label : labels) {
+    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
+    CodeLabel cl;
+    masm.writeCodePointer(&cl);
+    cl.target()->bind(label.offset());
+    masm.addCodeLabel(cl);
+  }
+#else
   masm.bind(theTable);
   for (const auto& label : labels) {
     CodeLabel cl;
@@ -235,6 +245,7 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
     cl.target()->bind(label.offset());
     masm.addCodeLabel(cl);
   }
+#endif
 }
 
 void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
@@ -242,6 +253,15 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.bind(dispatchCode);
 
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
+#ifdef JS_SANDBOX
+  ScratchI32 scratch(*this);
+  CodeLabel tableCl;
+  masm.mov(&tableCl, scratch);
+  tableCl.target()->bind(theTable->offset());
+  masm.addCodeLabel(tableCl);
+  masm.leal(Operand(switchValue, switchValue, TimesOne), switchValue);
+  masm.jump(BaseIndex(scratch, switchValue, ScalePointer, js::jit::CodeAlignment/4, true /* clobber scratch */));
+#else
   ScratchI32 scratch(*this);
   CodeLabel tableCl;
 
@@ -252,6 +272,7 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
 
   masm.jump(BaseIndex(scratch, switchValue, ScalePointer, 0,
                       true /* clobber scratch */));
+#endif
 #elif defined(JS_CODEGEN_ARM)
   // Flush constant pools: offset must reflect the distance from the MOV
   // to the start of the table; as the address of the MOV is given by the

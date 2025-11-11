@@ -1113,25 +1113,19 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
   if (!Operand(addr).clobberScratch()) {
     Label sandboxed;
     movq(Operand(addr), SandboxScratchReg);
-    rorq(Imm32(8), SandboxScratchReg);
-    shlq(Imm32(8), SandboxScratchReg);
-    shrq(Imm32(8), SandboxScratchReg);
-    push(SandboxScratchReg);
     andq(SandboxMaskReg, SandboxScratchReg);
     andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
     orq(SandboxBaseReg, SandboxScratchReg);
-    cmpq(SandboxScratchReg, Operand(Address(StackPointer, 0)));
+    cmpq(SandboxScratchReg, Operand(addr));
     j(Condition::Equal, &sandboxed);
     breakpoint();
     bind(&sandboxed);
-    pop(Operand(SandboxScratchReg));
   }
 #endif
 #endif
 
   movq(Operand(addr), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
-  rorq(Imm32(8), SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
