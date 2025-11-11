@@ -1130,8 +1130,8 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
 #endif
 
   movq(Operand(addr), SandboxScratchReg);
-  rorq(Imm32(8), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
+  rorq(Imm32(8), SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);

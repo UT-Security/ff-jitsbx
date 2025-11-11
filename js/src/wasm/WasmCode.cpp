@@ -381,6 +381,8 @@ UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
     return nullptr;
   }
 
+  memset(codeBytes.get(), 0xcc, length);
+
   auto segment = js::MakeUnique<LazyStubSegment>(std::move(codeBytes), length);
   if (!segment || !segment->initialize(codeTier)) {
     return nullptr;
