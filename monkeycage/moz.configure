@@ -65,3 +65,17 @@ def js_sandbox_lfi(js_sandbox_type):
 
 set_config("JS_SANDBOX_LFI", js_sandbox_lfi)
 set_define("JS_SANDBOX_LFI", js_sandbox_lfi)
+
+option(
+    "--enable-js-sandbox-verify",
+    default=False,
+    help="{Enable|Disable} the JavaScript sandbox verifier",
+)
+
+@depends("--js-sandbox-verify", when=js_sandbox_lfi)
+def js_sandbox_verify(enable_js_sandbox_verify):
+	if enable_js_sandbox_verify:
+		return True
+
+set_config("JS_SANDBOX_VERIFY", js_sandbox_verify)
+set_define("JS_SANDBOX_VERIFY", js_sandbox_verify)
