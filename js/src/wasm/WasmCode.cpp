@@ -471,6 +471,7 @@ void LazyStubSegment::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
 static void PadCodeForSingleStub(MacroAssembler& masm) {
   // Assume 64B icache line size
   static uint8_t zeroes[64];
+  memset(zeroes, 0xcc, 64);
 
   // The counter serves only to spread the code out, it has no other meaning and
   // can wrap around.
