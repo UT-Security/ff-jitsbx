@@ -9,6 +9,7 @@
 
 #include <type_traits>
 
+#include "ReflectorTable.h"
 #include "monkeycage/CharacterEncoding.h"
 #include "monkeycage/Conversions.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
@@ -38,6 +39,7 @@
 #include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/PrototypeList.h"
+#include "mozilla/dom/ReflectorTable.h"
 #include "mozilla/dom/RemoteObjectProxy.h"
 #include "mozilla/SegmentedVector.h"
 #include "mozilla/ErrorResult.h"
@@ -115,7 +117,26 @@ inline T* UnwrapDOMObject(JSObject* obj) {
              "Don't pass non-DOM objects to this function");
 
   JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
-  return static_cast<T*>(val.toPrivate());
+  return MC::dom::ReflectorTable::verify<T>(MC::AppPointer<void*>(val.toPrivate()));
+}
+
+template <>
+inline void* UnwrapDOMObject(JSObject* obj) {
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+  return val.toPrivate();
+}
+
+//TODO(JS_SANDBOX_DOM_REFLECTORS_UNSAFE) 
+template <>
+inline nsISupports* UnwrapDOMObject(JSObject* obj) {
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+  return static_cast<nsISupports*>(val.toPrivate());
 }
 
 template <class T>
@@ -131,7 +152,40 @@ inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   if (val.isUndefined()) {
     return nullptr;
   }
-  return static_cast<T*>(val.toPrivate());
+  return MC::dom::ReflectorTable::verify<T>(MC::AppPointer<void*>(val.toPrivate()));
+}
+
+template <>
+inline void* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
+  // This is used by the OjectMoved JSClass hook which can be called before
+  // JS_NewObject has returned and so before we have a chance to set
+  // DOM_OBJECT_SLOT to anything useful.
+
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+  if (val.isUndefined()) {
+    return nullptr;
+  }
+  return val.toPrivate();
+}
+
+//TODO(JS_SANDBOX_DOM_REFLECTORS_UNSAFE)
+template <>
+inline nsISupports* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
+  // This is used by the OjectMoved JSClass hook which can be called before
+  // JS_NewObject has returned and so before we have a chance to set
+  // DOM_OBJECT_SLOT to anything useful.
+
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+  if (val.isUndefined()) {
+    return nullptr;
+  }
+  return static_cast<nsISupports*>(val.toPrivate());
 }
 
 inline const DOMJSClass* GetDOMClass(const JSClass* clasp) {
@@ -2707,6 +2761,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     aReflector.set(
         js::NewProxyObject(aCx, aHandler, aExpandoValue, aProto, options));
     if (aReflector) {
+      MC::dom::ReflectorTable::addRef<T>(aNative);
       js::SetProxyReservedSlot(aReflector, DOM_OBJECT_SLOT,
                                JS::PrivateValue(aNative));
       mNative = aNative;
@@ -2724,6 +2779,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
                     JS::MutableHandle<JSObject*> aReflector) {
     aReflector.set(JS_NewObjectWithGivenProto(aCx, aClass, aProto));
     if (aReflector) {
+      MC::dom::ReflectorTable::addRef<T>(aNative);
       JS::SetReservedSlot(aReflector, DOM_OBJECT_SLOT,
                           JS::PrivateValue(aNative));
       mNative = aNative;
@@ -2962,6 +3018,7 @@ bool CreateGlobal(MCContext* aCx, T* aNative, nsWrapperCache* aCache,
 
   {
     JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::PrivateValue(aNative));
+    MC::dom::ReflectorTable::addRef<T>(aNative);
     NS_ADDREF(aNative);
 
     aCache->SetWrapper(aGlobal);

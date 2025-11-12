@@ -157,6 +157,7 @@ class WebIDLCodegenManager(LoggingMixin):
         "UnionTypes.h",
         "WebIDLPrefs.h",
         "WebIDLSerializable.h",
+        "TypeTags.h",
     }
 
     # Global parser derived definition files.
