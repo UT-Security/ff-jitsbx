@@ -79,3 +79,17 @@ def js_sandbox_verify(enable_js_sandbox_verify):
 
 set_config("JS_SANDBOX_VERIFY", js_sandbox_verify)
 set_define("JS_SANDBOX_VERIFY", js_sandbox_verify)
+
+option(
+	"--enable-js-sandbox-dom-reflectors",
+	default=False,
+	help="{Enable|Disable} validating DOM Reflector JavaScript objects"
+)
+
+@depends("--js-sandbox-dom-reflectors", when=js_sandbox)
+def js_sandbox_dom_reflectors(enable_js_sandbox_dom_reflectors):
+	if enable_js_sandbox_dom_reflectors:
+		return True
+
+set_config("JS_SANDBOX_DOM_REFLECTORS", js_sandbox_dom_reflectors)
+set_define("JS_SANDBOX_DOM_REFLECTORS", js_sandbox_dom_reflectors)

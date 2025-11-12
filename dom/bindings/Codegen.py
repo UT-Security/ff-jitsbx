@@ -2195,7 +2195,7 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
 
 
 def finalizeHook(descriptor, hookName, gcx, obj):
-    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
+    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\nMC::dom::ReflectorTable::decRef<%s>(self);" % (obj, descriptor.nativeType)
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
             """
@@ -10695,7 +10695,7 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
         call = CGMethodCall(
             nativeName, self.method.isStatic(), self.descriptor, self.method
         ).define()
-        prefix = """void* void_self = t_void_self.UNSAFE_unverified();\n"""
+        prefix = """"""
         if self.method.getExtendedAttribute("CrossOriginCallable"):
             for signature in self.method.signatures():
                 # non-undefined signatures would require us to deal with remote proxies for the
@@ -10708,14 +10708,13 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
             prefix = fill(
                 """
-                void* void_self = t_void_self.UNSAFE_unverified();
                 // CrossOriginThisPolicy::UnwrapThisObject stores a ${nativeType}::RemoteProxy in void_self
                 // if obj is a proxy with a RemoteObjectProxy handler for the right type, or else it stores
                 // a ${nativeType}. If we get here from the JIT (without going through UnwrapThisObject) we
                 // know void_self contains a ${nativeType}; we don't have special cases in the JIT to deal
                 // with remote object proxies.
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
-                    auto* self = static_cast<${nativeType}::RemoteProxy*>(void_self);
+                    auto* self = static_cast<${nativeType}::RemoteProxy*>(t_void_self.UNSAFE_unverified());
                     $*{call}
                 }
                 """,
@@ -10725,7 +10724,7 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
             )
         return prefix + fill(
             """
-            auto* self = static_cast<${nativeType}*>(void_self);
+            auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
             $*{call}
             """,
             nativeType=self.descriptor.nativeType,
@@ -10837,8 +10836,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def definition_body(self):
         ret = fill(
             """
-            void* void_self = t_void_self.UNSAFE_unverified();
-            auto* self = static_cast<${nativeType}*>(void_self);
+            auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
             MC::Rooted<JSObject*> result(cx, JS_NewPlainObject(cx));
             if (!result) {
               return false;
@@ -11218,8 +11216,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     def definition_body(self):
         prefix = fill(
             """
-            void* void_self = t_void_self.UNSAFE_unverified();
-            auto* self = static_cast<${nativeType}*>(void_self);
+            auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
             """,
             nativeType=self.descriptor.nativeType,
         )
@@ -11262,8 +11259,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 fill(
                     """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
-                    void* void_self = t_void_self.UNSAFE_unverified();                    
-                    ${nativeType}::RemoteProxy* self = static_cast<${nativeType}::RemoteProxy*>(void_self);
+                    ${nativeType}::RemoteProxy* self = static_cast<${nativeType}::RemoteProxy*>(t_void_self.UNSAFE_unverified());
                     $*{call}
                 }
             """,
@@ -11465,7 +11461,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor, self.attr)
         type = self.attr.type
         call = CGSetterCall(type, nativeName, self.descriptor, self.attr).define()
-        prefix = """void* void_self = t_void_self.UNSAFE_unverified();\n"""
+        prefix = """"""
         if self.attr.getExtendedAttribute("CrossOriginWritable"):
             if type.isGeckoInterface() and not type.unroll().inner.isExternal():
                 # a setter taking a Gecko interface would require us to deal with remote
@@ -11480,7 +11476,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
             prefix += fill(
                 """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
-                    auto* self = static_cast<${nativeType}::RemoteProxy*>(void_self);
+                    auto* self = static_cast<${nativeType}::RemoteProxy*>(t_void_self.UNSAFE_unverified());
                     $*{call}
                 }
                 """,
@@ -11491,7 +11487,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
 
         return prefix + fill(
             """
-            auto* self = static_cast<${nativeType}*>(void_self);
+            auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
             $*{call}
             """,
             nativeType=self.descriptor.nativeType,
@@ -14635,7 +14631,7 @@ class CGProxyUnwrap(CGAbstractMethod):
               obj = js::UncheckedUnwrap(obj);
             }
             MOZ_ASSERT(IsProxy(obj));
-            return static_cast<${type}*>(js::GetProxyReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate());
+            return MC::dom::ReflectorTable::verify<${type}>(MC::AppPointer<void*>(js::GetProxyReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate()));
             """,
             type=self.descriptor.nativeType,
         )
@@ -23168,6 +23164,160 @@ class GlobalGenRoots:
     To generate code, call the method associated with the target, and then
     call the appropriate define/declare method.
     """
+
+    @staticmethod
+    def TypeTags(config):
+        customNeeded = [
+            "mozilla::dom::WorkerPrivate",
+            "mozilla::extensions::MatchPatternSet",
+        ]
+
+        def buildDescriptorTree(descriptors, other):
+            """
+            builds a descriptor forest where descriptor Y is a child of X 
+            iff X is Y's parent
+            """
+            descTree = { }
+            descRoots = []
+            for d in descriptors:
+                if d.interface.isExternal() or not d.parentPrototypeName:
+                    descRoots.append(d.nativeType)
+                else:
+                    parentNative = d.getDescriptor(d.parentPrototypeName).nativeType
+                    if parentNative not in descTree:
+                        descTree[parentNative] = [d.nativeType]
+                    else:
+                        descTree[parentNative].append(d.nativeType)
+            descRoots.extend(other)
+            return (descTree, descRoots)
+
+        def generateForwardDecs(descriptors, other):
+            """
+            Generates forward declarations for all classes
+            that require type tags
+            """                
+            namespaceSearch = re.compile("([a-z0-9A-Z_]+)::")
+            def generateForwardDec(nativeType):
+                namespaces = []
+                cur = nativeType
+                while (match := namespaceSearch.match(cur)):
+                    nspace = match[0]
+                    cur = cur.removeprefix(nspace)
+                    namespaces.append(nspace[:-2])
+                return CGNamespace.build(
+                    namespaces, 
+                    CGGeneric(declare=f"class %s;\n" % cur)
+                )
+            forwardDecs = []
+            for d in descriptors:
+                cur = d.nativeType
+                #IterableIterator relies on other things in the header file
+                if "IterableIterator" in cur:
+                    continue
+                forwardDecs.append(generateForwardDec(cur))
+            for d in other:
+                forwardDecs.append(generateForwardDec(d))
+            return CGList(forwardDecs)
+
+        def genTypeTags(descTree, descRoots):
+            """
+            Generates type tags for each native type in the descriptor tree.
+            Returns a dictionary of type names -> tag ranges. Tag ranges are inclusive on both ends
+            """
+            def genTypeTag(curTag, descToTags, curDesc):
+                """
+                Takes in next available tag and current descriptor to tag as arguments, 
+                returns next available tag
+                """
+                if not curDesc in descTree.keys() or not descTree[curDesc]:
+                    descToTags[curDesc] = (curTag, curTag)
+                    return curTag + 1
+                else:
+                    starting = curTag
+                    curTag = curTag + 1
+                    for d in descTree[curDesc]:
+                        if d == curDesc:
+                            continue
+                        curTag = genTypeTag(curTag, descToTags, d)
+                    descToTags[curDesc] = (starting, curTag-1)
+                    return curTag
+            descToTags = { }
+            #we reserve 0 as a permanent invalid tag
+            curTag = 1
+            for d in descRoots:
+                curTag = genTypeTag(curTag, descToTags, d)
+            return descToTags
+
+        def genSpecializationForType(nativeType, curTag):
+            start, end = curTag
+            if start == end:
+                verifyBody = f"return oTag == {start};\n"
+            else:
+                verifyBody = f"return (oTag >= {start} && oTag <= {end});\n"
+            verify = ClassMethod("verify", 
+                                 "bool",
+                                 args=[Argument("uint32_t", "oTag")],
+                                 inline=True,
+                                 static=True, 
+                                 bodyInHeader=True,
+                                 body=dedent(verifyBody))
+            getTag = ClassMethod("getTag",
+                                 "uint32_t",
+                                 args=[],
+                                 inline=True,
+                                 static=True,
+                                 bodyInHeader=True,
+                                 body=f"return {start};\n")
+            specClass = CGClass("TagVerify", 
+                                templateArgs=[CGGeneric()],
+                                templateSpecialization=[nativeType],
+                                methods=[verify, getTag])
+            return specClass
+
+        descTree, descRoots = buildDescriptorTree(config.descriptors, customNeeded)
+        descToTags = genTypeTags(descTree, descRoots)
+        desctoTagData = [genSpecializationForType(nativeType, tag) for nativeType, tag in descToTags.items()]
+        forwardDecs = generateForwardDecs(config.descriptors, customNeeded)
+        verifyBad = ClassMethod("verify",
+                                "bool",
+                                args=[Argument("uint32_t", "oTag")],
+                                inline=True,
+                                static=True,
+                                bodyInHeader=True,
+                                body='MOZ_CRASH("Unknown AppPtr Tag");')
+        getTag = ClassMethod("getTag",
+                             "uint32_t",
+                             args=[],
+                             inline=True,
+                             static=True,
+                             bodyInHeader=True,
+                             body='return 0;')
+        verifyTemplate = CGClass("TagVerify",
+                                 templateArgs=[CGGeneric(declare="typename T")],
+                                 methods=[verifyBad, getTag])
+        iterForwardDec = CGGeneric(declare=dedent("""
+        namespace mozilla::dom::binding_detail {
+template <typename T>
+class AsyncIterableIteratorWithReturn;
+
+template <typename T>
+class AsyncIterableIteratorNoReturn;
+
+template <typename T, bool NeedReturnMethod>
+using AsyncIterableIteratorNative =
+    std::conditional_t<NeedReturnMethod, AsyncIterableIteratorWithReturn<T>,
+                       AsyncIterableIteratorNoReturn<T>>;
+}                               
+namespace mozilla::dom {
+template<typename T>
+class IterableIterator;
+} // namespace mozilla::dom
+        """))
+        forwardDecs.append(iterForwardDec)
+        verifyTemplates = CGList([verifyTemplate])
+        verifyTemplates.extend(desctoTagData)
+        forwardDecs.append(CGNamespace("mozilla::dom", verifyTemplates))
+        return forwardDecs
 
     @staticmethod
     def GeneratedAtomList(config):

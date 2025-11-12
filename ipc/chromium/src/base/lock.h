@@ -66,9 +66,9 @@ class AutoLock {
  public:
   struct AlreadyAcquired {};
 
-  explicit AutoLock(Lock& lock) : lock_(lock) { lock_.Acquire(); }
+  explicit AutoLock(::Lock& lock) : lock_(lock) { lock_.Acquire(); }
 
-  AutoLock(Lock& lock, const AlreadyAcquired&) : lock_(lock) {
+  AutoLock(::Lock& lock, const AlreadyAcquired&) : lock_(lock) {
     lock_.AssertAcquired();
   }
 
@@ -78,7 +78,7 @@ class AutoLock {
   }
 
  private:
-  Lock& lock_;
+  ::Lock& lock_;
   DISALLOW_COPY_AND_ASSIGN(AutoLock);
 };
 
@@ -86,7 +86,7 @@ class AutoLock {
 // constructor, and re-Acquire() it in the destructor.
 class AutoUnlock {
  public:
-  explicit AutoUnlock(Lock& lock) : lock_(lock) {
+  explicit AutoUnlock(::Lock& lock) : lock_(lock) {
     // We require our caller to have the lock.
     lock_.AssertAcquired();
     lock_.Release();
@@ -95,7 +95,7 @@ class AutoUnlock {
   ~AutoUnlock() { lock_.Acquire(); }
 
  private:
-  Lock& lock_;
+  ::Lock& lock_;
   DISALLOW_COPY_AND_ASSIGN(AutoUnlock);
 };
 

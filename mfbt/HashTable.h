@@ -365,6 +365,9 @@ class HashMap {
   // not have been mutated in the interim.
   void remove(Ptr aPtr) { mImpl.remove(aPtr); }
 
+  // remove() but does not resize table if capacity is too high
+  void removeNoResize(Ptr aPtr) { mImpl.removeNoResize(aPtr); }
+
   // Remove all keys/values without changing the capacity.
   void clear() { mImpl.clear(); }
 
@@ -2249,6 +2252,14 @@ class HashTable : private AllocPolicy {
     MOZ_ASSERT(aPtr.mGeneration == generation());
     remove(aPtr.mSlot);
     shrinkIfUnderloaded();
+  }
+
+  void removeNoResize(Ptr aPtr) {
+    MOZ_ASSERT(mTable);
+    ReentrancyGuard g(*this);
+    MOZ_ASSERT(aPtr.found());
+    MOZ_ASSERT(aPtr.mGeneration == generation());
+    remove(aPtr.mSlot);
   }
 
   void rekeyWithoutRehash(Ptr aPtr, const Lookup& aLookup, const Key& aKey) {

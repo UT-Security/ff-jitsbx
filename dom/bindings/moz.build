@@ -48,6 +48,7 @@ EXPORTS.mozilla.dom += [
     "PrimitiveConversions.h",
     "ProxyHandlerUtils.h",
     "Record.h",
+    "ReflectorTable.h",
     "RemoteObjectProxy.h",
     "RootedDictionary.h",
     "RootedRecord.h",

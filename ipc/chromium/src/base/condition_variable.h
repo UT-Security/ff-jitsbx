@@ -86,7 +86,7 @@ class TimeDelta;
 class ConditionVariable {
  public:
   // Construct a cv for use with ONLY one user lock.
-  explicit ConditionVariable(Lock* user_lock);
+  explicit ConditionVariable(::Lock* user_lock);
 
   ~ConditionVariable();
 
