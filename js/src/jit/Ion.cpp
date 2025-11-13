@@ -577,7 +577,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
 
-#if defined(JS_SANDBOX_CFI_MASKS)
+#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
   uint8_t headerContent[JitCodeHeaderSize] = {
     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
     0x41, 0x5b,                                                  // pop %r11

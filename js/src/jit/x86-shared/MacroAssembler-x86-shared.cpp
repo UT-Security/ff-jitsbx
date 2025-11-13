@@ -1139,7 +1139,7 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
 // Return.
 #if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
 void MacroAssemblerX86Shared::ret() {
-#ifdef JS_SANDBOX_CFI_MASKS
+#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
 #ifdef DEBUG
   Label sandboxed;
   movq(Operand(StackPointer, 0), SandboxScratchReg);
@@ -1155,7 +1155,7 @@ void MacroAssemblerX86Shared::ret() {
 
   pop(SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
+#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
   orq(SandboxBaseReg, SandboxScratchReg);
@@ -1164,7 +1164,7 @@ void MacroAssemblerX86Shared::ret() {
 }
 
 void MacroAssemblerX86Shared::retn(Imm32 n) {
-#ifdef JS_SANDBOX_CFI_MASKS
+#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
 #ifdef DEBUG
   Label sandboxed;
   movq(Operand(StackPointer, 0), SandboxScratchReg);
@@ -1182,7 +1182,7 @@ void MacroAssemblerX86Shared::retn(Imm32 n) {
   // Remove the size of the return address.
   addq(Imm32(n.value - sizeof(void*)), StackPointer);
   AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
+#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
   orq(SandboxBaseReg, SandboxScratchReg);
