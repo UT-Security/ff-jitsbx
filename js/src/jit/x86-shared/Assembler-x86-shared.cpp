@@ -109,6 +109,39 @@ void AssemblerX86Shared::processDataLabels(uint8_t* rawCode, JitCode* code) {
   dataJitSection_.clear();
 }
 
+#ifdef JS_SANDBOX_LFI
+void AssemblerX86Shared::processCodeLabelsInPlace(uint8_t* rawCode) {
+  uint8_t* rawInPlace = (uint8_t*)masm.buffer();
+  for (const CodeLabel& label : codeLabels_) {
+    BindInPlace(rawInPlace, rawCode, label);
+  }
+}
+
+void AssemblerX86Shared::processDataLabelsInPlace(uint8_t* rawCode, JitCode* code) {
+  // Set the absolute address of each GC::Cell* in the code.
+  uint8_t* rawInPlace = (uint8_t*)masm.buffer();
+  uint8_t* dataPtr = code->dataSection();
+  size_t index = 0;
+
+  for (size_t i = 0; i < dataValueSection_.length(); i++) {
+    intptr_t offset = dataValueSection_[i].first.offset();
+    X86Encoding::SetPointer(rawInPlace + offset, &dataPtr[index]);
+    index += sizeof(Value);
+  }
+  dataValueSection_.clear();
+  
+  for (size_t i = 0; i < dataGCSection_.length(); i++) {
+    intptr_t offset = dataGCSection_[i].first.offset();
+    X86Encoding::SetPointer(rawInPlace + offset, &dataPtr[index]);
+    index += sizeof(gc::Cell*);
+  }
+  dataGCSection_.clear();
+
+  // No need for patching pointers for JitCode entry points as they are baked in.
+  dataJitSection_.clear();
+}
+#endif
+
 AssemblerX86Shared::Condition AssemblerX86Shared::InvertCondition(
     Condition cond) {
   switch (cond) {

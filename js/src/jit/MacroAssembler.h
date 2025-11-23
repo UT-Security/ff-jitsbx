@@ -5366,6 +5366,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Fix up the code pointers to be written for locations where profilerCallSite
   // emitted moves of RIP to a register.
   void linkProfilerCallSites(JitCode* code);
+#ifdef JS_SANDBOX_LFI
+  void linkProfilerCallSitesInPlace(JitCode* code);
+#endif
 
   // This field is used to manage profiling instrumentation output. If
   // provided and enabled, then instrumentation will be emitted around call
@@ -5413,6 +5416,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   bool useDataSection() const { return useDataSection_; }
   void finish();
   void link(JitCode* code);
+#ifdef JS_SANDBOX_LFI
+  void linkInPlace(JitCode* code);
+#endif
 
   void assumeUnreachable(const char* output);
 

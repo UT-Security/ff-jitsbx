@@ -614,7 +614,9 @@ void JitCode::copyFrom(MacroAssembler& masm) {
 
   JitCode* self = this;
   memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
+#ifndef JS_SANDBOX_LFI
   memcpy(header(), &headerContent, JitCodeHeaderSize);
+#endif
 
   // Copy data and patch the code.
   MOZ_ASSERT(executable_.desc.rwSize >=
@@ -626,12 +628,21 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   masm.copyDataSection(dataSection());
   masm.copyConstantsTable(raw(), constantsTable());
 
+#ifdef JS_SANDBOX_LFI
+  // Copy the code.
+  insnSize_ = masm.instructionsSize();
+  masm.executableCopyInPlace(raw());
+
+  masm.processCodeLabelsInPlace(raw());
+  masm.processDataLabelsInPlace(raw(), this);
+#else
   // Copy the code.
   insnSize_ = masm.instructionsSize();
   masm.executableCopy(raw());
 
   masm.processCodeLabels(raw());
   masm.processDataLabels(raw(), this);
+#endif
 }
 
 void JitCode::traceChildren(JSTracer* trc) {

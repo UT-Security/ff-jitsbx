@@ -3393,6 +3393,13 @@ void MacroAssembler::link(JitCode* code) {
   linkProfilerCallSites(code);
 }
 
+#ifdef JS_SANDBOX_LFI
+void MacroAssembler::linkInPlace(JitCode* code) {
+  MOZ_ASSERT(!oom());
+  linkProfilerCallSitesInPlace(code);
+}
+#endif
+
 MacroAssembler::AutoProfilerCallInstrumentation::
     AutoProfilerCallInstrumentation(MacroAssembler& masm) {
   if (!masm.emitProfilingInstrumentation_) {
@@ -3424,6 +3431,17 @@ void MacroAssembler::linkProfilerCallSites(JitCode* code) {
                             ImmPtr((void*)-1));
   }
 }
+
+#ifdef JS_SANDBOX_LFI
+void MacroAssembler::linkProfilerCallSitesInPlace(JitCode* code) {
+  for (size_t i = 0; i < profilerCallSites_.length(); i++) {
+    CodeOffset offset = profilerCallSites_[i];
+    CodeLocationLabel location(code, offset);
+    PatchDataWithValueCheckInPlace((uint8_t*)masm.buffer() + offset.offset(),  location, ImmPtr(location.raw()),
+                            ImmPtr((void*)-1));
+  }
+}
+#endif
 
 void MacroAssembler::alignJitStackBasedOnNArgs(Register nargs,
                                                bool countIncludesThis) {

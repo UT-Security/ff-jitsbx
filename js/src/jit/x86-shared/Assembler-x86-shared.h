@@ -703,6 +703,10 @@ class AssemblerX86Shared : public AssemblerShared {
   void executableCopy(void* buffer);
   void processCodeLabels(uint8_t* rawCode);
   void processDataLabels(uint8_t* rawCode, JitCode* code);
+#ifdef JS_SANDBOX_LFI
+  void processCodeLabelsInPlace(uint8_t* rawCode);
+  void processDataLabelsInPlace(uint8_t* rawCode, JitCode* code);
+#endif
   void copyJumpRelocationTable(uint8_t* dest);
   void copyDataRelocationTable(uint8_t* dest);
   void copyDataSection(uint8_t* dest);
@@ -1568,6 +1572,16 @@ class AssemblerX86Shared : public AssemblerShared {
       X86Encoding::SetPointer(raw + offset, raw + target);
     }
   }
+
+#ifdef JS_SANDBOX_LFI
+  static void BindInPlace(uint8_t* raw_in_place, uint8_t* raw, const CodeLabel& label) {
+    if (label.patchAt().bound()) {
+      intptr_t offset = label.patchAt().offset();
+      intptr_t target = label.target().offset();
+      X86Encoding::SetPointer(raw_in_place + offset, raw + target);
+    }
+  }
+#endif
 
   void ret() {
     MOZ_ASSERT(hasCreator());
@@ -6125,6 +6139,26 @@ class AssemblerX86Shared : public AssemblerShared {
     PatchDataWithValueCheck(data, PatchedImmPtr(newData.value),
                             PatchedImmPtr(expectedData.value));
   }
+#ifdef JS_SANDBOX_LFI
+  static void PatchDataWithValueCheckInPlace(uint8_t* data_in_place,
+                                             CodeLocationLabel data,
+                                             PatchedImmPtr newData,
+                                             PatchedImmPtr expectedData) {
+    // The pointer given is a pointer to *after* the data.
+    uint8_t* ptr = data_in_place - sizeof(uintptr_t);
+    MOZ_ASSERT(mozilla::LittleEndian::readUintptr(ptr) ==
+               uintptr_t(expectedData.value));
+    mozilla::LittleEndian::writeUintptr(ptr, uintptr_t(newData.value));
+  }
+  static void PatchDataWithValueCheckInPlace(uint8_t* data_in_place,
+                                             CodeLocationLabel data,
+                                             ImmPtr newData,
+                                             ImmPtr expectedData) {
+    PatchDataWithValueCheckInPlace(data_in_place, data,
+                                   PatchedImmPtr(newData.value),
+                                   PatchedImmPtr(expectedData.value));
+  }
+#endif
 
   static uint32_t NopSize() { return 1; }
   static uint8_t* NextInstruction(uint8_t* cur, uint32_t* count) {

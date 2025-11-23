@@ -41,6 +41,30 @@
 #  include <sys/mman.h>
 #  include <unistd.h>
 #endif
+#ifdef JS_SANDBOX_LFI
+#  include <syscall.h>
+#define SYS_jitcode_mmap 441
+#define SYS_jitcode_munmap 444
+
+#define SYS_jitcode_commit 445
+#define SYS_jitcode_decommit 446
+
+static void* sys_jitcode_mmap(void* start, size_t exec_length, size_t data_length) {
+  return (void*)syscall(SYS_jitcode_mmap, start, exec_length, data_length);
+}
+
+static int sys_jitcode_munmap(void* start, size_t exec_length, size_t data_length) {
+  return syscall(SYS_jitcode_munmap, start, exec_length, data_length);
+}
+
+static int sys_jitcode_commit(void* start, size_t length) {
+  return syscall(SYS_jitcode_commit, start, length);
+}
+
+static int sys_jitcode_decommit(void* start, size_t length) {
+  return syscall(SYS_jitcode_decommit, start, length);
+}
+#endif
 
 #ifdef MOZ_VALGRIND
 #  include <valgrind/valgrind.h>
@@ -487,11 +511,15 @@ static void* ComputeRandomAllocationAddress() {
 static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
   // Note that randomAddr is just a hint: if the address is not available
   // mmap will pick a different address.
-  size_t bytes = xBytes + rwBytes;
   void* randomAddr = ComputeRandomAllocationAddress();
+#ifdef JS_SANDBOX_LFI
+  void* p = sys_jitcode_mmap(randomAddr, xBytes, rwBytes);
+#else
+  size_t bytes = xBytes + rwBytes;
   void* p = MozTaggedAnonymousMmap(randomAddr, bytes, PROT_NONE,
                                    MAP_NORESERVE | MAP_PRIVATE | MAP_ANON, -1,
                                    0, "js-jit-memory");
+#endif
   if (p == MAP_FAILED) {
     return nullptr;
   }
@@ -499,7 +527,11 @@ static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
 }
 
 static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
+#ifdef JS_SANDBOX_LFI
+  mozilla::DebugOnly<int> result = sys_jitcode_munmap(addr, xBytes, rwBytes);
+#else
   mozilla::DebugOnly<int> result = munmap(addr, xBytes + rwBytes);
+#endif
   MOZ_ASSERT(!result || errno == ENOMEM);
 }
 
@@ -553,6 +585,27 @@ static void DecommitPages(void* addr, size_t bytes) {
                                    MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0,
                                    "js-executable-memory");
   MOZ_RELEASE_ASSERT(addr == p);
+}
+
+
+[[nodiscard]] static bool CommitExecutablePages(void* addr, size_t bytes,
+                                      ProtectionSetting protection) {
+#ifdef JS_SANDBOX_LFI
+  if (sys_jitcode_commit(addr, bytes) != 0) {
+    return false;
+  }
+  return true;
+#else
+  return CommitPages(addr, bytes, protection);
+#endif
+}
+
+static void DecommitExecutablePages(void* addr, size_t bytes) {
+#ifdef JS_SANDBOX_LFI
+  MOZ_RELEASE_ASSERT(sys_jitcode_decommit(addr, bytes) == 0);
+#else
+  return DecommitPages(addr, bytes);
+#endif
 }
 #endif
 
@@ -840,7 +893,7 @@ void* ProcessJitMemory::xAllocate(size_t bytes,
   }
 
   // Commit the pages after releasing the lock.
-  if (!CommitPages(p, bytes, protection)) {
+  if (!CommitExecutablePages(p, bytes, protection)) {
     xDeallocate(p, bytes, /* decommit = */ false);
     return nullptr;
   }
@@ -867,7 +920,7 @@ void ProcessJitMemory::xDeallocate(void* addr, size_t bytes,
   // Decommit before taking the lock.
   MOZ_MAKE_MEM_NOACCESS(addr, bytes);
   if (decommit) {
-    DecommitPages(addr, bytes);
+    DecommitExecutablePages(addr, bytes);
   }
 
   LockGuard<Mutex> guard(lock_);

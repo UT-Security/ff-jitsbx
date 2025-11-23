@@ -226,6 +226,45 @@ void Assembler::executableCopy(uint8_t* buffer) {
   }
 }
 
+#ifdef JS_SANDBOX_LFI
+void Assembler::executableCopyInPlace(uint8_t* buffer) {
+  for (RelativePatch& rp : codeJumps_) {
+    uint8_t* src = buffer + rp.offset;
+    uint8_t* src_in_place = (uint8_t*)masm.buffer() + rp.offset;
+    MOZ_ASSERT(rp.target);
+
+    MOZ_RELEASE_ASSERT(X86Encoding::CanRelinkJump(src, rp.target));
+    X86Encoding::SetRel32InPlace(src_in_place, src, rp.target);
+  }
+
+  for (size_t i = 0; i < extendedJumps_.length(); i++) {
+    RelativePatch& rp = extendedJumps_[i];
+    uint8_t* src = buffer + rp.offset;
+    uint8_t* src_in_place = (uint8_t*)masm.buffer() + rp.offset;
+    MOZ_ASSERT(rp.target);
+
+    if (X86Encoding::CanRelinkJump(src, rp.target)) {
+      X86Encoding::SetRel32InPlace(src_in_place, src, rp.target);
+    } else {
+      // An extended jump table must exist, and its offset must be in
+      // range.
+      MOZ_ASSERT(extendedJumpTable_);
+      MOZ_ASSERT((extendedJumpTable_ + i * SizeOfJumpTableEntry) <=
+                 size() - SizeOfJumpTableEntry);
+
+      // Patch the jump to go to the extended jump entry.
+      uint8_t* entry = buffer + extendedJumpTable_ + i * SizeOfJumpTableEntry;
+      uint8_t* entry_in_place = (uint8_t*)masm.buffer() + extendedJumpTable_ + i * SizeOfJumpTableEntry;
+      X86Encoding::SetRel32InPlace(src_in_place, src, entry);
+
+      // Now patch the pointer, note that we need to align it to
+      // *after* the extended jump, i.e. after the 64-bit immedate.
+      X86Encoding::SetPointer(entry_in_place + OffsetInJumpTableEntry, rp.target);
+    }
+  }
+}
+#endif
+
 class RelocationIterator {
   CompactBufferReader reader_;
   uint32_t offset_ = 0;

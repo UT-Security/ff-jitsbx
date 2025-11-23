@@ -80,8 +80,13 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     code->finalize(nullptr);
     return fail(cx);
   }
+#ifdef JS_SANDBOX_LFI
+  masm.linkInPlace(code);
+  code->copyFrom(masm);
+#else
   code->copyFrom(masm);
   masm.link(code);
+#endif
   if (masm.embedsNurseryPointers()) {
     cx->runtime()->gc.storeBuffer().putWholeCell(code);
   }

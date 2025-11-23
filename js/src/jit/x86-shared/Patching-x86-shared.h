@@ -40,6 +40,16 @@ inline void SetRel32(void* from, void* to, uint32_t trailing = 0) {
   SetInt32(from, offset, trailing);
 }
 
+#ifdef JS_SANDBOX_LFI
+inline void SetRel32InPlace(void* from_in_place, void* from, void* to, uint32_t trailing = 0) {
+  intptr_t offset =
+      reinterpret_cast<intptr_t>(to) - reinterpret_cast<intptr_t>(from);
+  MOZ_RELEASE_ASSERT(offset == static_cast<int32_t>(offset),
+                     "offset is too great for a 32-bit relocation");
+  SetInt32(from_in_place, offset, trailing);
+}
+#endif
+
 inline void* GetRel32Target(void* where) {
   int32_t rel = GetInt32(where);
   return (char*)where + rel;
