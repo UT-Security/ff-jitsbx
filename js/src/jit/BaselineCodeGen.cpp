@@ -6840,8 +6840,13 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
     // Patch loads now that we know the tableswitch base address.
     CodeLocationLabel tableLoc(code, CodeOffset(tableOffset_));
     for (CodeOffset off : tableLabels_) {
+#ifdef JS_SANDBOX_LFI
+      masm.patchNearAddressMoveInPlace(off, CodeLocationLabel(code, off),
+                                           tableLoc);
+#else
       MacroAssembler::patchNearAddressMove(CodeLocationLabel(code, off),
                                            tableLoc);
+#endif
     }
 
     perfSpewer_.saveProfile(code);

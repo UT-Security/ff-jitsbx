@@ -383,6 +383,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   size_t instructionsSize() const { return size(); }
 
+#ifdef JS_SANDBOX_LFI
+  uint8_t* buffer() { return (uint8_t*)masm.buffer(); }
+#endif
+
   CompileRealm* realm() const {
     MOZ_ASSERT(maybeRealm_);
     return maybeRealm_;
@@ -681,6 +685,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   static void patchNearAddressMove(CodeLocationLabel loc,
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
+#ifdef JS_SANDBOX_LFI
+  void patchNearAddressMoveInPlace(CodeOffset loc_in_place,
+                                          CodeLocationLabel loc,
+                                          CodeLocationLabel target) DEFINED_ON(x64);
+#endif
   void patchNearAddressMove(CodeOffset loc, CodeOffset target) DEFINED_ON(x64);
 
  public:

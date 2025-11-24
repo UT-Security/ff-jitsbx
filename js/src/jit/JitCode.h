@@ -20,6 +20,26 @@
 #include "js/TraceKind.h"  // JS::TraceKind
 #include "js/UbiNode.h"    // ubi::{TracerConcrete, Size, CourseType}
 
+#ifdef JS_SANDBOX_LFI
+#  include <syscall.h>
+#  include <unistd.h>
+#define SYS_jitcode_create 442
+#define SYS_jitcode_delete 443
+#define SYS_jitcode_create2 447
+
+static int sys_jitcode_create(void* addrp, void* bufp, size_t length) {
+  return syscall(SYS_jitcode_create, addrp, bufp, length);
+}
+
+static int sys_jitcode_create2(void* addrp, void* bufp1, size_t length1, void* bufp2, size_t length2) {
+  return syscall(SYS_jitcode_create2, addrp, bufp1, length1, bufp2, length2);
+}
+
+static int sys_jitcode_delete(void* addrp, size_t length) {
+  return syscall(SYS_jitcode_delete, addrp, length);
+}
+#endif
+
 namespace js {
 namespace jit {
 
@@ -139,7 +159,11 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
     return JS_DATA_TO_FUNC_PTR(T, raw());
   }
 
+#ifdef JS_SANDBOX_LFI
+  uint8_t* copyFrom(MacroAssembler& masm);
+#else
   void copyFrom(MacroAssembler& masm);
+#endif
 
   static JitCode* FromExecutable(uint8_t* entry) {
     // The JitCode pointer associated with this entry point is stored in the

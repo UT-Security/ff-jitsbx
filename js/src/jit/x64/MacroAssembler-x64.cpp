@@ -1756,6 +1756,19 @@ void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
   PatchWrite_Imm32(loc, Imm32(off));
 }
 
+#ifdef JS_SANDBOX_LFI
+void MacroAssembler::patchNearAddressMoveInPlace(CodeOffset offset,
+                                                 CodeLocationLabel loc,
+                                                 CodeLocationLabel target) {
+  ptrdiff_t off = target - loc;
+  MOZ_ASSERT(off > ptrdiff_t(INT32_MIN));
+  MOZ_ASSERT(off < ptrdiff_t(INT32_MAX));
+
+  CodeLocationLabel loc_in_place((uint8_t*)masm.buffer() + offset.offset());
+  PatchWrite_Imm32(loc_in_place, Imm32(off));
+}
+#endif
+
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
                                        Register64 boundsCheckLimit, Label* ok) {
   cmpPtr(index.reg, boundsCheckLimit.reg);

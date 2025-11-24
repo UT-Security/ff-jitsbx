@@ -36,8 +36,27 @@ class Linker {
   }
 
  public:
+#ifdef JS_SANDBOX_LFI
+  uint8_t* header;
+  mozilla::Maybe<JS::Rooted<JitCode*>> code;
+#endif
+
   // Construct a linker with a rooted macro assembler.
   explicit Linker(MacroAssembler& masm) : masm(masm) { masm.finish(); }
+
+  ~Linker() {
+#ifdef JS_SANDBOX_LFI
+    if (header && code) {
+      sys_jitcode_create2(code->get()->header(), header,
+                          js::jit::JitCodeHeaderSize, masm.buffer(),
+                          masm.execSize());
+    }
+
+    if (header) {
+      free(header);
+    }
+#endif
+  }
 
   // Create a new JitCode object and populate it with the contents of the
   // macro assember buffer.
