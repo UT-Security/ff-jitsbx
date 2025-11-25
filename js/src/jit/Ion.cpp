@@ -573,11 +573,7 @@ template JitCode* JitCode::New<NoGC>(JSContext* cx, Executable&& exec,
                                      uint32_t headerSize);
 
 
-#ifdef JS_SANDBOX_LFI
-uint8_t* JitCode::copyFrom(MacroAssembler& masm) {
-#else
 void JitCode::copyFrom(MacroAssembler& masm) {
-#endif
   // As long as JitCode isn't moveable, we can avoid tracing this and
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
@@ -620,8 +616,8 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   JitCode* self = this;
   memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
 #ifdef JS_SANDBOX_LFI
-  uint8_t* headerBuf = (uint8_t*)malloc(JitCodeHeaderSize);
-  memcpy(headerBuf, &headerContent, JitCodeHeaderSize);
+  masm.ensureSpace(JitCodeHeaderSize);
+  memcpy(masm.buffer() + masm.size() - JitCodeHeaderSize, &headerContent, JitCodeHeaderSize);
 #else
   memcpy(header(), &headerContent, JitCodeHeaderSize);
 #endif
@@ -643,7 +639,6 @@ void JitCode::copyFrom(MacroAssembler& masm) {
 
   masm.processCodeLabelsInPlace(raw());
   masm.processDataLabelsInPlace(raw(), this);
-  return headerBuf;
 #else
   // Copy the code.
   insnSize_ = masm.instructionsSize();
@@ -685,7 +680,7 @@ void JitCode::finalize(JS::GCContext* gcx) {
   executable_.discard(gcx);
   zone()->decJitMemory(executable_.desc.xSize);
 #ifdef JS_SANDBOX_LFI
-  sys_jitcode_delete(executable_.xSstart, executable_.desc.xSize);
+  sys_jitcode_delete(executable_.xStart, executable_.desc.xSize);
 #endif
 }
 

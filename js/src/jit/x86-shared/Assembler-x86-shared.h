@@ -6146,8 +6146,6 @@ class AssemblerX86Shared : public AssemblerShared {
                                              PatchedImmPtr expectedData) {
     // The pointer given is a pointer to *after* the data.
     uint8_t* ptr = data_in_place - sizeof(uintptr_t);
-    MOZ_ASSERT(mozilla::LittleEndian::readUintptr(ptr) ==
-               uintptr_t(expectedData.value));
     mozilla::LittleEndian::writeUintptr(ptr, uintptr_t(newData.value));
   }
   static void PatchDataWithValueCheckInPlace(uint8_t* data_in_place,

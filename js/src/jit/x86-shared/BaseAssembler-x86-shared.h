@@ -104,6 +104,12 @@ class BaseAssembler : public GenericAssembler {
 #endif
   };
 
+#ifdef JS_SANDBOX_LFI
+  inline void ensureSpace(size_t space) {
+    m_formatter.ensureSpace(space);
+  }
+#endif
+
   inline void ensureBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
     m_formatter.ensureBundleSpace(space);
@@ -6801,6 +6807,12 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.freezeBundleGroup();
 #endif
     }
+
+#ifdef JS_SANDBOX_LFI
+    inline void ensureSpace(size_t space) {
+      m_buffer.ensureSpace(space);
+    }
+#endif
 
     inline void ensureBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE

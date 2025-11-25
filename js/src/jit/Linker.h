@@ -37,7 +37,6 @@ class Linker {
 
  public:
 #ifdef JS_SANDBOX_LFI
-  uint8_t* header;
   mozilla::Maybe<JS::Rooted<JitCode*>> code;
 #endif
 
@@ -46,14 +45,11 @@ class Linker {
 
   ~Linker() {
 #ifdef JS_SANDBOX_LFI
-    if (header && code) {
-      sys_jitcode_create2(code->get()->header(), header,
+    if (code) {
+      // TODO: revamp syscall format
+      sys_jitcode_create2(code->get()->header(), masm.buffer() + masm.size() - JitCodeHeaderSize,
                           js::jit::JitCodeHeaderSize, masm.buffer(),
-                          masm.execSize());
-    }
-
-    if (header) {
-      free(header);
+                          masm.execSize() - JitCodeHeaderSize);
     }
 #endif
   }

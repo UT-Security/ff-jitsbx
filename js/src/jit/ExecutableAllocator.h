@@ -399,6 +399,7 @@ class ExecutableAllocator {
     poolAlloc.addSizeOfCode(sizes);
   }
 
+// #ifndef JS_SANDBOX_LFI
   [[nodiscard]] static bool makeWritable(void* start, size_t size) {
     return ReprotectRegion(start, size, ProtectionSetting::Writable,
                            MustFlushICache::No);
@@ -409,6 +410,7 @@ class ExecutableAllocator {
     return ReprotectRegion(start, size, ProtectionSetting::Executable,
                            MustFlushICache::Yes);
   }
+// #endif
 
   static void poisonCode(JSRuntime* rt, JitPoisonRangeVector& ranges);
 

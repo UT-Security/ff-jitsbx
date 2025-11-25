@@ -159,11 +159,7 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
     return JS_DATA_TO_FUNC_PTR(T, raw());
   }
 
-#ifdef JS_SANDBOX_LFI
-  uint8_t* copyFrom(MacroAssembler& masm);
-#else
   void copyFrom(MacroAssembler& masm);
-#endif
 
   static JitCode* FromExecutable(uint8_t* entry) {
     // The JitCode pointer associated with this entry point is stored in the

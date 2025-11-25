@@ -82,7 +82,7 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   }
 #ifdef JS_SANDBOX_LFI
   masm.linkInPlace(code);
-  header = code->copyFrom(masm);
+  code->copyFrom(masm);
   this->code.emplace(cx, code);
 #else
   code->copyFrom(masm);

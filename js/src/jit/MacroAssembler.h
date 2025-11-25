@@ -385,6 +385,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 #ifdef JS_SANDBOX_LFI
   uint8_t* buffer() { return (uint8_t*)masm.buffer(); }
+  void ensureSpace(size_t space) { return masm.ensureSpace(space); }
 #endif
 
   CompileRealm* realm() const {

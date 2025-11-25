@@ -855,6 +855,10 @@ void BaselineInterpreter::toggleProfilerInstrumentation(bool enable) {
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
+#ifdef JS_SANDBOX_LFI
+  // We dont support instrumentation
+  return;
+#endif
 
   AutoWritableJitCode awjc(code_);
   ToggleProfilerInstrumentation(code_, profilerEnterToggleOffset_,
@@ -865,6 +869,10 @@ void BaselineInterpreter::toggleDebuggerInstrumentation(bool enable) {
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
+#ifdef JS_SANDBOX_LFI
+  // We dont support instrumentation
+  return;
+#endif
 
   AutoWritableJitCode awjc(code_);
 
@@ -897,6 +905,10 @@ void BaselineInterpreter::toggleCodeCoverageInstrumentationUnchecked(
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
+#ifdef JS_SANDBOX_LFI
+  // We dont support instrumentation
+  return;
+#endif
 
   AutoWritableJitCode awjc(code_);
 
