@@ -596,14 +596,27 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   }
 
   for (CodeOffset offset : nextCodeOffsets_) {
+#ifdef JS_SANDBOX_LFI
+    Assembler::PatchDataWithValueCheckInPlace(masm.buffer() + offset.offset(),
+                                       CodeLocationLabel(newStubCode, offset),
+                                       ImmPtr(stub->nextCodeRawPtr()),
+                                       ImmPtr((void*)-1));
+#else
     Assembler::PatchDataWithValueCheck(CodeLocationLabel(newStubCode, offset),
                                        ImmPtr(stub->nextCodeRawPtr()),
                                        ImmPtr((void*)-1));
+#endif
   }
   if (stubJitCodeOffset_) {
+#ifdef JS_SANDBOX_LFI
+    Assembler::PatchDataWithValueCheckInPlace(masm.buffer() + stubJitCodeOffset_->offset(),
+                          CodeLocationLabel(newStubCode, *stubJitCodeOffset_),
+                          ImmPtr(newStubCode.get()), ImmPtr((void*)-1));
+#else
     Assembler::PatchDataWithValueCheck(
         CodeLocationLabel(newStubCode, *stubJitCodeOffset_),
         ImmPtr(newStubCode.get()), ImmPtr((void*)-1));
+#endif
   }
 
   return newStubCode;

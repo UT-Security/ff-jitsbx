@@ -837,6 +837,10 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
   if (enable == isProfilerInstrumentationOn()) {
     return;
   }
+#ifdef JS_SANDBOX_LFI
+  // We dont support instrumentation
+  return;
+#endif
 
   JitSpew(JitSpew_BaselineIC, "  toggling profiling %s for BaselineScript %p",
           enable ? "on" : "off", this);

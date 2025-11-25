@@ -68,10 +68,12 @@ bool ExecuteJit(JSContext* cx, js::jit::MacroAssembler& masm) {
   if (!code) {
     return false;
   }
+#ifndef JS_SANDBOX_LFI
   if (!ExecutableAllocator::makeExecutableAndFlushICache(code->raw(),
                                                          code->bufferSize())) {
     return false;
   }
+#endif
 
   JS::AutoSuppressGCAnalysis suppress;
   EnterTest test = code->as<EnterTest>();

@@ -221,10 +221,22 @@ using UniqueModuleSegment = UniquePtr<ModuleSegment>;
 class ModuleSegment : public CodeSegment {
   const Tier tier_;
   uint8_t* const trapCode_;
+#ifdef JS_SANDBOX_LFI
+  // TODO: do something better than moving over the masm buffer
+  uint8_t* buf_;
+#endif
 
  public:
+#ifdef JS_SANDBOX_LFI
+  ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
+                const LinkData& linkData, uint8_t* buf);
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
                 const LinkData& linkData);
+  uint8_t* buf() const { return buf_; }
+#else
+  ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
+                const LinkData& linkData);
+#endif
 
   static UniqueModuleSegment create(Tier tier, jit::MacroAssembler& masm,
                                     const LinkData& linkData);

@@ -1829,12 +1829,18 @@ bool wasm::EnsureBuiltinThunksInitialized() {
     return false;
   }
 
+#ifdef JS_SANDBOX_LFI
+  masm.executableCopyInPlace(thunks->codeBase);
+  
+  masm.processCodeLabelsInPlace(thunks->codeBase);
+#else
   masm.executableCopy(thunks->codeBase);
   memset(thunks->codeBase + masm.bytesNeeded(), 0xcc,
          allocSize - masm.bytesNeeded());
 
   masm.processCodeLabels(thunks->codeBase);
   PatchDebugSymbolicAccesses(thunks->codeBase, masm);
+#endif
 
   MOZ_ASSERT(masm.dataSectionBytes() == 0, "Unexpected data section in WASM");
 
@@ -1843,10 +1849,15 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   MOZ_ASSERT(masm.trapSites().empty());
   MOZ_ASSERT(masm.tryNotes().empty());
 
+#ifdef JS_SANDBOX_LFI
+  // We probably dont need the memset here since we verify and copy a part of a page
+  sys_jitcode_create(thunks->codeBase, masm.buffer(), masm.size());
+#else
   if (!ExecutableAllocator::makeExecutableAndFlushICache(thunks->codeBase,
                                                          thunks->codeSize)) {
     return false;
   }
+#endif
 
   builtinThunks = thunks.release();
   return true;
