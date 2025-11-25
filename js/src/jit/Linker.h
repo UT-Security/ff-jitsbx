@@ -46,10 +46,8 @@ class Linker {
   ~Linker() {
 #ifdef JS_SANDBOX_LFI
     if (code) {
-      // TODO: revamp syscall format
-      sys_jitcode_create2(code->get()->header(), masm.buffer() + masm.size() - JitCodeHeaderSize,
-                          js::jit::JitCodeHeaderSize, masm.buffer(),
-                          masm.execSize() - JitCodeHeaderSize);
+      sys_jitcode_create2(code->get()->header(), masm.buffer(),
+                          masm.size(), js::jit::JitCodeHeaderSize);
     }
 #endif
   }
