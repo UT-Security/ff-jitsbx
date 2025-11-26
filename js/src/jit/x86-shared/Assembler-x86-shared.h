@@ -6185,7 +6185,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static void ToggleToJmp(CodeLocationLabel inst) {
     uint8_t* ptr = (uint8_t*)inst.raw();
     // TODO: why do these fail? sometimes code ptr is nulled out
-    // MOZ_ASSERT(*ptr == 0x3D);  // <CMP> eax, imm32
+    MOZ_ASSERT(*ptr == 0x3D);  // <CMP> eax, imm32
 #ifdef JS_SANDBOX_LFI
     sys_jitcode_modify(ptr, 0xE9, 1);
 #else
@@ -6194,7 +6194,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   static void ToggleToCmp(CodeLocationLabel inst) {
     uint8_t* ptr = (uint8_t*)inst.raw();
-    // MOZ_ASSERT(*ptr == 0xE9);  // <JMP> rel32
+    MOZ_ASSERT(*ptr == 0xE9);  // <JMP> rel32
 #ifdef JS_SANDBOX_LFI
     sys_jitcode_modify(ptr, 0x3D, 1);
 #else
@@ -6203,8 +6203,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   static void ToggleCall(CodeLocationLabel inst, bool enabled) {
     uint8_t* ptr = (uint8_t*)inst.raw();
-    // MOZ_ASSERT(*ptr == 0x3D ||  // <CMP> eax, imm32
-    //            *ptr == 0xE8);   // <CALL> rel32
+    MOZ_ASSERT(*ptr == 0x3D ||  // <CMP> eax, imm32
+               *ptr == 0xE8);   // <CALL> rel32
 #ifdef JS_SANDBOX_LFI
     sys_jitcode_modify(ptr, enabled ? 0xE8 : 0x3D, 1);
 #else
