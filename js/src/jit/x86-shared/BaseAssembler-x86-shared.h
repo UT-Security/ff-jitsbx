@@ -31,6 +31,7 @@
 #define jit_x86_shared_BaseAssembler_x86_shared_h
 
 #include "Assembler-x86-shared.h"
+#include "jit/JitCode.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerPrintfMacros.h"
 
@@ -145,8 +146,15 @@ class BaseAssembler : public GenericAssembler {
     MOZ_ASSERT_IF(inst[0] == OP_NOP_0F,
                   inst[1] == OP_NOP_1F || inst[2] == OP_NOP_44 ||
                       inst[3] == OP_NOP_00 || inst[4] == OP_NOP_00);
+#ifdef JS_SANDBOX_LFI
+    size_t val = OP_CALL_rel32;
+    uint32_t dist = target - callsite;
+    val |= ((size_t)dist << 8);
+    sys_jitcode_modify(inst, val, 5);
+#else
     inst[0] = OP_CALL_rel32;
     SetRel32(callsite, target);
+#endif
   }
 
   static void patchCallToFiveByteNop(uint8_t* callsite) {
@@ -159,11 +167,20 @@ class BaseAssembler : public GenericAssembler {
       return;
     }
     MOZ_ASSERT(inst[0] == OP_CALL_rel32);
+#ifdef JS_SANDBOX_LFI
+    size_t val = OP_NOP_0F;
+    val |= OP_NOP_1F << 0x8;
+    val |= OP_NOP_44 << 0x10;
+    val |= OP_NOP_00 << 0x18;
+    val |= (size_t)OP_NOP_00 << 0x20;
+    sys_jitcode_modify(inst, val, 5);
+#else
     inst[0] = OP_NOP_0F;
     inst[1] = OP_NOP_1F;
     inst[2] = OP_NOP_44;
     inst[3] = OP_NOP_00;
     inst[4] = OP_NOP_00;
+#endif
   }
 
   /*

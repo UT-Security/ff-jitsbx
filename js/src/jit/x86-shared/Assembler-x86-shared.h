@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 
 #if defined(JS_CODEGEN_X86)
@@ -6092,10 +6093,17 @@ class AssemblerX86Shared : public AssemblerShared {
   static void PatchWrite_NearCall(CodeLocationLabel startLabel,
                                   CodeLocationLabel target) {
     uint8_t* start = startLabel.raw();
+#ifdef JS_SANDBOX_LFI
+    size_t val = 0xE8;
+    uint32_t dist = target - startLabel - PatchWrite_NearCallSize();
+    val |= ((size_t)dist << 8);
+    sys_jitcode_modify(start, val, 5);
+#else
     *start = 0xE8;  // <CALL> rel32
     ptrdiff_t offset = target - startLabel - PatchWrite_NearCallSize();
     MOZ_ASSERT(int32_t(offset) == offset);
     mozilla::LittleEndian::writeInt32(start + 1, offset);  // CALL <rel32>
+#endif
   }
 
   static constexpr size_t PatchWrite_HltImm32_Size() {
@@ -6124,6 +6132,16 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* ptr = dataLabel.raw();
     mozilla::LittleEndian::writeInt32(ptr - sizeof(int32_t), toWrite.value);
   }
+
+#ifdef JS_SANDBOX_LFI
+  static void PatchWrite_Imm32_Runtime(CodeLocationLabel dataLabel, Imm32 toWrite) {
+    // dataLabel is a code location which targets the end of an instruction
+    // which has a 32 bits immediate. Thus writting a value requires shifting
+    // back to the address of the 32 bits immediate within the instruction.
+    uint8_t* ptr = dataLabel.raw();
+    sys_jitcode_modify(ptr - sizeof(int32_t), toWrite.value, sizeof(int32_t));
+  }
+#endif
 
   static void PatchDataWithValueCheck(CodeLocationLabel data,
                                       PatchedImmPtr newData,
@@ -6167,18 +6185,30 @@ class AssemblerX86Shared : public AssemblerShared {
   static void ToggleToJmp(CodeLocationLabel inst) {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0x3D);  // <CMP> eax, imm32
+#ifdef JS_SANDBOX_LFI
+    sys_jitcode_modify(ptr, 0xE9, 1);
+#else
     *ptr = 0xE9;               // <JMP> rel32
+#endif
   }
   static void ToggleToCmp(CodeLocationLabel inst) {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0xE9);  // <JMP> rel32
+#ifdef JS_SANDBOX_LFI
+    sys_jitcode_modify(ptr, 0x3D, 1);
+#else
     *ptr = 0x3D;               // <CMP> eax, imm32
+#endif
   }
   static void ToggleCall(CodeLocationLabel inst, bool enabled) {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0x3D ||  // <CMP> eax, imm32
                *ptr == 0xE8);   // <CALL> rel32
+#ifdef JS_SANDBOX_LFI
+    sys_jitcode_modify(ptr, enabled ? 0xE8 : 0x3D, 1);
+#else
     *ptr = enabled ? 0xE8 : 0x3D;
+#endif
   }
 
   MOZ_COLD void verifyHeapAccessDisassembly(

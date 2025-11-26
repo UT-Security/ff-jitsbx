@@ -26,6 +26,7 @@
 #define SYS_jitcode_create 442
 #define SYS_jitcode_delete 443
 #define SYS_jitcode_create2 447
+#define SYS_jitcode_modify 448
 
 static int sys_jitcode_create(void* addrp, void* bufp, size_t length) {
   return syscall(SYS_jitcode_create, addrp, bufp, length);
@@ -38,6 +39,10 @@ static int sys_jitcode_create2(void* addrp, void* bufp, size_t total_length,
 
 static int sys_jitcode_delete(void* addrp, size_t length) {
   return syscall(SYS_jitcode_delete, addrp, length);
+}
+
+static int sys_jitcode_modify(void* addrp, size_t valp, size_t length) {
+  return syscall(SYS_jitcode_modify, addrp, valp, length);
 }
 #endif
 

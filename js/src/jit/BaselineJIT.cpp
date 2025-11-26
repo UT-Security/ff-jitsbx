@@ -837,10 +837,6 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
   if (enable == isProfilerInstrumentationOn()) {
     return;
   }
-#ifdef JS_SANDBOX_LFI
-  // TODO: figure out a patching solution
-  return;
-#endif
 
   JitSpew(JitSpew_BaselineIC, "  toggling profiling %s for BaselineScript %p",
           enable ? "on" : "off", this);
@@ -859,10 +855,6 @@ void BaselineInterpreter::toggleProfilerInstrumentation(bool enable) {
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
-#ifdef JS_SANDBOX_LFI
-  // TODO: figure out a patching solution
-  return;
-#endif
 
   AutoWritableJitCode awjc(code_);
   ToggleProfilerInstrumentation(code_, profilerEnterToggleOffset_,
@@ -873,10 +865,6 @@ void BaselineInterpreter::toggleDebuggerInstrumentation(bool enable) {
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
-#ifdef JS_SANDBOX_LFI
-  // TODO: figure out a patching solution
-  return;
-#endif
 
   AutoWritableJitCode awjc(code_);
 
@@ -909,10 +897,6 @@ void BaselineInterpreter::toggleCodeCoverageInstrumentationUnchecked(
   if (!IsBaselineInterpreterEnabled()) {
     return;
   }
-#ifdef JS_SANDBOX_LFI
-  // TODO: figure out a patching solution
-  return;
-#endif
 
   AutoWritableJitCode awjc(code_);
 
