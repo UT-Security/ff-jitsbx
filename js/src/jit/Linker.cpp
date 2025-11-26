@@ -21,7 +21,11 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     return fail(cx);
   }
 
+#if defined(JS_SANDBOX_LFI) && defined(JS_SANDBOX_BUNDLE)
+  static const size_t ExecutableAllocatorAlignment = js::sandbox::BUNDLE_SIZE;
+#else
   static const size_t ExecutableAllocatorAlignment = sizeof(void*);
+#endif
   static_assert(CodeAlignment >= ExecutableAllocatorAlignment,
                 "Unexpected alignment requirements");
 

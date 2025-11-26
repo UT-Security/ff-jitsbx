@@ -885,12 +885,19 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
 
+#ifdef JS_SANDBOX_LFI
+  // Initialize the ModuleSegment
+  *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(bytes),
+                                        length, linkData,
+                                        std::move(const_cast<uint8_t*>(coder.buffer_)));
+#else
   // Decode the code bytes
   MOZ_TRY(coder.readBytes(bytes.get(), length));
 
   // Initialize the ModuleSegment
   *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(bytes),
                                         length, linkData);
+#endif
   if (!*item) {
     return Err(OutOfMemory());
   }
