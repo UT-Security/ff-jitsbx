@@ -838,7 +838,7 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
     return;
   }
 #ifdef JS_SANDBOX_LFI
-  // We dont support instrumentation
+  // TODO: figure out a patching solution
   return;
 #endif
 
@@ -860,7 +860,7 @@ void BaselineInterpreter::toggleProfilerInstrumentation(bool enable) {
     return;
   }
 #ifdef JS_SANDBOX_LFI
-  // We dont support instrumentation
+  // TODO: figure out a patching solution
   return;
 #endif
 
@@ -874,7 +874,7 @@ void BaselineInterpreter::toggleDebuggerInstrumentation(bool enable) {
     return;
   }
 #ifdef JS_SANDBOX_LFI
-  // We dont support instrumentation
+  // TODO: figure out a patching solution
   return;
 #endif
 
@@ -910,7 +910,7 @@ void BaselineInterpreter::toggleCodeCoverageInstrumentationUnchecked(
     return;
   }
 #ifdef JS_SANDBOX_LFI
-  // We dont support instrumentation
+  // TODO: figure out a patching solution
   return;
 #endif
 

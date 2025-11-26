@@ -177,13 +177,14 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 
     void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
-      uint8_t* patchAt = ms.base() + offset;
 #ifdef JS_SANDBOX_LFI
-      Assembler::PatchDataWithValueCheckInPlace(ms.buf(),
+      uint8_t* patchAt = ms.buf() + offset;
+      Assembler::PatchDataWithValueCheckInPlace(patchAt,
                                          CodeLocationLabel(patchAt),
                                          PatchedImmPtr(target),
                                          PatchedImmPtr((void*)-1));
 #else
+      uint8_t* patchAt = ms.base() + offset;
       Assembler::PatchDataWithValueCheck(CodeLocationLabel(patchAt),
                                          PatchedImmPtr(target),
                                          PatchedImmPtr((void*)-1));

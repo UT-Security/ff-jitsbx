@@ -616,7 +616,8 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   JitCode* self = this;
   memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
 #ifdef JS_SANDBOX_LFI
-  masm.ensureSpace(JitCodeHeaderSize);
+  // I guess we skip OOM checks here?
+  // masm.ensureSpace(JitCodeHeaderSize);
   memcpy(masm.buffer() + masm.size() - JitCodeHeaderSize, &headerContent, JitCodeHeaderSize);
 #else
   memcpy(header(), &headerContent, JitCodeHeaderSize);
@@ -2438,6 +2439,7 @@ static void InvalidateActivation(JS::GCContext* gcx,
     CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
     Assembler::PatchWrite_HltImm32(dataLabelToMunge, hltStartLabel, Imm32(delta));
 #else
+  // TODO: figure out a patching solution
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));
 #endif
 
@@ -2450,6 +2452,7 @@ static void InvalidateActivation(JS::GCContext* gcx,
         JitSpew_IonInvalidate,
         "   ! Invalidate ionScript %p (inv count %zu) -> patching osipoint %p",
         ionScript, ionScript->invalidationCount(), (void*)osiPatchPoint.raw());
+  // TODO: figure out a patching solution
     Assembler::PatchWrite_NearCall(osiPatchPoint, invalidateEpilogue);
   }
 
