@@ -295,7 +295,11 @@ MethodStatus BaselineCompiler::compile() {
   // If profiler instrumentation is enabled, toggle instrumentation on.
   if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
           cx->runtime())) {
+#ifdef JS_SANDBOX_LFI
+    baselineScript->toggleProfilerInstrumentationInPlace(true, masm.buffer());
+#else
     baselineScript->toggleProfilerInstrumentation(true);
+#endif
   }
 
   // Compute native resume addresses for the script's resume offsets.

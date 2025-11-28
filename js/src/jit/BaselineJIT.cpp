@@ -833,6 +833,22 @@ static void ToggleProfilerInstrumentation(JitCode* code,
   }
 }
 
+static void ToggleProfilerInstrumentation(uint8_t* code,
+                                          uint32_t profilerEnterToggleOffset,
+                                          uint32_t profilerExitToggleOffset,
+                                          bool enable) {
+  CodeLocationLabel enterToggleLocation(code + profilerEnterToggleOffset);
+  CodeLocationLabel exitToggleLocation(code + profilerExitToggleOffset);
+
+  if (enable) {
+    Assembler::ToggleToCmp(enterToggleLocation);
+    Assembler::ToggleToCmp(exitToggleLocation);
+  } else {
+    Assembler::ToggleToJmp(enterToggleLocation);
+    Assembler::ToggleToJmp(exitToggleLocation);
+  }
+}
+
 void BaselineScript::toggleProfilerInstrumentation(bool enable) {
   if (enable == isProfilerInstrumentationOn()) {
     return;
@@ -850,6 +866,26 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
     flags_ &= ~uint32_t(PROFILER_INSTRUMENTATION_ON);
   }
 }
+
+#ifdef JS_SANDBOX_LFI
+void BaselineScript::toggleProfilerInstrumentationInPlace(bool enable, uint8_t* script) {
+  if (enable == isProfilerInstrumentationOn()) {
+    return;
+  }
+
+  JitSpew(JitSpew_BaselineIC, "  toggling profiling %s for BaselineScript %p",
+          enable ? "on" : "off", this);
+
+  ToggleProfilerInstrumentation(script, profilerEnterToggleOffset_,
+                                profilerExitToggleOffset_, enable);
+
+  if (enable) {
+    flags_ |= uint32_t(PROFILER_INSTRUMENTATION_ON);
+  } else {
+    flags_ &= ~uint32_t(PROFILER_INSTRUMENTATION_ON);
+  }
+}
+#endif
 
 void BaselineInterpreter::toggleProfilerInstrumentation(bool enable) {
   if (!IsBaselineInterpreterEnabled()) {

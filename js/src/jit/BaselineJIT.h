@@ -351,6 +351,9 @@ class alignas(uintptr_t) BaselineScript final : public TrailingArray {
   void toggleDebugTraps(JSScript* script, jsbytecode* pc);
 
   void toggleProfilerInstrumentation(bool enable);
+#ifdef JS_SANDBOX_LFI
+  void toggleProfilerInstrumentationInPlace(bool enable, uint8_t* script);
+#endif
   bool isProfilerInstrumentationOn() const {
     return flags_ & PROFILER_INSTRUMENTATION_ON;
   }

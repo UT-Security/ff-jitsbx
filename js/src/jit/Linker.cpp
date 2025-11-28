@@ -85,8 +85,8 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     return fail(cx);
   }
 #ifdef JS_SANDBOX_LFI
-  masm.linkInPlace(code);
   code->copyFrom(masm);
+  masm.linkInPlace(code);
   this->code.emplace(cx, code);
 #else
   code->copyFrom(masm);

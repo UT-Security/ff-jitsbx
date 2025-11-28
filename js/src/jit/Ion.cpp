@@ -613,13 +613,9 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   };
 #endif
 
+#ifndef JS_SANDBOX_LFI
   JitCode* self = this;
   memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
-#ifdef JS_SANDBOX_LFI
-  // I guess we skip OOM checks here?
-  // masm.ensureSpace(JitCodeHeaderSize);
-  memcpy(masm.buffer() + masm.size() - JitCodeHeaderSize, &headerContent, JitCodeHeaderSize);
-#else
   memcpy(header(), &headerContent, JitCodeHeaderSize);
 #endif
 

@@ -32,9 +32,10 @@ static int sys_jitcode_create(void* addrp, void* bufp, size_t length) {
   return syscall(SYS_jitcode_create, addrp, bufp, length);
 }
 
-static int sys_jitcode_create2(void* addrp, void* bufp, size_t total_length,
-                               size_t header_length) {
-  return syscall(SYS_jitcode_create2, addrp, bufp, total_length, header_length);
+static int sys_jitcode_create2(void* addrp, void* headerp, size_t header_length,
+                               void* bufp, size_t total_length) {
+  return syscall(SYS_jitcode_create2, addrp, headerp, header_length, bufp,
+                 total_length);
 }
 
 static int sys_jitcode_delete(void* addrp, size_t length) {
