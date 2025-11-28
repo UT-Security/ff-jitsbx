@@ -2436,13 +2436,13 @@ static void InvalidateActivation(JS::GCContext* gcx,
     ptrdiff_t delta = ionScript->invalidateEpilogueDataOffset() -
                       (frame.resumePCinCurrentFrame() - ionCode->raw());
 #if defined(JS_SANDBOX_LFI)
-    Assembler::PatchWrite_Imm32_Runtime(dataLabelToMunge, Imm32(delta));
+    CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
+    Assembler::PatchWrite_HltImm32_Runtime(dataLabelToMunge, hltStartLabel, Imm32(delta));
 #elif defined(JS_SANDBOX_CFI)
     CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
     Assembler::PatchWrite_HltImm32(dataLabelToMunge, hltStartLabel, Imm32(delta));
 #else
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));
-
 #endif
 
     CodeLocationLabel osiPatchPoint =
@@ -2454,7 +2454,7 @@ static void InvalidateActivation(JS::GCContext* gcx,
         JitSpew_IonInvalidate,
         "   ! Invalidate ionScript %p (inv count %zu) -> patching osipoint %p",
         ionScript, ionScript->invalidationCount(), (void*)osiPatchPoint.raw());
-  // TODO: figure out a patching solution
+
     Assembler::PatchWrite_NearCall(osiPatchPoint, invalidateEpilogue);
   }
 

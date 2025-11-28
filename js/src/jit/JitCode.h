@@ -41,8 +41,8 @@ static int sys_jitcode_delete(void* addrp, size_t length) {
   return syscall(SYS_jitcode_delete, addrp, length);
 }
 
-static int sys_jitcode_modify(void* addrp, size_t valp, size_t length) {
-  return syscall(SYS_jitcode_modify, addrp, valp, length);
+static int sys_jitcode_modify(void* addrp, size_t valp, size_t length, int halt_pad) {
+  return syscall(SYS_jitcode_modify, addrp, valp, length, halt_pad);
 }
 #endif
 

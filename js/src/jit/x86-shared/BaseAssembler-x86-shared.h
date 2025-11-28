@@ -150,7 +150,7 @@ class BaseAssembler : public GenericAssembler {
     size_t val = OP_CALL_rel32;
     uint32_t dist = target - callsite;
     val |= ((size_t)dist << 8);
-    sys_jitcode_modify(inst, val, 5);
+    sys_jitcode_modify(inst, val, 5, 0);
 #else
     inst[0] = OP_CALL_rel32;
     SetRel32(callsite, target);
@@ -173,7 +173,7 @@ class BaseAssembler : public GenericAssembler {
     val |= OP_NOP_44 << 0x10;
     val |= OP_NOP_00 << 0x18;
     val |= (size_t)OP_NOP_00 << 0x20;
-    sys_jitcode_modify(inst, val, 5);
+    sys_jitcode_modify(inst, val, 5, 0);
 #else
     inst[0] = OP_NOP_0F;
     inst[1] = OP_NOP_1F;
