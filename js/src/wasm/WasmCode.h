@@ -230,8 +230,6 @@ class ModuleSegment : public CodeSegment {
 #ifdef JS_SANDBOX_LFI
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
                 const LinkData& linkData, uint8_t* buf);
-  ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
-                const LinkData& linkData);
   uint8_t* buf() const { return buf_; }
 #else
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,

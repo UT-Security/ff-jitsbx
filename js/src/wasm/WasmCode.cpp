@@ -311,12 +311,6 @@ ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
       tier_(tier),
       trapCode_(base() + linkData.trapOffset),
       buf_(std::move(buf)) {}
-ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
-                             uint32_t codeLength, const LinkData& linkData)
-    : CodeSegment(std::move(codeBytes), codeLength, CodeSegment::Kind::Module),
-      tier_(tier),
-      trapCode_(base() + linkData.trapOffset),
-      buf_(NULL) {}
 #else
 ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
                              uint32_t codeLength, const LinkData& linkData)
@@ -362,10 +356,15 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
     return nullptr;
   }
 
+#ifdef JS_SANDBOX_LFI
+  return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
+                                       linkData, std::move(const_cast<uint8_t*>(unlinkedBytes.begin())));
+#else
   memcpy(codeBytes.get(), unlinkedBytes.begin(), codeLength);
 
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        linkData);
+#endif
 }
 
 bool ModuleSegment::initialize(const CodeTier& codeTier,

@@ -887,9 +887,9 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
 
 #ifdef JS_SANDBOX_LFI
   // Initialize the ModuleSegment
-  *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(bytes),
-                                        length, linkData,
-                                        std::move(const_cast<uint8_t*>(coder.buffer_)));
+  *item = js::MakeUnique<ModuleSegment>(
+      Tier::Serialized, std::move(bytes), length, linkData,
+      std::move(const_cast<uint8_t*>(coder.buffer_)));
 #else
   // Decode the code bytes
   MOZ_TRY(coder.readBytes(bytes.get(), length));
@@ -921,13 +921,21 @@ CoderResult CodeModuleSegment(Coder<mode>& coder,
 
   if constexpr (mode == MODE_SIZE) {
     // Just calculate the length of bytes written
+#ifdef JS_SANDBOX_LFI
+    MOZ_TRY(coder.writeBytes((*item)->buf(), length));
+#else
     MOZ_TRY(coder.writeBytes((*item)->base(), length));
+#endif
   } else {
     // Get the start of where the code bytes will be written
     uint8_t* serializedBase = coder.buffer_;
 
     // Write the code bytes
+#ifdef JS_SANDBOX_LFI
+    MOZ_TRY(coder.writeBytes((*item)->buf(), length));
+#else
     MOZ_TRY(coder.writeBytes((*item)->base(), length));
+#endif
 
     // Unlink the code bytes written to the buffer
     StaticallyUnlink(serializedBase, linkData);
@@ -992,8 +1000,13 @@ CoderResult CodeCodeTier(Coder<MODE_DECODE>& coder, wasm::UniqueCodeTier* item,
   UniqueModuleSegment segment;
   MOZ_TRY(Magic(coder, Marker::CodeTier));
   MOZ_TRY(CodeModuleSegment(coder, &segment, linkData));
+#ifdef JS_SANDBOX_LFI
+  MOZ_TRY((CodeUniquePtr<MODE_DECODE, MetadataTier>(
+      coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->buf())));
+#else
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, MetadataTier>(
       coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->base())));
+#endif
   *item = js::MakeUnique<CodeTier>(std::move(metadata), std::move(segment));
   if (!*item) {
     return Err(OutOfMemory());
@@ -1009,9 +1022,15 @@ CoderResult CodeCodeTier(Coder<mode>& coder,
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeTier));
   MOZ_TRY(CodeModuleSegment(coder, &item->segment_, linkData));
+#ifdef JS_SANDBOX_LFI
+  MOZ_TRY((CodeUniquePtr<mode, MetadataTier>(coder, &item->metadata_,
+                                             &CodeMetadataTier<mode>,
+                                             item->segment_->buf())));
+#else
   MOZ_TRY((CodeUniquePtr<mode, MetadataTier>(coder, &item->metadata_,
                                              &CodeMetadataTier<mode>,
                                              item->segment_->base())));
+#endif
   return Ok();
 }
 
