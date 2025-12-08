@@ -446,7 +446,7 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
     //MMInfo info;
-    //if(!mm_querypage(&p->p_as->mm, dst, &info)) {
+    //if(mm_querypage(&p->p_as->mm, dst, &info)) {
     //    return -TUX_EINVAL;
     //}
 
@@ -505,6 +505,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size - 1)) {
         return -TUX_EINVAL;
     }
+
     //MMInfo info;
     //if(!mm_querypage(&p->p_jit_as->mm, dst, &info)) {
     //    return -TUX_EINVAL;
