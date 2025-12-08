@@ -18,6 +18,9 @@ vendoring:
   url: https://github.com/zyedidia/libmmap
   source-hosting: github
 
+  patches:
+    - querypage.patch
+
   exclude:
     - test
     - meson.build

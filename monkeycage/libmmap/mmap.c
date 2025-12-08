@@ -411,6 +411,8 @@ mm_querypage(MMAddrSpace* mm, uint64_t addr, MMInfo* info)
     if (addr % (1 << mm->p2pagesize) != 0)
         return false;
 
+    addr = mmtrunc(mm, addr);
+
     Node* n = tsearchcontains(&mm->alloc, addr, 1);
     if (!n)
         return false;
