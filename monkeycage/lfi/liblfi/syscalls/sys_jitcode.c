@@ -23,6 +23,7 @@ uintptr_t sys_jitcode_mmap(struct TuxProc* p, lfiptr_t addrp, size_t exec_length
 }
 
 int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t length) {
+#ifdef JS_SANDBOX_VERIFY
   // Make sure addresses are bundle aligned
   int bundle_size = 32;
   
@@ -35,6 +36,7 @@ int sys_jitcode_create(struct TuxProc* p, lfiptr_t addrp, lfiptr_t bufp, size_t 
       VERBOSE(p->tux, "sys_jitcode_create: length not bundle aligned!");
       return -1;
   }
+#endif
   
   uint8_t* src = procbuf(p, bufp, length);
   uint8_t* buf = (uint8_t*)malloc(length);
@@ -49,6 +51,7 @@ int sys_jitcode_create2(struct TuxProc *p, lfiptr_t addrp, lfiptr_t headerp,
                         size_t total_length) {
   // TODO: We probably need better sanity checks here
   assert(total_length >= header_length);
+#ifdef JS_SANDBOX_VERIFY
   // Make sure addresses are bundle aligned
   int bundle_size = 32;
 
@@ -66,6 +69,7 @@ int sys_jitcode_create2(struct TuxProc *p, lfiptr_t addrp, lfiptr_t headerp,
       VERBOSE(p->tux, "sys_jitcode_create: header_length not bundle aligned!");
       return -1;
   }
+#endif
 
   uint8_t* header = procbuf(p, headerp, header_length);
 

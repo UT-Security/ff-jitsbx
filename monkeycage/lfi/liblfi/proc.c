@@ -493,6 +493,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     }
 
     // Align to bundle size
+#ifdef JS_SANDBOX_VERIFY
     size_t bundle_mask = 0xffffffffffffffe0;
     size_t patch_offset = src & ~bundle_mask;
     size_t dst = src & bundle_mask;
@@ -500,6 +501,10 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     if (dst != ((dst + patch_offset + patch_len - 1) & bundle_mask)) {
         return -TUX_EINVAL;
     }
+#else
+    size_t patch_offset = 0;
+    size_t dst = src;
+#endif
     size_t size = 32;
 
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + size - 1)) {
@@ -525,9 +530,11 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
+#ifdef JS_SANDBOX_VERIFY
     if(halt_pad) {
         memset(jit_addr, 0xf4, patch_offset);
     }
+#endif
     memcpy(jit_addr + patch_offset, &value, patch_len);
 
     if(verifier) {
