@@ -21,7 +21,6 @@ vendoring:
   patches:
     - liblfi.patch
     - liblfi-config.patch
-    - lfiverify.patch
     - optional.patch
 
   include:
