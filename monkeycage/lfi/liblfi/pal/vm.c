@@ -172,8 +172,8 @@ lfi_as_mprotect(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot)
     assert(as->plat);
 
     if ((prot & LFI_PROT_EXEC) != 0) {
-        size_t pagesize = as->plat->opts.pagesize;
-        if (size % pagesize != 0) memset((char*)(addr + size), 0xcc, pagesize - (size % pagesize));
+      size_t pagesize = as->plat->opts.pagesize;
+      if (size % pagesize != 0) memset((char *)(addr + size), 0xcc, pagesize - (size % pagesize));
     }
 
     return protectverify(l2p(as, addr), size, prot, as->plat->verifier);
