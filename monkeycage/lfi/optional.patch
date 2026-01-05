@@ -1,3 +1,16 @@
+diff --git a/liblfi/elfload.c b/liblfi/elfload.c
+index 721e504f97..85990756c0 100644
+--- a/liblfi/elfload.c
++++ b/liblfi/elfload.c
+@@ -45,7 +45,7 @@ sanitize(void* p, size_t sz, int prot)
+ {
+     if ((prot & LFI_PROT_EXEC) == 0)
+         return;
+-#if (defined(__x86_64__) || defined(_M_X64)) && TUX_SANITIZE_CODE
++#if (defined(__x86_64__) || defined(_M_X64)) && JS_SANDBOX_VERIFY
+     const uint8_t SAFE_BYTE = 0xcc;
+     memset(p, SAFE_BYTE, sz);
+ #endif
 diff --git a/liblfi/pal/platform.c b/liblfi/pal/platform.c
 index f98f05076d..5520320af5 100644
 --- a/liblfi/pal/platform.c
