@@ -1536,8 +1536,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
     label->bind(dst.offset());
   }
-  void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
-  uint32_t currentOffset() { return masm.label().offset(); }
+  void bind(CodeLabel* label) { label->target()->bind(masm.label().offset()); }
+  uint32_t currentOffset() { return masm.currentOffset(); }
 
   // Re-routes pending jumps to a new label.
   void retarget(Label* label, Label* target) {

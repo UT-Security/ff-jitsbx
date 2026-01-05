@@ -4771,6 +4771,11 @@ class BaseAssembler : public GenericAssembler {
   // Assembler admin methods:
 
   JmpDst label() {
+#ifdef JS_SANDBOX_BUNDLE_ALIGN_LABELS
+    MOZ_ASSERT(!inBundleGroup(), "Unexpected bundle group when binding label");
+    makeBundleSpace(js::sandbox::BUNDLE_SIZE);
+    MOZ_ASSERT(oom() || m_formatter.isAligned(js::sandbox::BUNDLE_SIZE), "Expected to be bundle aligned");
+#endif
     JmpDst r = JmpDst(m_formatter.size());
     spew(".set .Llabel%d, .", r.offset());
     return r;
