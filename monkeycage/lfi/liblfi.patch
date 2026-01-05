@@ -36,3 +36,22 @@ index b5a51e65c7..fa1e0d7b78 100644
  
  typedef uint64_t  u64;
  typedef uint32_t  u32;
+diff --git a/lfi/liblfi/pal/platform.c b/lfi/liblfi/pal/platform.c
+index c0ab8cf56d..5520320af5 100644
+--- a/lfi/liblfi/pal/platform.c
++++ b/lfi/liblfi/pal/platform.c
+@@ -28,13 +28,13 @@ lfi_new_plat(struct LFIPlatOptions opts)
+         goto err1;
+
+     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
+-        .minalign = gb(512),
+-        .maxalign = gb(512),
++        .minalign = gb(256),
++        .maxalign = gb(256),
+         .guardsize = gb(0),
+     });
+     if (!bm)
+         goto err2;
+-    if (!boxmap_reserve(bm, gb(1024)))
++    if (!boxmap_reserve(bm, gb(512)))
+         goto err3;
