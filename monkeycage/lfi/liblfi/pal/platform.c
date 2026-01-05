@@ -28,13 +28,13 @@ lfi_new_plat(struct LFIPlatOptions opts)
         goto err1;
 
     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
-        .minalign = gb(512),
-        .maxalign = gb(512),
+        .minalign = gb(256),
+        .maxalign = gb(256),
         .guardsize = gb(0),
     });
     if (!bm)
         goto err2;
-    if (!boxmap_reserve(bm, gb(1024)))
+    if (!boxmap_reserve(bm, gb(512)))
         goto err3;
 #ifdef JS_SANDBOX_VERIFY
     verifier->opts = (struct LFIVOptions) {
