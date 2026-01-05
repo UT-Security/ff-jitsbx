@@ -45,7 +45,7 @@ sanitize(void* p, size_t sz, int prot)
 {
     if ((prot & LFI_PROT_EXEC) == 0)
         return;
-#if (defined(__x86_64__) || defined(_M_X64))
+#if (defined(__x86_64__) || defined(_M_X64)) && JS_SANDBOX_VERIFY
     const uint8_t SAFE_BYTE = 0xcc;
     memset(p, SAFE_BYTE, sz);
 #endif
