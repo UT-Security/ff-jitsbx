@@ -520,6 +520,7 @@ static unsigned ProtectionSettingToFlags(ProtectionSetting protection) {
   // If we get here, we're configured for Valgrind but not running on
   // it, so use the standard scheme.
 #  endif
+  return PROT_READ | PROT_WRITE | PROT_EXEC;
   switch (protection) {
     case ProtectionSetting::Protected:
       return PROT_NONE;

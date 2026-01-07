@@ -48,7 +48,7 @@ class MOZ_RAII AutoWritableJitCodeFallible {
                                     code->bufferSize()) {}
 
   [[nodiscard]] bool makeWritable() {
-    return ExecutableAllocator::makeWritable(addr_, size_);
+    return true;
   }
 
   ~AutoWritableJitCodeFallible() {
@@ -59,9 +59,6 @@ class MOZ_RAII AutoWritableJitCodeFallible {
       }
     });
 
-    if (!ExecutableAllocator::makeExecutableAndFlushICache(addr_, size_)) {
-      MOZ_CRASH();
-    }
     rt_->toggleAutoWritableJitCodeActive(false);
   }
 };

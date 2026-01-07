@@ -261,10 +261,10 @@ void ExecutableAllocator::reprotectPool(JSRuntime* rt, ExecutablePool* pool,
                                         MustFlushICache flushICache) {
   char* start = pool->m_allocation.pages;
   AutoEnterOOMUnsafeRegion oomUnsafe;
-  if (!ReprotectRegion(start, pool->m_freePtr - start, protection,
+  /*if (!ReprotectRegion(start, pool->m_freePtr - start, protection,
                        flushICache)) {
     oomUnsafe.crash("ExecutableAllocator::reprotectPool");
-  }
+  }*/
 }
 
 /* static */
