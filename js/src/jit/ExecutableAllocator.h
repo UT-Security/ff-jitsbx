@@ -399,7 +399,7 @@ class ExecutableAllocator {
     poolAlloc.addSizeOfCode(sizes);
   }
 
-#ifndef JS_SANDBOX_LFI
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   [[nodiscard]] static bool makeWritable(void* start, size_t size) {
     return ReprotectRegion(start, size, ProtectionSetting::Writable,
                            MustFlushICache::No);

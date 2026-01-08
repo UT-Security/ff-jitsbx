@@ -226,7 +226,7 @@ void Assembler::executableCopy(uint8_t* buffer) {
   }
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void Assembler::executableCopyInPlace(uint8_t* buffer) {
   for (RelativePatch& rp : codeJumps_) {
     uint8_t* src = buffer + rp.offset;

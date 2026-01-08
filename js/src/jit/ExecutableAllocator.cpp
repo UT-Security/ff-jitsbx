@@ -549,14 +549,18 @@ void ExecutableAllocator::poisonCode(JSRuntime* rt,
     // Use the pool's mark bit to indicate we made the pool writable.
     // This avoids reprotecting a pool multiple times.
     if (!pool->isMarked()) {
-      //reprotectPool(rt, pool, ProtectionSetting::Writable, MustFlushICache::No);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
+      reprotectPool(rt, pool, ProtectionSetting::Writable, MustFlushICache::No);
+#endif
       pool->mark();
     }
 
     // Note: we use memset instead of js::Poison because we want to poison
     // JIT code in release builds too. Furthermore, we don't want the
     // invalid-ObjectValue poisoning js::Poison does in debug builds.
-    //memset(ranges[i].start, JS_SWEPT_CODE_PATTERN, ranges[i].size);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
+    memset(ranges[i].start, JS_SWEPT_CODE_PATTERN, ranges[i].size);
+#endif
     MOZ_MAKE_MEM_NOACCESS(ranges[i].start, ranges[i].size);
   }
 
@@ -565,8 +569,10 @@ void ExecutableAllocator::poisonCode(JSRuntime* rt,
   for (size_t i = 0; i < ranges.length(); i++) {
     ExecutablePool* pool = ranges[i].pool;
     if (pool->isMarked()) {
-      //reprotectPool(rt, pool, ProtectionSetting::Executable,
-      //              MustFlushICache::No);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
+      reprotectPool(rt, pool, ProtectionSetting::Executable,
+                    MustFlushICache::No);
+#endif
       pool->unmark();
     }
     pool->release();
@@ -576,6 +582,9 @@ void ExecutableAllocator::poisonCode(JSRuntime* rt,
 ExecutablePool::Allocation ExecutablePoolAllocator::systemExecAlloc(size_t n) {
   void* allocation = AllocateExecutableMemory(n, ProtectionSetting::Writable,
                                               MemCheckKind::MakeNoAccess);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
+  memset(allocation, 0xcc, n);
+#endif
   ExecutablePool::Allocation alloc = {reinterpret_cast<char*>(allocation), n};
   return alloc;
 }

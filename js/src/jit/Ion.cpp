@@ -613,7 +613,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   };
 #endif
 
-#ifndef JS_SANDBOX_LFI
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   JitCode* self = this;
   memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
   memcpy(header(), &headerContent, JitCodeHeaderSize);
@@ -629,7 +629,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   masm.copyDataSection(dataSection());
   masm.copyConstantsTable(raw(), constantsTable());
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   // Copy the code.
   insnSize_ = masm.instructionsSize();
   masm.executableCopyInPlace(raw());
@@ -676,7 +676,7 @@ void JitCode::finalize(JS::GCContext* gcx) {
 
   executable_.discard(gcx);
   zone()->decJitMemory(executable_.desc.xSize);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   sys_jitcode_delete(executable_.xStart, executable_.desc.xSize);
 #endif
 }
@@ -2431,7 +2431,7 @@ static void InvalidateActivation(JS::GCContext* gcx,
     CodeLocationLabel dataLabelToMunge(frame.resumePCinCurrentFrame());
     ptrdiff_t delta = ionScript->invalidateEpilogueDataOffset() -
                       (frame.resumePCinCurrentFrame() - ionCode->raw());
-#if defined(JS_SANDBOX_LFI)
+#if defined(JS_SANDBOX_LFI_JIT_MEMORY)
     CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
     Assembler::PatchWrite_HltImm32_Runtime(dataLabelToMunge, hltStartLabel, Imm32(delta));
 #elif defined(JS_SANDBOX_CFI)

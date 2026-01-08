@@ -3393,7 +3393,7 @@ void MacroAssembler::link(JitCode* code) {
   linkProfilerCallSites(code);
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void MacroAssembler::linkInPlace(JitCode* code) {
   MOZ_ASSERT(!oom());
   linkProfilerCallSitesInPlace(code);
@@ -3432,7 +3432,7 @@ void MacroAssembler::linkProfilerCallSites(JitCode* code) {
   }
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void MacroAssembler::linkProfilerCallSitesInPlace(JitCode* code) {
   for (size_t i = 0; i < profilerCallSites_.length(); i++) {
     CodeOffset offset = profilerCallSites_[i];

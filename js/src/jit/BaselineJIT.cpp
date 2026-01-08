@@ -833,6 +833,7 @@ static void ToggleProfilerInstrumentation(JitCode* code,
   }
 }
 
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 static void ToggleProfilerInstrumentation(uint8_t* code,
                                           uint32_t profilerEnterToggleOffset,
                                           uint32_t profilerExitToggleOffset,
@@ -848,6 +849,7 @@ static void ToggleProfilerInstrumentation(uint8_t* code,
     Assembler::ToggleToJmp(exitToggleLocation);
   }
 }
+#endif
 
 void BaselineScript::toggleProfilerInstrumentation(bool enable) {
   if (enable == isProfilerInstrumentationOn()) {
@@ -867,7 +869,7 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
   }
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void BaselineScript::toggleProfilerInstrumentationInPlace(bool enable, uint8_t* script) {
   if (enable == isProfilerInstrumentationOn()) {
     return;

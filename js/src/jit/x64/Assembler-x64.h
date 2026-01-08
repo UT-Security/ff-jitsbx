@@ -409,7 +409,7 @@ class Assembler : public AssemblerX86Shared {
   // Copy the assembly code to the given buffer, and perform any pending
   // relocations relying on the target address.
   void executableCopy(uint8_t* buffer);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void executableCopyInPlace(uint8_t* buffer);
 #endif
 

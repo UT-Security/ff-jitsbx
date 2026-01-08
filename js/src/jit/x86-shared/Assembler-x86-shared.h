@@ -704,7 +704,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void executableCopy(void* buffer);
   void processCodeLabels(uint8_t* rawCode);
   void processDataLabels(uint8_t* rawCode, JitCode* code);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void processCodeLabelsInPlace(uint8_t* rawCode);
   void processDataLabelsInPlace(uint8_t* rawCode, JitCode* code);
 #endif
@@ -1574,7 +1574,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   static void BindInPlace(uint8_t* raw_in_place, uint8_t* raw, const CodeLabel& label) {
     if (label.patchAt().bound()) {
       intptr_t offset = label.patchAt().offset();
@@ -6093,7 +6093,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static void PatchWrite_NearCall(CodeLocationLabel startLabel,
                                   CodeLocationLabel target) {
     uint8_t* start = startLabel.raw();
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = 0xE8;
     uint32_t dist = target - startLabel - PatchWrite_NearCallSize();
     val |= ((size_t)dist << 8);
@@ -6133,7 +6133,7 @@ class AssemblerX86Shared : public AssemblerShared {
     mozilla::LittleEndian::writeInt32(ptr - sizeof(int32_t), toWrite.value);
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   static void PatchWrite_HltImm32_Runtime(CodeLocationLabel dataLabel,
                                   CodeLocationLabel hltStartLabel,
                                   Imm32 toWrite) {
@@ -6159,7 +6159,7 @@ class AssemblerX86Shared : public AssemblerShared {
     PatchDataWithValueCheck(data, PatchedImmPtr(newData.value),
                             PatchedImmPtr(expectedData.value));
   }
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   static void PatchDataWithValueCheckInPlace(uint8_t* data_in_place,
                                              CodeLocationLabel data,
                                              PatchedImmPtr newData,
@@ -6188,7 +6188,7 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* ptr = (uint8_t*)inst.raw();
     // TODO: why do these fail? sometimes code ptr is nulled out
     MOZ_ASSERT(*ptr == 0x3D);  // <CMP> eax, imm32
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     sys_jitcode_modify(ptr, 0xE9, 1, 0);
 #else
     *ptr = 0xE9;               // <JMP> rel32
@@ -6197,7 +6197,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static void ToggleToCmp(CodeLocationLabel inst) {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0xE9);  // <JMP> rel32
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     sys_jitcode_modify(ptr, 0x3D, 1, 0);
 #else
     *ptr = 0x3D;               // <CMP> eax, imm32
@@ -6207,7 +6207,7 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0x3D ||  // <CMP> eax, imm32
                *ptr == 0xE8);   // <CALL> rel32
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     sys_jitcode_modify(ptr, enabled ? 0xE8 : 0x3D, 1, 0);
 #else
     *ptr = enabled ? 0xE8 : 0x3D;

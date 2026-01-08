@@ -383,7 +383,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   size_t instructionsSize() const { return size(); }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   uint8_t* buffer() { return (uint8_t*)masm.buffer(); }
   void ensureSpace(size_t space) { return masm.ensureSpace(space); }
 #endif
@@ -686,7 +686,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   static void patchNearAddressMove(CodeLocationLabel loc,
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void patchNearAddressMoveInPlace(CodeOffset loc_in_place,
                                           CodeLocationLabel loc,
                                           CodeLocationLabel target) DEFINED_ON(x64);
@@ -5376,7 +5376,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Fix up the code pointers to be written for locations where profilerCallSite
   // emitted moves of RIP to a register.
   void linkProfilerCallSites(JitCode* code);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void linkProfilerCallSitesInPlace(JitCode* code);
 #endif
 
@@ -5426,7 +5426,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   bool useDataSection() const { return useDataSection_; }
   void finish();
   void link(JitCode* code);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void linkInPlace(JitCode* code);
 #endif
 

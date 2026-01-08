@@ -37,7 +37,7 @@ class Linker {
   }
 
  public:
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   mozilla::Maybe<JS::Rooted<JitCode*>> code;
 #endif
 
@@ -45,7 +45,7 @@ class Linker {
   explicit Linker(MacroAssembler& masm) : masm(masm) { masm.finish(); }
 
   ~Linker() {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     if (code) {
 
 #if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)

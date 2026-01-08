@@ -40,7 +40,7 @@ inline void SetRel32(void* from, void* to, uint32_t trailing = 0) {
   SetInt32(from, offset, trailing);
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 inline void SetRel32InPlace(void* from_in_place, void* from, void* to, uint32_t trailing = 0) {
   intptr_t offset =
       reinterpret_cast<intptr_t>(to) - reinterpret_cast<intptr_t>(from);

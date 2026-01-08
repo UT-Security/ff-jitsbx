@@ -95,12 +95,26 @@ set_config("JS_SANDBOX_BUNDLE_ALIGN_LABELS", js_sandbox_bundle_align_labels)
 set_define("JS_SANDBOX_BUNDLE_ALIGN_LABELS", js_sandbox_bundle_align_labels)
 
 option(
+    "--enable-js-sandbox-lfi-jit-memory",
+    default=False,
+    help="{Enable|Disable} using LFI system calls to manage JIT memory",
+)
+
+@depends("--js-sandbox-lfi-jit-memory", when=js_sandbox_lfi)
+def js_sandbox_lfi_jit_memory(enable_js_sandbox_lfi_jit_memory):
+	if enable_js_sandbox_lfi_jit_memory:
+		return True
+
+set_config("JS_SANDBOX_LFI_JIT_MEMORY", js_sandbox_lfi_jit_memory)
+set_define("JS_SANDBOX_LFI_JIT_MEMORY", js_sandbox_lfi_jit_memory)
+
+option(
     "--enable-js-sandbox-verify",
     default=False,
     help="{Enable|Disable} the JavaScript sandbox verifier",
 )
 
-@depends("--js-sandbox-verify", when=js_sandbox_lfi)
+@depends("--js-sandbox-verify", when=js_sandbox_lfi_jit_memory)
 def js_sandbox_verify(enable_js_sandbox_verify):
 	if enable_js_sandbox_verify:
 		return True

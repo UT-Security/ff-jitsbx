@@ -46,10 +46,10 @@ class MOZ_RAII AutoWritableJitCodeFallible {
   }
 
   [[nodiscard]] bool makeWritable() {
-#ifndef JS_SANDBOX_LFI
-    return ExecutableAllocator::makeWritable(addr(), size());
-#else
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     return true;
+#else
+    return ExecutableAllocator::makeWritable(addr(), size());
 #endif
   }
 
@@ -61,7 +61,7 @@ class MOZ_RAII AutoWritableJitCodeFallible {
       }
     });
 
-#ifndef JS_SANDBOX_LFI
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
     if (!ExecutableAllocator::makeExecutableAndFlushICache(addr(), size())) {
       MOZ_CRASH();
     }

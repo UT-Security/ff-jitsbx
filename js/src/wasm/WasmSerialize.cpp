@@ -885,7 +885,7 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   // Initialize the ModuleSegment
   *item = js::MakeUnique<ModuleSegment>(
       Tier::Serialized, std::move(bytes), length, linkData,
@@ -921,7 +921,7 @@ CoderResult CodeModuleSegment(Coder<mode>& coder,
 
   if constexpr (mode == MODE_SIZE) {
     // Just calculate the length of bytes written
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     MOZ_TRY(coder.writeBytes((*item)->buf(), length));
 #else
     MOZ_TRY(coder.writeBytes((*item)->base(), length));
@@ -931,7 +931,7 @@ CoderResult CodeModuleSegment(Coder<mode>& coder,
     uint8_t* serializedBase = coder.buffer_;
 
     // Write the code bytes
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     MOZ_TRY(coder.writeBytes((*item)->buf(), length));
 #else
     MOZ_TRY(coder.writeBytes((*item)->base(), length));
@@ -1000,7 +1000,7 @@ CoderResult CodeCodeTier(Coder<MODE_DECODE>& coder, wasm::UniqueCodeTier* item,
   UniqueModuleSegment segment;
   MOZ_TRY(Magic(coder, Marker::CodeTier));
   MOZ_TRY(CodeModuleSegment(coder, &segment, linkData));
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, MetadataTier>(
       coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->buf())));
 #else
@@ -1022,7 +1022,7 @@ CoderResult CodeCodeTier(Coder<mode>& coder,
   STATIC_ASSERT_ENCODING_OR_SIZING;
   MOZ_TRY(Magic(coder, Marker::CodeTier));
   MOZ_TRY(CodeModuleSegment(coder, &item->segment_, linkData));
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   MOZ_TRY((CodeUniquePtr<mode, MetadataTier>(coder, &item->metadata_,
                                              &CodeMetadataTier<mode>,
                                              item->segment_->buf())));

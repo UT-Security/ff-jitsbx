@@ -98,7 +98,7 @@ UniqueCodeBytes wasm::AllocateCodeBytes(uint32_t codeLength) {
   }
 
   // Zero the padding.
-#ifndef JS_SANDBOX_LFI
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   // We dont need to explicitly zero here
   memset(((uint8_t*)p) + codeLength, 0xcc, roundedCodeLength - codeLength);
 #endif
@@ -155,10 +155,7 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 #ifdef JS_CODELABEL_LINKMODE
     label.setLinkMode(static_cast<CodeLabel::LinkMode>(link.mode));
 #endif
-#ifdef JS_SANDBOX_CFI_MASKS
-    label.setHltMasked(link.hltMasked);
-#endif
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     Assembler::BindInPlace(ms.buf(), ms.base(), label);
 #else
     Assembler::Bind(ms.base(), label);
@@ -177,7 +174,7 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 
     void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
       uint8_t* patchAt = ms.buf() + offset;
       Assembler::PatchDataWithValueCheckInPlace(patchAt,
                                          CodeLocationLabel(patchAt),
@@ -303,7 +300,7 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
   }
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
                              uint32_t codeLength, const LinkData& linkData,
                              uint8_t* buf)
@@ -329,7 +326,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
     return nullptr;
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   masm.executableCopyInPlace(codeBytes.get());
 #else
   masm.executableCopy(codeBytes.get());
@@ -337,7 +334,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
 
   MOZ_ASSERT(masm.dataSectionBytes() == 0, "Unexpected data section in WASM");
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        linkData, std::move(masm.buffer()));
 #else
@@ -356,7 +353,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
     return nullptr;
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        linkData, std::move(const_cast<uint8_t*>(unlinkedBytes.begin())));
 #else
@@ -378,7 +375,7 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
   // Optimized compilation finishes on a background thread, so we must make sure
   // to flush the icaches of all the executing threads.
   // Reprotect the whole region to avoid having separate RW and RX mappings.
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   sys_jitcode_create(base(), buf(), length());
 #else
   if (!ExecutableAllocator::makeExecutableAndFlushICache(
@@ -424,7 +421,7 @@ UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
     return nullptr;
   }
 
-#ifndef JS_SANDBOX_LFI
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   memset(codeBytes.get(), 0xcc, length);
 #endif
 
@@ -607,7 +604,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   masm.executableCopyInPlace(codePtr);
   
   for (const CodeLabel& label : masm.codeLabels()) {

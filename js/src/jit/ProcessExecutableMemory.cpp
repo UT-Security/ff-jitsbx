@@ -41,7 +41,7 @@
 #  include <sys/mman.h>
 #  include <unistd.h>
 #endif
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 #  include <syscall.h>
 #define SYS_jitcode_mmap 441
 #define SYS_jitcode_munmap 444
@@ -512,7 +512,7 @@ static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
   // Note that randomAddr is just a hint: if the address is not available
   // mmap will pick a different address.
   void* randomAddr = ComputeRandomAllocationAddress();
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   void* p = sys_jitcode_mmap(randomAddr, xBytes, rwBytes);
 #else
   size_t bytes = xBytes + rwBytes;
@@ -527,7 +527,7 @@ static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
 }
 
 static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   mozilla::DebugOnly<int> result = sys_jitcode_munmap(addr, xBytes, rwBytes);
 #else
   mozilla::DebugOnly<int> result = munmap(addr, xBytes + rwBytes);
@@ -590,7 +590,7 @@ static void DecommitPages(void* addr, size_t bytes) {
 
 [[nodiscard]] static bool CommitExecutablePages(void* addr, size_t bytes,
                                       ProtectionSetting protection) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   if (sys_jitcode_commit(addr, bytes) != 0) {
     return false;
   }
@@ -601,7 +601,7 @@ static void DecommitPages(void* addr, size_t bytes) {
 }
 
 static void DecommitExecutablePages(void* addr, size_t bytes) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   MOZ_RELEASE_ASSERT(sys_jitcode_decommit(addr, bytes) == 0);
 #else
   return DecommitPages(addr, bytes);

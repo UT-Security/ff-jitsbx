@@ -109,7 +109,7 @@ void AssemblerX86Shared::processDataLabels(uint8_t* rawCode, JitCode* code) {
   dataJitSection_.clear();
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void AssemblerX86Shared::processCodeLabelsInPlace(uint8_t* rawCode) {
   uint8_t* rawInPlace = (uint8_t*)masm.buffer();
   for (const CodeLabel& label : codeLabels_) {

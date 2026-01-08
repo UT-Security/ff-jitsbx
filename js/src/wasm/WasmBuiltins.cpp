@@ -1829,7 +1829,7 @@ bool wasm::EnsureBuiltinThunksInitialized() {
     return false;
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   masm.executableCopyInPlace(thunks->codeBase);
   
   masm.processCodeLabelsInPlace(thunks->codeBase);
@@ -1849,7 +1849,7 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   MOZ_ASSERT(masm.trapSites().empty());
   MOZ_ASSERT(masm.tryNotes().empty());
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   // We probably dont need the memset here since we verify and copy a part of a page
   sys_jitcode_create(thunks->codeBase, masm.buffer(), masm.size());
 #else

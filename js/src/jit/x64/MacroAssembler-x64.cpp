@@ -1756,7 +1756,7 @@ void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
   PatchWrite_Imm32(loc, Imm32(off));
 }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 void MacroAssembler::patchNearAddressMoveInPlace(CodeOffset offset,
                                                  CodeLocationLabel loc,
                                                  CodeLocationLabel target) {

@@ -295,7 +295,7 @@ MethodStatus BaselineCompiler::compile() {
   // If profiler instrumentation is enabled, toggle instrumentation on.
   if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
           cx->runtime())) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     baselineScript->toggleProfilerInstrumentationInPlace(true, masm.buffer());
 #else
     baselineScript->toggleProfilerInstrumentation(true);
@@ -6844,7 +6844,7 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
     // Patch loads now that we know the tableswitch base address.
     CodeLocationLabel tableLoc(code, CodeOffset(tableOffset_));
     for (CodeOffset off : tableLabels_) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
       masm.patchNearAddressMoveInPlace(off, CodeLocationLabel(code, off),
                                            tableLoc);
 #else

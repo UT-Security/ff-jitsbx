@@ -13986,7 +13986,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     ionScript->setHasProfilingInstrumentation();
   }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   Assembler::PatchDataWithValueCheckInPlace(
       masm.buffer() + invalidateEpilogueData_.offset(),
       CodeLocationLabel(code, invalidateEpilogueData_), ImmPtr(ionScript),
@@ -13998,7 +13998,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 #endif
 
   for (CodeOffset offset : ionScriptLabels_) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     Assembler::PatchDataWithValueCheckInPlace(
         masm.buffer() + offset.offset(), CodeLocationLabel(code, offset),
         ImmPtr(ionScript), ImmPtr((void*)-1));
@@ -14010,7 +14010,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 
   for (NurseryObjectLabel label : ionNurseryObjectLabels_) {
     void* entry = ionScript->addressOfNurseryObject(label.nurseryIndex);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     Assembler::PatchDataWithValueCheckInPlace(
         masm.buffer() + label.offset.offset(),
         CodeLocationLabel(code, label.offset), ImmPtr(entry),
@@ -14031,7 +14031,7 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
 
   for (size_t i = 0; i < icInfo_.length(); i++) {
     IonIC& ic = ionScript->getICFromIndex(i);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     Assembler::PatchDataWithValueCheckInPlace(
         masm.buffer() + icInfo_[i].icOffsetForJump.offset(),
         CodeLocationLabel(code, icInfo_[i].icOffsetForJump),

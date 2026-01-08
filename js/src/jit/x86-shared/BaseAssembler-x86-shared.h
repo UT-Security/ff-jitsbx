@@ -105,7 +105,7 @@ class BaseAssembler : public GenericAssembler {
 #endif
   };
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
   inline void ensureSpace(size_t space) {
     m_formatter.ensureSpace(space);
   }
@@ -146,7 +146,7 @@ class BaseAssembler : public GenericAssembler {
     MOZ_ASSERT_IF(inst[0] == OP_NOP_0F,
                   inst[1] == OP_NOP_1F || inst[2] == OP_NOP_44 ||
                       inst[3] == OP_NOP_00 || inst[4] == OP_NOP_00);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = OP_CALL_rel32;
     uint32_t dist = target - callsite;
     val |= ((size_t)dist << 8);
@@ -167,7 +167,7 @@ class BaseAssembler : public GenericAssembler {
       return;
     }
     MOZ_ASSERT(inst[0] == OP_CALL_rel32);
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = OP_NOP_0F;
     val |= OP_NOP_1F << 0x8;
     val |= OP_NOP_44 << 0x10;
@@ -6830,7 +6830,7 @@ class BaseAssembler : public GenericAssembler {
 #endif
     }
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     inline void ensureSpace(size_t space) {
       m_buffer.ensureSpace(space);
     }

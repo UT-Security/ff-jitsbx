@@ -20,7 +20,7 @@
 #include "js/TraceKind.h"  // JS::TraceKind
 #include "js/UbiNode.h"    // ubi::{TracerConcrete, Size, CourseType}
 
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
 #  include <syscall.h>
 #  include <unistd.h>
 #define SYS_jitcode_create 442

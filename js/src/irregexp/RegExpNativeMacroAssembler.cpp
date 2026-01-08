@@ -992,7 +992,7 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
   }
 
   for (LabelPatch& lp : labelPatches_) {
-#ifdef JS_SANDBOX_LFI
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
     Assembler::PatchDataWithValueCheckInPlace((uint8_t*)masm_.buffer() + lp.patchOffset_.offset(), CodeLocationLabel(code, lp.patchOffset_),
                                        ImmPtr(code->raw() + lp.labelOffset_),
                                        ImmPtr(nullptr));
