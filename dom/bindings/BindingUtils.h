@@ -2761,9 +2761,9 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     aReflector.set(
         js::NewProxyObject(aCx, aHandler, aExpandoValue, aProto, options));
     if (aReflector) {
-      MC::dom::ReflectorTable::addRef<T>(aNative);
+      auto ref = MC::dom::ReflectorTable::initializeRef<T>(aNative);
       js::SetProxyReservedSlot(aReflector, DOM_OBJECT_SLOT,
-                               JS::PrivateValue(aNative));
+                               JS::NumberValue(ref));
       mNative = aNative;
       mReflector = aReflector;
 
@@ -2779,9 +2779,9 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
                     JS::MutableHandle<JSObject*> aReflector) {
     aReflector.set(JS_NewObjectWithGivenProto(aCx, aClass, aProto));
     if (aReflector) {
-      MC::dom::ReflectorTable::addRef<T>(aNative);
+      auto ref = MC::dom::ReflectorTable::initializeRef<T>(aNative);
       JS::SetReservedSlot(aReflector, DOM_OBJECT_SLOT,
-                          JS::PrivateValue(aNative));
+                          JS::NumberValue(ref));
       mNative = aNative;
       mReflector = aReflector;
 
@@ -3017,8 +3017,8 @@ bool CreateGlobal(MCContext* aCx, T* aNative, nsWrapperCache* aCache,
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
   {
-    JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::PrivateValue(aNative));
-    MC::dom::ReflectorTable::addRef<T>(aNative);
+    auto ref = MC::dom::ReflectorTable::initializeRef<T>(aNative);
+    JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::NumberValue(ref));
     NS_ADDREF(aNative);
 
     aCache->SetWrapper(aGlobal);

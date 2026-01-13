@@ -2195,7 +2195,7 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
 
 
 def finalizeHook(descriptor, hookName, gcx, obj):
-    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\nMC::dom::ReflectorTable::decRef<%s>(self);" % (obj, descriptor.nativeType)
+    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\nMC::dom::ReflectorTable::deleteRef<%s>(self);" % (obj, descriptor.nativeType)
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
             """

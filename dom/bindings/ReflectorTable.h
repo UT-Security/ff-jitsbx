@@ -22,83 +22,121 @@ class ReflectorInfo {
   using TypeTag = uint32_t;
   
  public:
-  explicit ReflectorInfo() : refCount_(1) {}
+  explicit ReflectorInfo() : ptr_(nullptr) {}
 
-  inline void addRef() { refCount_++; }
-
-  inline bool decRef() {
-    --refCount_;
-    return refCount_ == 0;
+  operator bool() {
+    return ptr_ != nullptr;
   }
 
-  inline uint32_t getRefCnt() const { return refCount_; }
-
+  inline void setPtr(void* p) {
+    ptr_ = p;
+  }
 
   template<typename T>
   inline void setTag() {
     tag_ = mozilla::dom::TagVerify<T>::getTag();
   }
 
+  inline void clear(void) {
+    ptr_ = nullptr;
+    tag_ = 0;
+  }
+  
   template <typename T>
-  inline bool verify() {
-    return mozilla::dom::TagVerify<T>::verify(tag_);
+  inline T* verify() {
+    if(mozilla::dom::TagVerify<T>::verify(tag_)) {
+      return static_cast<T*>(ptr_);
+    } else {
+      return nullptr;
+    }
   }
 
  private:
-  uint32_t refCount_;
+  void* ptr_;
   TypeTag tag_;
 };
 
 class ReflectorTable {
-  using ReflectorMap = mozilla::HashMap<void*, ReflectorInfo>;
+  using ReflectorMap = ReflectorInfo*;
+  using Address = uintptr_t;
 
-  static inline ReflectorMap table = ReflectorMap(32);
+  static inline ReflectorMap table; 
+  static inline size_t capacity;
+  static inline size_t next_free;
   static inline mozilla::RWLock tableLock = mozilla::RWLock("Reflector Table Lock");
 
-  template <typename T>
-  static T* verify(void* ptr) {
-#ifdef JS_SANDBOX_DOM_REFLECTORS
-    mozilla::AutoReadLock rLock(tableLock);
-    ReflectorMap::Ptr p = table.readonlyThreadsafeLookup(ptr);
-    if (!p || !p->value().verify<T>()) MOZ_CRASH("Invalid DOM Reflector App Pointer");
-    return static_cast<T*>(ptr);
-#else
-    return static_cast<T*>(ptr);
-#endif
+  static void growTable(void) {
+    size_t oldCapacity = capacity;
+    capacity *= 2;
+    auto newTable = new ReflectorInfo[capacity];
+    memcpy(newTable, table, oldCapacity);
+    delete table;
+    table = newTable;
+  }
+
+  static void getNextFree(void) {
+    size_t last_free = next_free;
+    next_free++;
+    while(last_free != next_free) {
+      if(next_free >= capacity) {
+        next_free = 0;
+      }
+      if(table[next_free]) return;
+    }
+    growTable();
+    getNextFree();
   }
 
 public:
-  template<typename T>
-  static T* verify(MC::AppPointer<void*> ptr) {
-    return verify<T>(ptr.UNSAFE_unverified());
+  ReflectorTable() {
+    capacity = 32;
+    next_free = 0;
+    table = new ReflectorInfo[capacity];
   }
 
-  template<typename T>
-  static void addRef(T* native) {
+  template <typename T>
+  static T* verify(Address ptr) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
-    mozilla::AutoWriteLock wLock(tableLock);
-    ReflectorMap::AddPtr p = table.lookupForAdd(static_cast<void*>(native));
-    if (p) p->value().addRef();
-    else {
-      ReflectorInfo newInfo;
-      newInfo.setTag<T>();
-      if(!table.add(p, static_cast<void*>(native), newInfo)) MOZ_CRASH("Failed to insert DOM Reflector App Pointer");
-    }
-#endif
-  }
-
-  template<typename T>
-  static void decRef(T* native) {
-#ifdef JS_SANDBOX_DOM_REFLECTORS
-    mozilla::AutoWriteLock wLock(tableLock);
-    ReflectorMap::Ptr p = table.lookup(static_cast<void*>(native));
-    if (p && p->value().decRef()) {
-      table.removeNoResize(p);
+    mozilla::AutoReadLock rLock(tableLock);
+    if(ptr < capacity &&
+      auto p = table[ptr].verify<T>()) {
+      return p;
     } else {
-      MOZ_CRASH("Attempted invalid refcount decrement");
+      MOZ_CRASH("Invalid DOM Reflector App Pointer");
+    }
+#else
+    MOZ_CRASH("Something went seriously wrong");
+#endif
+  }
+
+  template<typename T>
+  static Address initializeRef(T* native) {
+#ifdef JS_SANDBOX_DOM_REFLECTORS
+    mozilla::AutoWriteLock wLock(tableLock);
+    table[next_free].setTag<T>();
+    table[next_free].setPtr(static_cast<void*>(native));
+    auto ref = next_free
+    getNextFree();
+    return ref;
+#else
+    MOZ_CRASH("Initialize ref shouldn't be called");
+#endif
+  }
+
+  template<typename T>
+  static void deleteRef(T* native) {
+    destroyRef((uintptr_t)(native));
+  }
+
+  static void destroyRef(Address native) {
+#ifdef JS_SANDBOX_DOM_REFLECTORS
+    mozilla::AutoWriteLock wLock(tableLock);
+    if(native < capacity) {
+      table[native].clear();
     }
 #endif
   }
+
 };
 
 }
