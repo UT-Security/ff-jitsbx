@@ -274,6 +274,10 @@ class AppPointer {
  public:
   AppPointer(T data) : data_(data) {}
 
+  operator uintptr_t() {
+    return reinterpret_cast<uintptr_t>(data_) & 0xfffffffffff;
+  }
+
   inline auto UNSAFE_unverified() const {
     return data_;
   }
