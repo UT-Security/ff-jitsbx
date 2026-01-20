@@ -5,6 +5,7 @@
 #include <stdatomic.h>
 #include <syscall.h>
 #include <sys/mman.h>
+#include <immintrin.h>
 
 #include "align.h"
 #include "arch_regs.h"
@@ -413,6 +414,33 @@ procunmapjitcode(struct TuxProc* p, lfiptr_t start, size_t exec_size, size_t dat
     return 0;
 }
 
+static void atomic_bundle32_memcpy(void* dest, const void* src, size_t n) {
+  // pre: n % 32 == 0, dest % 16 == 0
+  void* end = (char*)dest + n;
+
+  //__m128i hlts = _mm_setr_epi8(0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,
+  // 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4);
+
+  while (dest != end) {
+    // hlt first 16 bytes of the bundle
+    //_mm_store_si128((__m128i*)dst, hlts);
+
+    // copy second half of bundle
+    __m128i values = _mm_loadu_si128((__m128i*)((char*)src + 16));
+    _mm_store_si128((__m128i*)((char*)dest + 16), values);
+
+    // do we need a fence here to ensure that the above store finished
+    atomic_thread_fence(memory_order_seq_cst);
+
+    // copy first half of bundle
+    values = _mm_loadu_si128((__m128i*)src);
+    _mm_store_si128((__m128i*)dest, values);
+
+    dest = (char*)dest + 32;
+    src = (char*)src + 32;
+  }
+}
+
 int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size) {
     LOCK_WITH_DEFER(&p->lk_as, lk_as);
     if (p->p_jit_as == NULL) {
@@ -428,23 +456,14 @@ int proccreatejitcode(struct TuxProc* p, lfiptr_t dst, uint8_t* src, size_t size
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
-    if(verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
-        return -1;
+    if (verifier && !lfiv_verify_aligned(verifier, (void*)src, size,
+                                         (uintptr_t)dst)) {
+      lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
+      return -1;
     }
 
     uint8_t* jit_addr = procjitcodeaddr(p, dst);
-    memcpy(jit_addr, src, size);
-
-    if(verifier) {
-        if (!lfiv_verify_aligned(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
-            lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
-            return -1;
-        }
-
-        if (lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
-            return -1;
-        }
-    }
+    atomic_bundle32_memcpy(jit_addr, src, size);
 
     return 0;
 }
@@ -479,7 +498,7 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
 
     LFIVerifier* verifier = p->p_as->plat->verifier;
 
-    if(verifier && lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
+    if(lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
         return -1;
     }
 
@@ -491,15 +510,15 @@ int procmodifyjitcode(struct TuxProc* p, lfiptr_t src, size_t value, size_t patc
 #endif
     memcpy(jit_addr + patch_offset, &value, patch_len);
 
-    if(verifier) {
-        if (!lfiv_verify_aligned(verifier, (void*) jit_addr, size, (uintptr_t) jit_addr)) {
-            lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
-            return -1;
-        }
+    if (verifier && !lfiv_verify_aligned(verifier, (void*)jit_addr, size,
+                                         (uintptr_t)dst)) {
+      lfi_as_munmap(p->p_as, l2p(p->p_as, base), len);
+      return -1;
+    }
 
-        if(lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
-            return -1;
-        }
+    if (lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
+                                  LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
+      return -1;
     }
 
     return 0;
@@ -513,6 +532,20 @@ int procdeletejitcode(struct TuxProc* p, lfiptr_t dst, size_t length) {
 
     if (!lfi_as_validptr(p->p_jit_as, dst) || !lfi_as_validptr(p->p_jit_as, dst + length - 1)) {
         return -TUX_EINVAL;
+    }
+
+    uintptr_t base = truncp(dst, p->tux->opts.pagesize);
+    uintptr_t len = ceilp(length, p->tux->opts.pagesize);
+    
+    if(lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len, LFI_PROT_NONE) == -1) {
+        return -1;
+    }
+
+    memset(procjitcodeaddr(p, dst), 0xcc, length);
+
+    if (lfi_as_mprotect_no_verify(p->p_as, l2p(p->p_as, base), len,
+                                  LFI_PROT_READ | LFI_PROT_EXEC) == -1) {
+      return -1;
     }
 
     return 0;

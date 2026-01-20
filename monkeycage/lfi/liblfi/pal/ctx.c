@@ -193,7 +193,8 @@ lfi_get_myctx(void)
 
 EXPORT void
 lfi_set_myctx(struct LFIContext* new_ctx) {
-    if (new_ctx)
-        __asm__ __volatile__("wrgsbase %0" : : "r"(new_ctx->tp));
+    if (new_ctx) {
+        if (!lfi_myctx || lfi_myctx->tp != new_ctx->tp) __asm__ __volatile__("wrgsbase %0" : : "r"(new_ctx->tp));
+    }
     lfi_myctx = new_ctx;
 }
