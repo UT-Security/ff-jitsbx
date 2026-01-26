@@ -22,7 +22,7 @@ struct LFIAddrSpace {
     uintptr_t minaddr;
     uintptr_t maxaddr;
 
-    MMAddrSpace mm;
+    struct MMAddrSpace mm;
 
     struct LFIPlatform* plat;
 };

@@ -21,7 +21,7 @@ EXPORTS += [
 	"include/lfi_tux.h",
 ]
 
-USE_LIBS += ["boxmap", "cwalk", "lfiv", "mmap"]
+USE_LIBS += ["boxmap", "cwalk", "lfiv"]
 
 OS_LIBS += [
     "rt",
@@ -37,6 +37,7 @@ SOURCES += [
 	"fd.c",
 	"file.c",
 	"host.c",
+	"mmap.c",
 	"perf.c",
 	"proc.c",
 	"sys.c",

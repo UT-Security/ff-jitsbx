@@ -50,6 +50,10 @@ host_fdopen(int fd)
     return hf;
 }
 
+int host_filefd(struct HostFile* file) {
+    return file ? -1 : file->fd;
+}
+
 ssize_t
 host_read(struct HostFile* file, uint8_t* buf, size_t size)
 {

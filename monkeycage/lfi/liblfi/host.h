@@ -23,6 +23,8 @@ host_open(const char* filename, int flags, int mode)
 
 struct HostFile* host_fdopen(int fd);
 
+int host_filefd(struct HostFile* file);
+
 ssize_t host_read(struct HostFile* file, uint8_t* buffer, size_t size);
 
 ssize_t host_write(struct HostFile* file, uint8_t* buffer, size_t size);

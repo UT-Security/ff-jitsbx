@@ -14,7 +14,7 @@
 static size_t
 guardsize(void)
 {
-    return (size_t)0;
+    return (size_t)2 * 1024 * 1024 * 1024;
 }
 
 EXPORT struct LFIAddrSpace*
@@ -111,7 +111,7 @@ EXPORT lfiptr_t
 lfi_as_mapany(struct LFIAddrSpace* as, size_t size, int prot, int flags,
         struct HostFile* hf, off_t off)
 {
-    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
+    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, host_filefd(hf), off);
     if (addr == (lfiptr_t) -1)
         return (lfiptr_t) -1;
     int r = mapverify(as, addr, size, prot, flags, hf, off, true);
@@ -126,7 +126,7 @@ EXPORT lfiptr_t
 lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flags,
         struct HostFile* hf, off_t off)
 {
-    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, hf, off);
+    uintptr_t addr = mm_mapany(&as->mm, size, prot, flags, host_filefd(hf), off);
     if (addr == (lfiptr_t) -1)
         return (lfiptr_t) -1;
     int r = mapverify(as, addr, size, prot, flags, hf, off, false);
@@ -138,7 +138,7 @@ lfi_as_mapany_no_verify(struct LFIAddrSpace* as, size_t size, int prot, int flag
 }
 
 static void
-cbunmap(uint64_t start, size_t len, MMInfo info, void* udata)
+cbunmap(uint64_t start, size_t len, struct MMInfo info, void* udata)
 {
     (void) udata, (void) info;
     void* p = host_mmap((void*) start, len, LFI_PROT_NONE, LFI_MAP_ANONYMOUS |
@@ -152,7 +152,7 @@ lfi_as_mapat(struct LFIAddrSpace* as, lfiptr_t addr, size_t size, int prot,
 {
     assert(l2p(as, addr) >= as->minaddr && l2p(as, addr) + size <= as->maxaddr);
 
-    uintptr_t m_addr = mm_mapat_cb(&as->mm, l2p(as, addr), size, prot, flags, hf, off, cbunmap, NULL);
+    uintptr_t m_addr = mm_mapat_cb(&as->mm, l2p(as, addr), size, prot, flags, host_filefd(hf), off, cbunmap, NULL);
     if (m_addr == (uintptr_t) -1)
         return (lfiptr_t) -1; 
     int r = mapverify(as, m_addr, size, prot, flags, hf, off, true);

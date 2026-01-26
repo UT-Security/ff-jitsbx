@@ -30,7 +30,7 @@ if CONFIG['JS_SANDBOX_LFI']:
 	DIRS += [
 		'/monkeycage/cwalk',
 		'/monkeycage/fadec',
-		'/monkeycage/libmmap',
+		#'/monkeycage/libmmap',
 		'/monkeycage/libboxmap',
 		'/monkeycage/lfi',
 	]
