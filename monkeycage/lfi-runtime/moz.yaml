@@ -1,0 +1,32 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "General"
+
+origin:
+  name: LFI runtime.
+  description: The LFI runtime is responsible for loading sandboxes and handling host calls.
+  url: https://github.com/lfi-project/lfi-runtime/tree/master
+
+  release: 023fc8d560bfc88e5d9d9fbcfd53b8057ee70fa4 (2026-01-27T07:13:43Z).
+  revision: 023fc8d560bfc88e5d9d9fbcfd53b8057ee70fa4
+
+  license: MIT
+
+vendoring:
+  url: https://github.com/lfi-project/lfi-runtime
+  source-hosting: github
+
+  include:
+    - core/
+    - linux/
+    - LICENSE
+    - README.md  
+  
+  exclude:
+    - subprojects/
+    - toolchains/
+    - tools/
+    - meson.build
+    - meson_options.txt
