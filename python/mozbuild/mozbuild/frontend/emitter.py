@@ -22,6 +22,7 @@ from mozbuild.util import OrderedDefaultDict, memoize
 from ..testing import REFTEST_FLAVORS, TEST_MANIFESTS, SupportFilesConverter
 from .context import Context, ObjDirPath, Path, SourcePath, SubContext
 from .data import (
+    BaseProgram,
     BaseRustProgram,
     ChromeManifestEntry,
     ComputedFlags,
@@ -254,7 +255,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 and len(set(l.objdir for l in candidates)) == 1
             ):
                 for c in candidates:
-                    c.link_library(lib)
+                    c.link_library(lib, False)
             else:
                 raise SandboxValidationError(
                     'FINAL_LIBRARY ("%s") matches a LIBRARY_NAME defined in '
@@ -411,8 +412,13 @@ class TreeMetadataEmitter(LoggingMixin):
 
     def _link_library(self, context, obj, variable, path):
         force_static = path.startswith("static:") and obj.KIND == "target"
+        whole_archive = False
         if force_static:
             path = path[7:]
+            if path.startswith("whole-archive:") and isinstance(obj, BaseProgram):
+                whole_archive = True
+                path = path[14:]
+        
         name = mozpath.basename(path)
         dir = mozpath.dirname(path)
         candidates = [l for l in self._libs[name] if l.KIND == obj.KIND]
@@ -512,7 +518,7 @@ class TreeMetadataEmitter(LoggingMixin):
             candidates[0], SharedLibrary
         ):
             self._static_linking_shared.add(obj)
-        obj.link_library(candidates[0])
+        obj.link_library(candidates[0], whole_archive)
 
     @memoize
     def _get_external_library(self, dir, name, force_static):

@@ -379,6 +379,7 @@ class Linkable(ContextDerived):
         "cxx_link",
         "lib_defines",
         "linked_libraries",
+        "linked_libraries_whole_archive",
         "linked_system_libs",
         "sources",
     )
@@ -387,15 +388,17 @@ class Linkable(ContextDerived):
         ContextDerived.__init__(self, context)
         self.cxx_link = False
         self.linked_libraries = []
+        self.linked_libraries_whole_archive = []
         self.linked_system_libs = []
         self.lib_defines = Defines(context, OrderedDict())
         self.sources = defaultdict(list)
 
-    def link_library(self, obj):
+    def link_library(self, obj, whole_archive):
         assert isinstance(obj, BaseLibrary)
         if obj.KIND != self.KIND:
             raise LinkageWrongKindError("%s != %s" % (obj.KIND, self.KIND))
         self.linked_libraries.append(obj)
+        self.linked_libraries_whole_archive.append(whole_archive)
         if obj.cxx_link and not isinstance(obj, SharedLibrary):
             self.cxx_link = True
         obj.refs.append(self)

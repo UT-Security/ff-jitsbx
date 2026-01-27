@@ -244,16 +244,16 @@ class CommonBackend(BuildBackend):
                 seen_objs.add(o)
                 objs.append(o)
 
-        def expand(lib, recurse_objs, system_libs):
+        def expand(lib, recurse_objs, system_libs, whole_archive):
             if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)):
                 if lib.no_expand_lib:
-                    static_libs.append(lib)
+                    static_libs.append((lib, whole_archive))
                     recurse_objs = False
                 elif recurse_objs:
                     add_objs(lib)
 
                 for l in lib.linked_libraries:
-                    expand(l, recurse_objs, system_libs)
+                    expand(l, recurse_objs, system_libs, False)
 
                 if system_libs:
                     for l in lib.linked_system_libs:
@@ -271,9 +271,9 @@ class CommonBackend(BuildBackend):
         system_libs = not isinstance(
             input_bin, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)
         )
-        for lib in input_bin.linked_libraries:
+        for index, lib in enumerate(input_bin.linked_libraries):
             if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)):
-                expand(lib, True, system_libs)
+                expand(lib, True, system_libs, input_bin.linked_libraries_whole_archive[index])
             elif isinstance(lib, SharedLibrary):
                 if lib not in seen_libs:
                     seen_libs.add(lib)
