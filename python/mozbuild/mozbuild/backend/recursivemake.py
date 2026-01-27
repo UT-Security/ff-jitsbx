@@ -1500,13 +1500,18 @@ class RecursiveMakeBackend(MakeBackend):
         # libraries have been listed to ensure that the Rust libraries are
         # searched after the C/C++ objects that might reference Rust symbols.
         var = "HOST_LIBS" if obj.KIND == "host" else "STATIC_LIBS"
-        for lib in chain(
+        for (lib, whole_archive) in chain(
             (l for l in static_libs if not isinstance(l, BaseRustLibrary)),
             (l for l in static_libs if isinstance(l, BaseRustLibrary)),
         ):
-            backend_file.write_once(
-                "%s += %s\n" % (var, pretty_relpath(lib, lib.import_name))
-            )
+            if whole_archive:
+                backend_file.write_once(
+                    "WHOLE_ARCHIVE_%s += %s\n" % (var, pretty_relpath(lib, lib.import_name))
+                )
+            else:
+                backend_file.write_once(
+                    "%s += %s\n" % (var, pretty_relpath(lib, lib.import_name))
+                )
 
         for lib in os_libs:
             if obj.KIND == "target":

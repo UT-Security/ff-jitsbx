@@ -6,15 +6,14 @@
 
 GeckoProgram("lfistub", linkage=None)
 
-USE_LIBS += ["static:js"]
+USE_LIBS += ["static:whole-archive:js"]
 
 SOURCES += [
-	"!main.s",
-	"!thread.c",
+	"boxrt.c",
+	"boxrt_ret.S",
 ]
 
-LibraryGeneratedFile("js", "main.s", "thread.c", script="GenerateLFIStubFiles.py", entry_point="generate_lfi_stub")
 
-LDFLAGS += ["-static-pie", "-lc++", "-lc++abi"]
+LDFLAGS += ["-static-pie", "-Wl,--export-dynamic", "-lc++", "-lc++abi"]
 
 ASFLAGS += ["-g0"]
