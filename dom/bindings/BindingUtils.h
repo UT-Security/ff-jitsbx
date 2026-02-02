@@ -2771,7 +2771,9 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
         JS::AddAssociatedMemory(aReflector, mallocBytes,
                                 JS::MemoryUse::DOMBinding);
       }
+      return ref;
     }
+    return 0;
   }
 
   void CreateObject(MCContext* aCx, const JSClass* aClass,
@@ -2789,7 +2791,9 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
         JS::AddAssociatedMemory(aReflector, mallocBytes,
                                 JS::MemoryUse::DOMBinding);
       }
+      return ref;
     }
+    return 0;
   }
 
   void InitializationSucceeded() {
@@ -3017,7 +3021,7 @@ bool CreateGlobal(MCContext* aCx, T* aNative, nsWrapperCache* aCache,
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
   {
-    auto ref = MC::dom::ReflectorTable::initializeRef<T>(aNative);
+    MC::dom::ReflectorTable::initializeRef<T>(aNative);
     JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::NumberValue(ref));
     NS_ADDREF(aNative);
 

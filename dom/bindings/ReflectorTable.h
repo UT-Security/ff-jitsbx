@@ -22,7 +22,7 @@ class ReflectorInfo {
   using TypeTag = uint32_t;
   
  public:
-  explicit ReflectorInfo() : ptr_(nullptr) {}
+  explicit ReflectorInfo() : ptr_(nullptr), tag_(0) {}
 
   inline bool isEmpty(void) {
     return ptr_ == nullptr;
@@ -56,9 +56,10 @@ class ReflectorInfo {
   TypeTag tag_;
 };
 
+using Address = uintptr_t;
+
 class ReflectorTable {
   using ReflectorMap = ReflectorInfo*;
-  using Address = uintptr_t;
 
   static inline ReflectorMap table = new ReflectorInfo[32]; 
   static inline size_t capacity = 32;
@@ -69,7 +70,7 @@ class ReflectorTable {
     auto oldCapacity = capacity;
     capacity *= 2;
     auto newTable = new ReflectorInfo[capacity];
-    memcpy(newTable, table, oldCapacity);
+    memcpy(newTable, table, oldCapacity * sizeof(ReflectorInfo));
     delete[] table;
     table = newTable;
   }
@@ -89,6 +90,16 @@ class ReflectorTable {
   }
 
 public:
+
+  //TODO(Anthony): Replace by actually tainting everything
+  template <typename T>
+  static Address retrieveRef(T* ptr) {
+    for(uintptr_t ref = 0; ref < capacity; ref++) {
+      auto cand = table[ref].verify<T>();
+      if(ptr == cand) return ref;
+    }
+    MOZ_CRASH("Invalid ptr");
+  }
 
   template <typename T>
   static T* verify(Address ptr) {
@@ -127,8 +138,8 @@ public:
   static void deleteRef(T* native_) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoWriteLock wLock(tableLock);
-    auto native = (uintptr_t)(native)_ & 0xfffffffffff;
-    verify(native);
+    auto native = (uintptr_t)(native_) & 0xfffffffffff;
+    verify<T>(native);
     if(native < capacity) {
       table[native].clear();
     }

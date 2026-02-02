@@ -4449,8 +4449,8 @@ def CreateBindingJSObject(descriptor):
                 aObject->mExpandoAndGeneration.expando.setUndefined();
                 MC::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
                 creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
-                                          proto, /* aLazyProto = */ false, aObject,
-                                          expandoValue, aReflector);
+                                            proto, /* aLazyProto = */ false, aObject,
+                                            expandoValue, aReflector);
                 """
             )
         else:
@@ -4463,8 +4463,8 @@ def CreateBindingJSObject(descriptor):
             create = fill(
                 """
                 creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
-                                          ${proto}, /* aLazyProto = */ ${lazyProto},
-                                          aObject, MC::UndefinedHandleValue(), aReflector);
+                                            ${proto}, /* aLazyProto = */ ${lazyProto},
+                                            aObject, MC::UndefinedHandleValue(), aReflector);
                 """,
                 proto=proto,
                 lazyProto=lazyProto,
@@ -5096,7 +5096,8 @@ class CGClearCachedValueMethod(CGAbstractMethod):
                 MC::Rooted<JS::Value> temp(aCx);
                 MC::Tainted<JSContext*> t_cx;
                 t_cx.assign_raw_pointer(MC_UNSAFE(aCx));
-                MC::AppPointer<void*> t_void_self{static_cast<void*>(aObject)};
+                MC::AppPointer<void*> t_void_self{
+                    (static_cast<void*>(aObject))};
                 JSJitGetterCallArgs args(&temp);
                 MC::SandboxStack<JSAutoRealm> ar(aCx, obj);
                 if (!get_${name}(t_cx, obj, t_void_self, args).UNSAFE_unverified()) {
