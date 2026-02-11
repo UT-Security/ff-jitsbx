@@ -3286,7 +3286,7 @@ MC::Tainted<bool> GenericGetter(MC::Tainted<JSContext*> t_cx, unsigned argc, MC:
 
   MOZ_ASSERT(info->type() == JSJitInfo::Getter);
   MC::SandboxCallback<JSJitGetterOp> getter = MC::Sandbox::RetrieveCallback(info->getter);
-  bool ok = getter(t_cx, obj, self, JSJitGetterCallArgs(args)).UNSAFE_unverified();
+  bool ok = getter(t_cx, obj, MC::AppPointer<void*>(self), JSJitGetterCallArgs(args)).UNSAFE_unverified();
 #ifdef DEBUG
   if (ok) {
     AssertReturnTypeMatchesJitinfo(info, args.rval());
@@ -3384,7 +3384,7 @@ MC::Tainted<bool> GenericSetter(MC::Tainted<JSContext*> t_cx, unsigned argc, MC:
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Setter);
   MC::SandboxCallback<JSJitSetterOp> setter = MC::Sandbox::RetrieveCallback(info->setter);
-  if (!setter(t_cx, obj, self, JSJitSetterCallArgs(args)).UNSAFE_unverified()) {
+  if (!setter(t_cx, obj, MC::AppPointer<void*>(self), JSJitSetterCallArgs(args)).UNSAFE_unverified()) {
     return false;
   }
   args.rval().setUndefined();
@@ -3458,7 +3458,7 @@ MC::Tainted<bool> GenericMethod(MC::Tainted<JSContext*> t_cx, unsigned argc, MC:
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Method);
   MC::SandboxCallback<JSJitMethodOp> method = MC::Sandbox::RetrieveCallback(info->method);
-  bool ok = method(t_cx, obj, self, JSJitMethodCallArgs(args)).UNSAFE_unverified();
+  bool ok = method(t_cx, obj, MC::AppPointer<void*>(self), JSJitMethodCallArgs(args)).UNSAFE_unverified();
 #ifdef DEBUG
   if (ok) {
     AssertReturnTypeMatchesJitinfo(info, args.rval());

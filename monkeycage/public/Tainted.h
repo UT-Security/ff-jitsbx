@@ -272,7 +272,7 @@ class AppPointer {
   T data_;
 
  public:
-  AppPointer(T data) : data_(data) {}
+  explicit AppPointer(T data) : data_(data) {}
 
   operator uintptr_t() {
     return reinterpret_cast<uintptr_t>(data_) & 0xfffffffffff;

@@ -120,6 +120,9 @@ inline T* UnwrapDOMObject(JSObject* obj) {
   return MC::dom::ReflectorTable::verify<T>(MC::AppPointer<void*>(val.toPrivate()));
 }
 
+//TODO(Anthony): Change this to return an App Pointer
+//For now, we can't do verification since then we feed a real pointer to other
+//things
 template <>
 inline void* UnwrapDOMObject(JSObject* obj) {
   MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
@@ -136,7 +139,8 @@ inline nsISupports* UnwrapDOMObject(JSObject* obj) {
              "Don't pass non-DOM objects to this function");
 
   JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
-  return static_cast<nsISupports*>(val.toPrivate());
+  //return static_cast<nsISupports*>(val.toPrivate());
+  return MC::dom::ReflectorTable::get_UNSAFE_unverified<nsISupports>(MC::AppPointer<void*>(val.toPrivate()));
 }
 
 template <class T>
@@ -155,6 +159,17 @@ inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   return MC::dom::ReflectorTable::verify<T>(MC::AppPointer<void*>(val.toPrivate()));
 }
 
+inline MC::AppPointer<void*> UnwrapPossiblyNotInitializedAppPointer(JSObject* obj) {
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+  if (val.isUndefined()) {
+    return MC::AppPointer<void*>{reinterpret_cast<void*>(0xffffffffffffffff)};
+  }
+  return MC::AppPointer<void*>(val.toPrivate());
+}
+
 template <>
 inline void* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   // This is used by the OjectMoved JSClass hook which can be called before
@@ -168,7 +183,7 @@ inline void* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   if (val.isUndefined()) {
     return nullptr;
   }
-  return val.toPrivate();
+  return MC::dom::ReflectorTable::get_UNSAFE_unverified<void>(MC::AppPointer<void*>{val.toPrivate()});
 }
 
 //TODO(JS_SANDBOX_DOM_REFLECTORS_UNSAFE)
@@ -185,7 +200,8 @@ inline nsISupports* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   if (val.isUndefined()) {
     return nullptr;
   }
-  return static_cast<nsISupports*>(val.toPrivate());
+  //return static_cast<nsISupports*>(val.toPrivate());
+  return MC::dom::ReflectorTable::get_UNSAFE_unverified<nsISupports>(MC::AppPointer<void*>(val.toPrivate()));
 }
 
 inline const DOMJSClass* GetDOMClass(const JSClass* clasp) {
@@ -2771,9 +2787,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
         JS::AddAssociatedMemory(aReflector, mallocBytes,
                                 JS::MemoryUse::DOMBinding);
       }
-      return ref;
     }
-    return 0;
   }
 
   void CreateObject(MCContext* aCx, const JSClass* aClass,
@@ -2791,9 +2805,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
         JS::AddAssociatedMemory(aReflector, mallocBytes,
                                 JS::MemoryUse::DOMBinding);
       }
-      return ref;
     }
-    return 0;
   }
 
   void InitializationSucceeded() {
@@ -3021,7 +3033,7 @@ bool CreateGlobal(MCContext* aCx, T* aNative, nsWrapperCache* aCache,
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
   {
-    MC::dom::ReflectorTable::initializeRef<T>(aNative);
+    auto ref = MC::dom::ReflectorTable::initializeRef<T>(aNative);
     JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::NumberValue(ref));
     NS_ADDREF(aNative);
 

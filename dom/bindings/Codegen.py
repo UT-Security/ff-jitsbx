@@ -2195,7 +2195,7 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
 
 
 def finalizeHook(descriptor, hookName, gcx, obj):
-    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\nMC::dom::ReflectorTable::deleteRef<%s>(self);" % (obj, descriptor.nativeType)
+    finalize = "MC::dom::ReflectorTable::deleteRef<%s>(UnwrapPossiblyNotInitializedAppPointer(%s));\nJS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % (descriptor.nativeType, obj, obj)
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
             """
@@ -5024,7 +5024,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
 
 class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isTainted=True):
+        self.tainted = isTainted
         args = [
             Argument("MCContext*", "aCx"),
             Argument("JS::Handle<JSObject*>", "aWrapper"),
@@ -5035,7 +5036,10 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
         )
 
     def definition_body(self):
-        body = "MC::Tainted<JSContext*> t_cx;t_cx.assign_raw_pointer(MC_UNSAFE(aCx));\nMC::AppPointer<void*> t_void_self{static_cast<void*>(aObject)};\nMC::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
+        if self.tainted:
+            body = "MC::Tainted<JSContext*> t_cx;t_cx.assign_raw_pointer(MC_UNSAFE(aCx));\nMC::AppPointer<void*> t_void_self{static_cast<void*>(aObject)};\nMC::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
+        else:
+            body = "MC::Tainted<JSContext*> t_cx;t_cx.assign_raw_pointer(MC_UNSAFE(aCx));\nMC::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
         for m in self.descriptor.interface.members:
             if m.isAttr() and m.getExtendedAttribute("StoreInSlot"):
                 # Skip doing this for the "window" and "self" attributes on the
@@ -5052,11 +5056,14 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
                     static_assert(${slot} < JS::shadow::Object::MAX_FIXED_SLOTS,
                                   "Not enough fixed slots to fit '${interface}.${member}.  Ion's visitGetDOMMemberV/visitGetDOMMemberT assume StoreInSlot things are all in fixed slots.");
                     
-                    if (!get_${member}(t_cx, aWrapper, t_void_self, args).UNSAFE_unverified()) {
+                    if (!get_${untaintExtra}${member}(t_cx, aWrapper, ${selfRef}, args)${maybeUntaint}) {
                       return false;
                     }
                     // Getter handled setting our reserved slots
                     """,
+                    untaintExtra="safe_" if not self.tainted else "",
+                    maybeUntaint=".UNSAFE_unverified()" if self.tainted else "",
+                    selfRef = "t_void_self" if self.tainted else "aObject",
                     slot=memberReservedSlot(m, self.descriptor),
                     interface=self.descriptor.interface.identifier.name,
                     member=m.identifier.name,
@@ -5096,11 +5103,9 @@ class CGClearCachedValueMethod(CGAbstractMethod):
                 MC::Rooted<JS::Value> temp(aCx);
                 MC::Tainted<JSContext*> t_cx;
                 t_cx.assign_raw_pointer(MC_UNSAFE(aCx));
-                MC::AppPointer<void*> t_void_self{
-                    (static_cast<void*>(aObject))};
                 JSJitGetterCallArgs args(&temp);
                 MC::SandboxStack<JSAutoRealm> ar(aCx, obj);
-                if (!get_${name}(t_cx, obj, t_void_self, args).UNSAFE_unverified()) {
+                if (!get_safe_${name}(t_cx, obj, aObject, args)) {
                   JS::SetReservedSlot(obj, ${slotIndex}, oldValue);
                   return false;
                 }
@@ -11192,13 +11197,21 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     that the JIT can call with lower overhead.
     """
 
-    def __init__(self, descriptor, attr):
+    def __init__(self, descriptor, attr, isTainted=True):
         self.attr = attr
-        name = "get_" + IDLToCIdentifier(attr.identifier.name)
+        self.tainted = isTainted
+        if isTainted:
+            name = "get_" + IDLToCIdentifier(attr.identifier.name)
+            selfType = Argument("MC::AppPointer<void*>", "t_void_self")
+            retType = "MC::Tainted<bool>"
+        else:
+            name = "get_safe_" + IDLToCIdentifier(attr.identifier.name)
+            selfType = Argument("void*", "void_self")
+            retType = "bool"
         args = [
             Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("MC::AppPointer<void*>", "t_void_self"),
+            selfType,
             Argument("JSJitGetterCallArgs", "args"),
         ]
         # StoreInSlot attributes have their getters called from Wrap().  We
@@ -11209,18 +11222,26 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
             self,
             descriptor,
             name,
-            "MC::Tainted<bool>",
+            retType,
             args,
             canRunScript=not attr.getExtendedAttribute("StoreInSlot"),
         )
 
     def definition_body(self):
-        prefix = fill(
-            """
-            auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
-            """,
-            nativeType=self.descriptor.nativeType,
-        )
+        if self.tainted:
+            prefix = fill(
+                """
+                auto* self = MC::dom::ReflectorTable::verify<${nativeType}>(t_void_self);
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
+        else:
+            prefix = fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
 
         if self.attr.isMaplikeOrSetlikeAttr():
             assert not self.attr.getExtendedAttribute("CrossOriginReadable")
@@ -11260,10 +11281,11 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 fill(
                     """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
-                    ${nativeType}::RemoteProxy* self = static_cast<${nativeType}::RemoteProxy*>(t_void_self.UNSAFE_unverified());
+                    ${nativeType}::RemoteProxy* self = static_cast<${nativeType}::RemoteProxy*>(${selfRef});
                     $*{call}
                 }
             """,
+                    selfRef="t_void_self.UNSAFE_unverified()" if self.tainted else "void_self",
                     prototypeID=prototypeID,
                     nativeType=self.descriptor.nativeType,
                     call=CGGetterCall(
@@ -16624,7 +16646,9 @@ class CGDescriptor(CGThing):
                     cgThings.append(CGStaticGetter(descriptor, m))
                 elif descriptor.interface.hasInterfacePrototypeObject():
                     specializedGetter = CGSpecializedGetter(descriptor, m)
+                    specializedGetterNoTaint = CGSpecializedGetter(descriptor, m, isTainted=False)
                     cgThings.append(specializedGetter)
+                    cgThings.append(specializedGetterNoTaint)
                     if m.type.isPromise():
                         cgThings.append(
                             CGGetterPromiseWrapper(descriptor, specializedGetter)
@@ -16786,7 +16810,7 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGDOMJSClass(descriptor))
 
             if descriptor.interface.hasMembersInSlots():
-                cgThings.append(CGUpdateMemberSlotsMethod(descriptor))
+                cgThings.append(CGUpdateMemberSlotsMethod(descriptor, isTainted=False))
 
             if descriptor.isGlobal():
                 assert descriptor.wrapperCache

@@ -41,6 +41,11 @@ class ReflectorInfo {
     ptr_ = nullptr;
     tag_ = 0;
   }
+
+  template <typename T>
+  inline T* UNSAFE() {
+    return static_cast<T*>(ptr_);
+  }
   
   template <typename T>
   inline T* verify() {
@@ -89,17 +94,40 @@ class ReflectorTable {
     getNextFree();
   }
 
+  template <typename T>
+  static T* verify_no_lock(Address ptr) {
+#ifdef JS_SANDBOX_DOM_REFLECTORS
+    if(ptr < capacity) {
+      auto p = table[ptr].verify<T>();
+      if(p) {
+        return p;
+      } else {
+        MOZ_CRASH("Invalid DOM Reflector App Pointer");
+      }
+    } else {
+      MOZ_CRASH("App Pointer Out of Bounds");
+    }
+#else
+    MOZ_CRASH("Don't call verify");
+#endif
+  }
+
 public:
 
-  //TODO(Anthony): Replace by actually tainting everything
   template <typename T>
-  static Address retrieveRef(T* ptr) {
-    for(uintptr_t ref = 0; ref < capacity; ref++) {
-      auto cand = table[ref].verify<T>();
-      if(ptr == cand) return ref;
+  static T* get_UNSAFE_unverified(Address ptr) {
+#ifdef JS_SANDBOX_DOM_REFLECTORS
+    mozilla::AutoReadLock rLock(tableLock);
+    if(ptr < capacity) {
+      return table[ptr].UNSAFE<T>();
+    } else {
+      MOZ_CRASH("App Pointer Out of Bounds");
     }
-    MOZ_CRASH("Invalid ptr");
+#else
+    MOZ_CRASH("Don't call verify");
+#endif
   }
+
 
   template <typename T>
   static T* verify(Address ptr) {
@@ -135,15 +163,24 @@ public:
   }
 
   template<typename T>
-  static void deleteRef(T* native_) {
+  static void deleteRef(uintptr_t native) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoWriteLock wLock(tableLock);
-    auto native = (uintptr_t)(native_) & 0xfffffffffff;
-    verify<T>(native);
+    verify_no_lock<T>(native);
     if(native < capacity) {
       table[native].clear();
     }
 #endif
+  }
+
+  template<typename T>
+  static void deleteRef(T* native_) {
+    deleteRef<T>((uintptr_t)(native_) & 0xfffffffffff);
+  }
+
+  template<typename T>
+  static void deleteRef(void* native_) {
+    deleteRef<T>((uintptr_t)(native_) & 0xfffffffffff);
   }
 
 };
