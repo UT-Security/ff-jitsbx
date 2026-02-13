@@ -13,6 +13,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/dom/TypeTags.h"
+#include <stack>
 #include "monkeycage/Tainted.h"
 
 namespace MC {
@@ -66,8 +67,9 @@ using Address = uintptr_t;
 class ReflectorTable {
   using ReflectorMap = ReflectorInfo*;
 
-  static inline ReflectorMap table = new ReflectorInfo[32]; 
-  static inline size_t capacity = 32;
+  static inline ReflectorMap table = new ReflectorInfo[2048]; 
+  static inline std::stack<uintptr_t> free_list {};
+  static inline size_t capacity = 2048;
   static inline size_t next_free = 0;
   static inline mozilla::RWLock tableLock = mozilla::RWLock("Reflector Table Lock");
 
@@ -78,20 +80,23 @@ class ReflectorTable {
     memcpy(newTable, table, oldCapacity * sizeof(ReflectorInfo));
     delete[] table;
     table = newTable;
+    next_free = oldCapacity;
   }
 
-  static void getNextFree(void) {
-    auto last_free = next_free;
-    next_free++;
-    while(last_free != next_free) {
-      if(next_free >= capacity) {
-        next_free = 0;
-      }
-      if(table[next_free].isEmpty()) return;
+  static uintptr_t getNextFree(void) {
+    if(next_free != capacity && table[next_free].isEmpty()) {
       next_free++;
+      return next_free - 1;
     }
-    growTable();
-    getNextFree();
+    if(!free_list.empty()) {
+      auto ref = free_list.top();
+      free_list.pop();
+      return ref;
+    } else {
+      growTable();
+      next_free++;
+      return next_free - 1;
+    }
   }
 
   template <typename T>
@@ -152,10 +157,9 @@ public:
   static Address initializeRef(T* native) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoWriteLock wLock(tableLock);
-    table[next_free].setTag<T>();
-    table[next_free].setPtr(static_cast<void*>(native));
-    auto ref = next_free;
-    getNextFree();
+    auto ref = getNextFree();
+    table[ref].setTag<T>();
+    table[ref].setPtr(static_cast<void*>(native));
     return ref;
 #else
     MOZ_CRASH("Initialize ref shouldn't be called");
@@ -169,6 +173,9 @@ public:
     verify_no_lock<T>(native);
     if(native < capacity) {
       table[native].clear();
+      free_list.push(native);
+    } else {
+      MOZ_CRASH("Out of bounds ref");
     }
 #endif
   }
