@@ -62,18 +62,22 @@ class ReflectorInfo {
   TypeTag tag_;
 };
 
-using Address = uintptr_t;
+using Address = uint32_t;
 
+constexpr size_t STARTING = 16777216;
 class ReflectorTable {
+  //the opaque handle is its index into the table, shifted by 8
   using ReflectorMap = ReflectorInfo*;
 
-  static inline ReflectorMap table = new ReflectorInfo[2048]; 
-  static inline std::stack<uintptr_t> free_list {};
-  static inline size_t capacity = 2048;
+  //2**24
+  static inline ReflectorMap table = new ReflectorInfo[STARTING]; 
+  static inline std::stack<uint32_t> free_list {};
+  static inline size_t capacity = STARTING;
   static inline size_t next_free = 0;
   static inline mozilla::RWLock tableLock = mozilla::RWLock("Reflector Table Lock");
 
   static void growTable(void) {
+    MOZ_CRASH("Table ran out of capacity");
     auto oldCapacity = capacity;
     capacity *= 2;
     auto newTable = new ReflectorInfo[capacity];
@@ -83,7 +87,7 @@ class ReflectorTable {
     next_free = oldCapacity;
   }
 
-  static uintptr_t getNextFree(void) {
+  static uint32_t getNextFree(void) {
     if(next_free != capacity && table[next_free].isEmpty()) {
       next_free++;
       return next_free - 1;
@@ -102,15 +106,11 @@ class ReflectorTable {
   template <typename T>
   static T* verify_no_lock(Address ptr) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
-    if(ptr < capacity) {
-      auto p = table[ptr].verify<T>();
-      if(p) {
-        return p;
-      } else {
-        MOZ_CRASH("Invalid DOM Reflector App Pointer");
-      }
+    auto p = table[ptr >> 8].verify<T>();
+    if(p) {
+      return p;
     } else {
-      MOZ_CRASH("App Pointer Out of Bounds");
+      MOZ_CRASH("Invalid DOM Reflector App Pointer");
     }
 #else
     MOZ_CRASH("Don't call verify");
@@ -123,11 +123,7 @@ public:
   static T* get_UNSAFE_unverified(Address ptr) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoReadLock rLock(tableLock);
-    if(ptr < capacity) {
-      return table[ptr].UNSAFE<T>();
-    } else {
-      MOZ_CRASH("App Pointer Out of Bounds");
-    }
+    return table[ptr >> 8].UNSAFE<T>();
 #else
     MOZ_CRASH("Don't call verify");
 #endif
@@ -138,16 +134,12 @@ public:
   static T* verify(Address ptr) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoReadLock rLock(tableLock);
-    if(ptr < capacity) {
-      auto p = table[ptr].verify<T>();
+      auto p = table[ptr >> 8].verify<T>();
       if(p) {
         return p;
       } else {
         MOZ_CRASH("Invalid DOM Reflector App Pointer");
       }
-    } else {
-      MOZ_CRASH("App Pointer Out of Bounds");
-    }
 #else
     MOZ_CRASH("Don't call verify");
 #endif
@@ -160,23 +152,19 @@ public:
     auto ref = getNextFree();
     table[ref].setTag<T>();
     table[ref].setPtr(static_cast<void*>(native));
-    return ref;
+    return (ref << 8);
 #else
     MOZ_CRASH("Initialize ref shouldn't be called");
 #endif
   }
 
   template<typename T>
-  static void deleteRef(uintptr_t native) {
+  static void deleteRef(Address native) {
 #ifdef JS_SANDBOX_DOM_REFLECTORS
     mozilla::AutoWriteLock wLock(tableLock);
     verify_no_lock<T>(native);
-    if(native < capacity) {
-      table[native].clear();
-      free_list.push(native);
-    } else {
-      MOZ_CRASH("Out of bounds ref");
-    }
+    table[native >> 8].clear();
+    free_list.push(native);
 #endif
   }
 

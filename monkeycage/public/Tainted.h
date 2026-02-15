@@ -274,8 +274,8 @@ class AppPointer {
  public:
   explicit AppPointer(T data) : data_(data) {}
 
-  operator uintptr_t() {
-    return reinterpret_cast<uintptr_t>(data_) & 0xfffffffffff;
+  operator uint32_t() {
+    return (uint32_t)(reinterpret_cast<uintptr_t>(data_) & 0xffffffff);
   }
 
   inline auto UNSAFE_unverified() const {
