@@ -197,15 +197,13 @@ void* js::GetNativeStackBaseImpl() {
 #elif defined(JS_SANDBOX_LFI)
   if (gettid() == getpid()) {
     
-    //WARNING(JS_SANDBOX): Hardcoding expected main thread stack size.
-    stackSize = 3 * 1024 * 1024;
-    size_t guard_size = (size_t)2 * 1024 * 1024 * 1024;
+    stackSize = 2 * 1024 * 1024;
+    size_t guard_size = (size_t)192 * 1024;
+    size_t sandbox_size = (size_t)4 * 1024 * 1024 * 1024;
 
     uint64_t base;
-    uint64_t mask;
     __asm__("movq %%r14, %0" : "=r"(base));
-    __asm__("movq %%r15, %0" : "=r"(mask));
-    stackBase = (void*)(base + mask + 1 - guard_size - stackSize);
+    stackBase = (void*)(base + sandbox_size - guard_size - stackSize);
     rc = 0;
   } else {
     // For non main-threads pthread allocates the stack itself so it tells
