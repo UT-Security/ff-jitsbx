@@ -147,7 +147,11 @@ static void InitDefaultStackQuota(JSContext* cx) {
 
 #if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
   static constexpr JS::NativeStackSize MaxStackSize =
+#ifdef JS_SANDBOX_LFI
+      1 * 128 * sizeof(size_t) * 1024;
+#else
       2 * 128 * sizeof(size_t) * 1024;
+#endif
 #else
   static constexpr JS::NativeStackSize MaxStackSize =
       128 * sizeof(size_t) * 1024;
