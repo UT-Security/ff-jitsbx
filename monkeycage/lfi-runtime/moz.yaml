@@ -7,16 +7,19 @@ bugzilla:
 origin:
   name: LFI runtime.
   description: The LFI runtime is responsible for loading sandboxes and handling host calls.
-  url: https://github.com/lfi-project/lfi-runtime/tree/master
+  url: https://github.com/UT-Security/lfi-runtime/tree/mohabi-large-sandbox
 
-  release: 023fc8d560bfc88e5d9d9fbcfd53b8057ee70fa4 (2026-01-27T07:13:43Z).
-  revision: 023fc8d560bfc88e5d9d9fbcfd53b8057ee70fa4
+  release: 9173c1e53f1eb619f2781c9a9f62746b1adb5442
+  revision: 9173c1e53f1eb619f2781c9a9f62746b1adb5442
 
   license: MIT
 
 vendoring:
-  url: https://github.com/lfi-project/lfi-runtime
+  url: https://github.com/UT-Security/lfi-runtime
   source-hosting: github
+
+  patches:
+    - compat.patch
 
   include:
     - core/

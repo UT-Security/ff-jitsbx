@@ -1,0 +1,49 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+FINAL_LIBRARY = "lfi"
+
+EXPORTS += ["include/lfi_linux.h"]
+
+# Includes should be relative to current path
+LOCAL_INCLUDES += ["!.", "."]
+
+if CONFIG["CPU_ARCH"] == "x86_64":
+	DIRS += ["arch/x64"]
+
+	LOCAL_INCLUDES += [
+		"./arch/x64",
+	]
+elif CONFIG["CPU_ARCH"] == "aarch64":
+	DIRS += ["arch/arm64"]
+
+	LOCAL_INCLUDES += [
+		"./arch/arm64",
+	]
+
+DIRS += ["sys"]
+
+CFLAGS += ["-std=gnu11"]
+
+OS_LIBS += ["dl", "-pthread"]
+
+SOURCES += [
+	"buf.c",
+	"cwalk.c",
+	"debugger.c",
+	"elfload.c",
+	"elfsym.c",
+	"fd.c",
+	"host.c",
+	"linux.c",
+	"list.c",
+	"path.c",
+	"perf.c",
+	"proc.c",
+	"sys.c",
+	"thread.c",
+	"trampoline.c",
+]

@@ -34,19 +34,15 @@ elif CONFIG["JS_SANDBOX_DYLIB"]:
         "./dylib/embed/lib.h"
     ]
 elif CONFIG["JS_SANDBOX_LFI"]:
-    LIBRARY_DEFINES["NODLOPEN"] = True
-    LIBRARY_DEFINES["LARGEBOX"] = True
-    LIBRARY_DEFINES["SINGLEBOX"] = True
+    LIBRARY_DEFINES["ENABLE_TLS_EXEC"] = True
 
     SOURCES += [
-        "./lfilib/embed/lib/arch/x64/callback.S",
-        "./lfilib/embed/lib/arch/x64/trampolines.S",
-        "./lfilib/embed/lib/includes.c",
-        "./lfilib/embed/lib/lib.c",
+        "./lfilib/lib_init.c",
+        "./lfilib/lib_trampolines.S",
     ]
     
     EXPORTS.monkeycage.unsafe += [
-        "./lfilib/embed/lib/lib.h"
+        "./lfilib/monkeycage.h"
     ]
 
 DIST_INSTALL = True

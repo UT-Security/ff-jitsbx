@@ -28,9 +28,7 @@ elif CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 
 if CONFIG['JS_SANDBOX_LFI']:
 	DIRS += [
-		'/monkeycage/cwalk',
 		'/monkeycage/fadec',
-		'/monkeycage/libmmap',
-		'/monkeycage/libboxmap',
-		'/monkeycage/lfi',
+		'/monkeycage/lfi-runtime',
+		'/monkeycage/lfi/lfi-verify',
 	]
