@@ -9,8 +9,8 @@ origin:
   description: The LFI runtime is responsible for loading sandboxes and handling host calls.
   url: https://github.com/UT-Security/lfi-runtime/tree/mohabi-large-sandbox
 
-  release: 9173c1e53f1eb619f2781c9a9f62746b1adb5442 (2026-02-19T18:23:54Z).
-  revision: 9173c1e53f1eb619f2781c9a9f62746b1adb5442
+  release: cc36168bf469c1aeed1b3897ce93da717e722445 (2026-02-19T22:16:45Z).
+  revision: cc36168bf469c1aeed1b3897ce93da717e722445
 
   license: MIT
 
