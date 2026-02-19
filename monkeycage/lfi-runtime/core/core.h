@@ -9,9 +9,13 @@
 #include "mmap.h"
 
 #include <signal.h>
+#ifdef __STDC_NO_THREADS__
+#include "threads.h"
+#else
 #include <threads.h>
+#endif
 
-#define EXPORT __attribute__((visibility("default")))
+#define EXPORT
 
 struct LFIEngine {
     struct BoxMap *bm;

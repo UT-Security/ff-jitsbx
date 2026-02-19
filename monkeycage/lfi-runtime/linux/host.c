@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/random.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -58,12 +57,33 @@ randomflags(unsigned int flags)
         f |= GRND_NONBLOCK;
     return f;
 }
+#elif defined(HAVE_SYS_GETRANDOM)
+/* Flags for use with getrandom.  */
+#define GRND_NONBLOCK 0x01
+#define GRND_RANDOM 0x02
+
+static unsigned int
+randomflags(unsigned int flags)
+{
+    unsigned int f = 0;
+    if ((flags & LINUX_GRND_RANDOM) != 0)
+        f |= GRND_RANDOM;
+    if ((flags & LINUX_GRND_NONBLOCK) != 0)
+        f |= GRND_NONBLOCK;
+    return f;
+}
+
+#define SYS_getrandom 318
+
+static ssize_t getrandom(void* buf, size_t buflen, unsigned int flags) {
+    return syscall(SYS_getrandom, buf, buflen, flags);
+}
 #endif
 
 ssize_t
 host_getrandom(void *buf, size_t size, unsigned int flags)
 {
-#if defined(HAVE_GETRANDOM)
+#if defined(HAVE_GETRANDOM) || defined(HAVE_SYS_GETRANDOM)
     ssize_t r = getrandom(buf, size, randomflags(flags));
     if (r < 0)
         return host_err(errno);
