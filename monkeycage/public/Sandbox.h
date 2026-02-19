@@ -28,8 +28,6 @@ private:
   static inline std::atomic_flag initialize_ = ATOMIC_FLAG_INIT;
 
   static inline std::shared_mutex callback_mutex;
-
-  static inline void* callback_index_to_app_func[MC_Sbx::MAX_CALLBACKS] = {};
 public:
   static bool Initialize() {
     if (initialize_.test_and_set()) {
@@ -60,9 +58,7 @@ public:
   template<typename T_Ret, typename... T_Args>
   static Callback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> app_callback) {
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
-    size_t index;
-    T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, (void*)app_callback, &index);
-    callback_index_to_app_func[index] = (void*)app_callback;
+    T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback((void*)app_callback, app_callback);
     return Callback<T_Cb<T_Ret, T_Args...>>(nullptr, sbx_callback);
   }
 
@@ -73,15 +69,13 @@ public:
         std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
     using T_Func = T_Func_Ret (*)(mc_tainted_callback_arg_t<T_Args, MC_Sbx>...);
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
-    size_t index;
-
-    MC_Sbx::RetrieveCallback(sbx_callback, &index);
-    if (index == MC_Sbx::MAX_CALLBACKS) {
+    void* key = MC_Sbx::RetrieveCallback(sbx_callback);
+    if (key == nullptr) {
       return Callback<T_Cb<T_Ret, T_Args...>>(nullptr);
     }
 
     auto app_callback =
-        reinterpret_cast<T_Func>(callback_index_to_app_func[index]);
+        reinterpret_cast<T_Func>(key);
     return Callback<T_Cb<T_Ret, T_Args...>>(app_callback, sbx_callback);
   }
 
@@ -113,7 +107,7 @@ public:
         std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
     using T_Func = T_Func_Ret (*)(mc_tainted_callback_arg_t<T_Args, MC_Sbx>...);
 
-    auto app_callback = reinterpret_cast<T_Func>(callback_index_to_app_func[MC_Sbx::InvokedCallback()]);
+    auto app_callback = reinterpret_cast<T_Func>(MC_Sbx::InvokedCallbackData());
 
     if constexpr (std::is_void_v<T_Ret>) {
       app_callback(CallbackInterceptorConvertParam<T_Args>(std::forward<T_Args>(params))...);
@@ -145,15 +139,12 @@ public:
     }
     else {
       std::unique_lock<std::shared_mutex> guard(callback_mutex);
-      size_t index;
-
       auto callback_interceptor =
           CallbackInterceptor<mc_remove_wrapper_t<T_Ret>,
                               mc_remove_wrapper_t<T_Args>...>;
 
       T_Cb_no_wrap<T_Ret, T_Args...> sbx_callback =
-          MC_Sbx::RegisterCallback(callback_interceptor, (void*)app_callback, &index);
-      callback_index_to_app_func[index] = (void*)app_callback;
+          MC_Sbx::RegisterCallback((void*)app_callback, callback_interceptor);
       return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(app_callback, sbx_callback);
     }
   }

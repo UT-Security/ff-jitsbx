@@ -442,27 +442,27 @@ struct JS_PUBLIC_API StableCellHasher<JS::Heap<T>> {
 
   static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stack_push(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif
     bool ret = StableCellHasher<T>::maybeGetHash(l, t_hashOut);
 #ifdef JS_SANDBOX_LFI
     *hashOut = *t_hashOut;
-    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+    monkeycage_stack_pop(sizeof(HashNumber));
 #endif
     return ret;
   }
   static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stack_push(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif
     bool ret = StableCellHasher<T>::ensureHash(l, t_hashOut);
 #ifdef JS_SANDBOX_LFI
     *hashOut = *t_hashOut;
-    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+    monkeycage_stack_pop(sizeof(HashNumber));
 #endif
     return ret;
   }
@@ -481,27 +481,27 @@ struct JS_PUBLIC_API StableCellHasher<MC::Heap<T>> {
 
   static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stack_push(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif
     bool ret = StableCellHasher<T>::maybeGetHash(l, t_hashOut);
 #ifdef JS_SANDBOX_LFI
     *hashOut = *t_hashOut;
-    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+    monkeycage_stack_pop(sizeof(HashNumber));
 #endif
     return ret;
   }
   static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stack_push(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif
     bool ret = StableCellHasher<T>::ensureHash(l, t_hashOut);
 #ifdef JS_SANDBOX_LFI
     *hashOut = *t_hashOut;
-    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+    monkeycage_stack_pop(sizeof(HashNumber));
 #endif
     return ret;
   }
@@ -657,7 +657,7 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
                                         RootingContext>>
   explicit Rooted(const RootingContext& cx)
       : detail::Rooted<T>(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
+    void* memory = monkeycage_stack_push(sizeof(T));
     MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
     this->ptr = (T*)memory;
     new (memory) T(JS::SafelyInitialized<T>::create());
@@ -667,7 +667,7 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
   template <typename RootingContext, typename S>
   Rooted(const RootingContext& cx, S&& initial)
       : detail::Rooted<T>(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
+    void* memory = monkeycage_stack_push(sizeof(T));
     MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
     this->ptr = (T*)memory;
     new (memory) T(std::forward<S>(initial));
@@ -680,7 +680,7 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
       typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
   explicit Rooted(const RootingContext& cx, CtorArgs... args)
       : detail::Rooted<T>(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
+    void* memory = monkeycage_stack_push(sizeof(T));
     MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
     this->ptr = (T*)memory;
     new (memory) T(std::forward<CtorArgs>(args)...);
@@ -692,7 +692,7 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
     MOZ_ASSERT(*this->stack == this);
     *this->stack = this->prev;
     this->ptr->~T();
-    monkeycage_stackpop(sizeof(T), (void*)this->ptr);
+    monkeycage_stack_pop(sizeof(T));
   }
 #endif
   /*
