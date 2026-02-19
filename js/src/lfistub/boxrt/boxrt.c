@@ -7,7 +7,9 @@
 
 #define LFI_SYS_pause 1024
 
-extern void* _lfi_ret;
+#pragma GCC visibility push(default)
+
+extern void _lfi_ret(void);
 
 __attribute__((noreturn)) static void *
 lfi_pause(void *arg)
@@ -25,6 +27,7 @@ _lfi_thread_create(void)
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_attr_setstacksize(&attr, 2 * 1024 * 1024);
     pthread_create(t, &attr, &lfi_pause, NULL);
     pthread_attr_destroy(&attr);
     return t;
@@ -108,3 +111,5 @@ main(void)
 {
     lfi_pause(NULL);
 }
+
+#pragma GCC visibility pop

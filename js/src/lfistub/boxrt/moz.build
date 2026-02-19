@@ -4,12 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-GeckoProgram("lfistub", linkage=None)
+Library('boxrt')
 
-DIRS += ["boxrt"]
+SOURCES += [
+	"boxrt.c",
+	"boxrt_ret.S",
+]
 
-USE_LIBS += ["static:boxrt", "static:whole-archive:js"]
-
-LDFLAGS += ["-Wl,--export-dynamic", "-lc++", "-lc++abi", "-static-pie"]
-
-ASFLAGS += ["-g0"]
+FORCE_STATIC_LIB = True
