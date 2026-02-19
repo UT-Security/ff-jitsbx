@@ -4,7 +4,7 @@
 #include "lfi_linux.h"
 #include "log.h"
 
-#define EXPORT __attribute__((visibility("default")))
+#define EXPORT
 
 struct LFILinuxEngine {
     struct LFIEngine *engine;
