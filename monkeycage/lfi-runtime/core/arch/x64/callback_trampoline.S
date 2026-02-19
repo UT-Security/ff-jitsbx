@@ -26,7 +26,7 @@
     xorps %xmm15, %xmm15
 .endm
 
-.macro lfi_callback_gen with_struct
+.macro lfi_callback_gen with_struct with_stack_args
     // Entrypoint for callbacks, with the target in %r10.
 #ifdef HAVE_PKU
     pushq %rcx
@@ -37,6 +37,12 @@
 #endif
 
     get_ctx %r11
+
+#ifdef LAST_CALLBACK_KEY
+    // store callback key in context
+    movq %rax, CTX_LAST_CALLBACK_KEY(%r11)
+#endif
+
     // Swap the sandbox/host stacks. The sandbox stack won't remain in the
     // REGS_HOST_SP spot for long because we'll restore the saved host stack on
     // the way out.
@@ -51,8 +57,8 @@
     movq %r12, REGS_RSP(%r11)
 
     // Restore host tp.
-    movq REGS_HOST_TP(%r11), %r12
-    write_ctx %r12
+    movq REGS_HOST_TP(%r11), %rax
+    write_ctx %rax
 
 .if \with_struct
     movq %rdi, REGS_RDI(%r11)
@@ -73,7 +79,14 @@
 
     // Save %r11 across the call (and stack alignment).
     pushq %r11
+.if \with_stack_args
+    pushq 16(%r12)
+    pushq 8(%r12)
+.endif
     callq *%r10
+.if \with_stack_args
+    addq $0x10, %rsp
+.endif
     popq %r11
 
     cmpq $1, CTX_ABORT_CALLBACK(%r11)
@@ -86,7 +99,7 @@
 1:
 
 #ifdef ENABLE_SEGUE
-# ifndef SEGUE_SINGLE_SANDBOX
+# ifndef SINGLE_SANDBOX
     wrgsbase %REG_BASE
 # endif
 #endif
@@ -131,20 +144,31 @@
 
     // NOTE: This pop instruction could fault.
     popq %r11
+#ifdef LARGE_SANDBOX
+    andq %REG_MASK, %r11
+    andq $0xffffffffffffffe0, %r11
+    addq %REG_BASE, %r11
+#else
     andl $0xffffffe0, %r11d
     addq %REG_BASE, %r11
+#endif
     jmpq *%r11
 .endm
 
 .p2align 4
 .global lfi_callback
 lfi_callback:
-    lfi_callback_gen 0
+    lfi_callback_gen 0 0
 
 .p2align 4
 .global lfi_callback_struct
 lfi_callback_struct:
-    lfi_callback_gen 1
+    lfi_callback_gen 1 0
+
+.p2align 4
+.global lfi_callback_stack_args
+lfi_callback_stack_args:
+    lfi_callback_gen 0 1
 
 #ifndef __APPLE__
 .section .note.GNU-stack,"",@progbits
