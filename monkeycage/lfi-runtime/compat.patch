@@ -1,7 +1,7 @@
-diff --git a/monkeycage/lfi-runtime/core/core.c b/monkeycage/lfi-runtime/core/core.c
+diff --git a/core/core.c b/core/core.c
 index 097fbd60bf..009e299af6 100644
---- a/monkeycage/lfi-runtime/core/core.c
-+++ b/monkeycage/lfi-runtime/core/core.c
+--- a/core/core.c
++++ b/core/core.c
 @@ -31,7 +31,11 @@ init_verifier(struct LFIVerifier *v, struct LFIOptions *opts)
  #if defined(LFI_ARCH_ARM64)
      v->verify = lfiv_verify_arm64;
@@ -14,10 +14,10 @@ index 097fbd60bf..009e299af6 100644
  #elif defined(LFI_ARCH_RISCV64)
      v->verify = lfiv_verify_riscv64;
  #else
-diff --git a/monkeycage/lfi-runtime/core/core.h b/monkeycage/lfi-runtime/core/core.h
+diff --git a/core/core.h b/core/core.h
 index f022aac578..88d00b5016 100644
---- a/monkeycage/lfi-runtime/core/core.h
-+++ b/monkeycage/lfi-runtime/core/core.h
+--- a/core/core.h
++++ b/core/core.h
 @@ -9,9 +9,13 @@
  #include "mmap.h"
  
@@ -33,11 +33,11 @@ index f022aac578..88d00b5016 100644
  
  struct LFIEngine {
      struct BoxMap *bm;
-diff --git a/monkeycage/lfi-runtime/core/threads.h b/monkeycage/lfi-runtime/core/threads.h
+diff --git a/core/threads.h b/core/threads.h
 new file mode 100644
 index 0000000000..40b88620a2
 --- /dev/null
-+++ b/monkeycage/lfi-runtime/core/threads.h
++++ b/core/threads.h
 @@ -0,0 +1,60 @@
 +/*
 + * C11 <threads.h> emulation library
@@ -99,11 +99,11 @@ index 0000000000..40b88620a2
 +/*-------------------------- functions --------------------------*/
 +
 +#include "threads_posix.h"
-diff --git a/monkeycage/lfi-runtime/core/threads_posix.h b/monkeycage/lfi-runtime/core/threads_posix.h
+diff --git a/core/threads_posix.h b/core/threads_posix.h
 new file mode 100644
 index 0000000000..6cceb07897
 --- /dev/null
-+++ b/monkeycage/lfi-runtime/core/threads_posix.h
++++ b/core/threads_posix.h
 @@ -0,0 +1,397 @@
 +/*
 + * C11 <threads.h> emulation library
@@ -502,19 +502,19 @@ index 0000000000..6cceb07897
 +    return 0;
 +}
 +#endif
-diff --git a/monkeycage/lfi-runtime/linux/config.h b/monkeycage/lfi-runtime/linux/config.h
+diff --git a/linux/config.h b/linux/config.h
 new file mode 100644
 index 0000000000..771556d7f4
 --- /dev/null
-+++ b/monkeycage/lfi-runtime/linux/config.h
++++ b/linux/config.h
 @@ -0,0 +1,3 @@
 +#pragma once
 +
 +#define CONFIG_MAX_FUTEXES 512
-diff --git a/monkeycage/lfi-runtime/linux/host.c b/monkeycage/lfi-runtime/linux/host.c
+diff --git a/linux/host.c b/linux/host.c
 index 7d5d971ea0..9b7c650459 100644
---- a/monkeycage/lfi-runtime/linux/host.c
-+++ b/monkeycage/lfi-runtime/linux/host.c
+--- a/linux/host.c
++++ b/linux/host.c
 @@ -8,7 +8,6 @@
  #include <assert.h>
  #include <errno.h>
@@ -558,10 +558,10 @@ index 7d5d971ea0..9b7c650459 100644
      ssize_t r = getrandom(buf, size, randomflags(flags));
      if (r < 0)
          return host_err(errno);
-diff --git a/monkeycage/lfi-runtime/linux/linux.h b/monkeycage/lfi-runtime/linux/linux.h
+diff --git a/linux/linux.h b/linux/linux.h
 index 0832bc27b6..fb179c71f3 100644
---- a/monkeycage/lfi-runtime/linux/linux.h
-+++ b/monkeycage/lfi-runtime/linux/linux.h
+--- a/linux/linux.h
++++ b/linux/linux.h
 @@ -4,7 +4,7 @@
  #include "lfi_linux.h"
  #include "log.h"
@@ -571,11 +571,11 @@ index 0832bc27b6..fb179c71f3 100644
  
  struct LFILinuxEngine {
      struct LFIEngine *engine;
-diff --git a/monkeycage/lfi-runtime/linux/threads.h b/monkeycage/lfi-runtime/linux/threads.h
+diff --git a/linux/threads.h b/linux/threads.h
 new file mode 100644
 index 0000000000..40b88620a2
 --- /dev/null
-+++ b/monkeycage/lfi-runtime/linux/threads.h
++++ b/linux/threads.h
 @@ -0,0 +1,60 @@
 +/*
 + * C11 <threads.h> emulation library
@@ -637,11 +637,11 @@ index 0000000000..40b88620a2
 +/*-------------------------- functions --------------------------*/
 +
 +#include "threads_posix.h"
-diff --git a/monkeycage/lfi-runtime/linux/threads_posix.h b/monkeycage/lfi-runtime/linux/threads_posix.h
+diff --git a/linux/threads_posix.h b/linux/threads_posix.h
 new file mode 100644
 index 0000000000..6cceb07897
 --- /dev/null
-+++ b/monkeycage/lfi-runtime/linux/threads_posix.h
++++ b/linux/threads_posix.h
 @@ -0,0 +1,397 @@
 +/*
 + * C11 <threads.h> emulation library
@@ -1040,10 +1040,10 @@ index 0000000000..6cceb07897
 +    return 0;
 +}
 +#endif
-diff --git a/monkeycage/lfi-runtime/linux/trampoline.h b/monkeycage/lfi-runtime/linux/trampoline.h
+diff --git a/linux/trampoline.h b/linux/trampoline.h
 index 4549459204..c0907cd1e7 100644
---- a/monkeycage/lfi-runtime/linux/trampoline.h
-+++ b/monkeycage/lfi-runtime/linux/trampoline.h
+--- a/linux/trampoline.h
++++ b/linux/trampoline.h
 @@ -2,6 +2,10 @@
  
  #include "linux.h"
