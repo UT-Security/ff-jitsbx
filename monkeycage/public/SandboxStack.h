@@ -64,20 +64,20 @@ private:
 
 public:
   SandboxStackPtr() : inner_(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
+    void* memory = monkeycage_stack_push(sizeof(T));
     inner_ = memory ? new (memory) T() : nullptr;
   }
 
   template <typename... Args>
   SandboxStackPtr(Args&&... args) : inner_(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
+    void* memory = monkeycage_stack_push(sizeof(T));
     inner_ = memory ? new (memory) T(std::forward<Args>(args)...) : nullptr;
   }
 
   ~SandboxStackPtr() {
     if (inner_) {
       inner_->~T();
-      monkeycage_stackpop(sizeof(T), (void*)inner_);
+      monkeycage_stack_pop(sizeof(T));
     }
   }
 
