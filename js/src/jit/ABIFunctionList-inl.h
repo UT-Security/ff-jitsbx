@@ -87,6 +87,101 @@ namespace jit {
 #  define ABIFUNCTION_FUZZILLI_LIST(_)
 #endif
 
+#ifdef JS_SANDBOX_CET
+#define ABIFUNCTION_LIST(_)                                           \
+  ABIFUNCTION_JS_GC_PROBES_LIST(_)                                    \
+  ABIFUNCTION_JS_CODEGEN_ARM_LIST(_)                                  \
+  ABIFUNCTION_WASM_CODEGEN_DEBUG_LIST(_)                              \
+  _(js::ArgumentsObject::finishForIonPure)                            \
+  _(js::ArgumentsObject::finishInlineForIonPure)                      \
+  _(js::ArrayShiftMoveElements)                                       \
+  _(js::ecmaAtan2)                                                    \
+  _(js::ecmaHypot)                                                    \
+  _(js::ecmaPow)                                                      \
+  _(js::EmulatesUndefined)                                            \
+  _(js::ExecuteRegExpAtomRaw)                                         \
+  _(js_free)                                                          \
+  _(js::hypot3)                                                       \
+  _(js::hypot4)                                                       \
+  _(js::Interpret)                                                    \
+  _(js::Int32ToStringPure)                                            \
+  _(js::irregexp::CaseInsensitiveCompareNonUnicode)                   \
+  _(js::irregexp::CaseInsensitiveCompareUnicode)                      \
+  _(js::irregexp::GrowBacktrackStack)                                 \
+  _(js::irregexp::IsCharacterInRangeArray)                            \
+  _(js::jit::AllocateAndInitTypedArrayBuffer)                         \
+  _(js::jit::AllocateBigIntNoGC)                                      \
+  _(js::jit::AllocateFatInlineString)                                 \
+  _(js::jit::AllocateDependentString)                                 \
+  _(js::jit::ArrayPushDensePure)                                      \
+  _(js::jit::AssertMapObjectHash)                                     \
+  _(js::jit::AssertPropertyLookup)                                    \
+  _(js::jit::AssertSetObjectHash)                                     \
+  _(js::jit::AssertValidBigIntPtr)                                    \
+  _(js::jit::AssertValidObjectPtr)                                    \
+  _(js::jit::AssertValidStringPtr)                                    \
+  _(js::jit::AssertValidSymbolPtr)                                    \
+  _(js::jit::AssertValidValue)                                        \
+  _(js::jit::AssumeUnreachable)                                       \
+  _(js::jit::AtomicsStore64)                                          \
+  _(js::jit::AtomizeStringNoGC)                                       \
+  _(js::jit::Bailout)                                                 \
+  _(js::jit::BigIntNumberEqual<EqualityKind::Equal>)                  \
+  _(js::jit::BigIntNumberEqual<EqualityKind::NotEqual>)               \
+  _(js::jit::BigIntNumberCompare<ComparisonKind::LessThan>)           \
+  _(js::jit::NumberBigIntCompare<ComparisonKind::LessThan>)           \
+  _(js::jit::NumberBigIntCompare<ComparisonKind::GreaterThanOrEqual>) \
+  _(js::jit::BigIntNumberCompare<ComparisonKind::GreaterThanOrEqual>) \
+  _(js::jit::CreateMatchResultFallbackFunc)                           \
+  _(js::jit::EqualStringsHelperPure)                                  \
+  _(js::jit::SetupShstkReconstruction)                                \
+  _(js::jit::FinishBailoutToBaseline)                                 \
+  _(js::jit::FrameIsDebuggeeCheck)                                    \
+  _(js::jit::GetContextSensitiveInterpreterStub)                      \
+  _(js::jit::GetIndexFromString)                                      \
+  _(js::jit::GetInt32FromStringPure)                                  \
+  _(js::jit::GetNativeDataPropertyPure)                               \
+  _(js::jit::GetNativeDataPropertyPureWithCacheLookup)                \
+  _(js::jit::GetNativeDataPropertyByValuePure)                        \
+  _(js::jit::GlobalHasLiveOnDebuggerStatement)                        \
+  _(js::jit::HandleCodeCoverageAtPC)                                  \
+  _(js::jit::HandleCodeCoverageAtPrologue)                            \
+  _(js::jit::HandleException)                                         \
+  _(js::jit::HasNativeDataPropertyPure<false>)                        \
+  _(js::jit::HasNativeDataPropertyPure<true>)                         \
+  _(js::jit::HasNativeElementPure)                                    \
+  _(js::jit::InitBaselineFrameForOsr)                                 \
+  _(js::jit::InvalidationBailout)                                     \
+  _(js::jit::InvokeFromInterpreterStub)                               \
+  _(js::jit::LazyLinkTopActivation)                                   \
+  _(js::jit::LinearizeForCharAccessPure)                              \
+  _(js::jit::ObjectHasGetterSetterPure)                               \
+  _(js::jit::ObjectIsCallable)                                        \
+  _(js::jit::ObjectIsConstructor)                                     \
+  _(js::jit::PostGlobalWriteBarrier)                                  \
+  _(js::jit::PostWriteBarrier)                                        \
+  _(js::jit::PostWriteElementBarrier<IndexInBounds::Yes>)             \
+  _(js::jit::PostWriteElementBarrier<IndexInBounds::Maybe>)           \
+  _(js::jit::Printf0)                                                 \
+  _(js::jit::Printf1)                                                 \
+  _(js::jit::StringFromCharCodeNoGC)                                  \
+  _(js::jit::TypeOfNameObject)                                        \
+  _(js::jit::WrapObjectPure)                                          \
+  ABIFUNCTION_FUZZILLI_LIST(_)                                        \
+  _(js::MapIteratorObject::next)                                      \
+  _(js::NativeObject::addDenseElementPure)                            \
+  _(js::NativeObject::growSlotsPure)                                  \
+  _(js::NumberMod)                                                    \
+  _(js::NumberToStringPure)                                           \
+  _(js::ObjectClassToString)                                          \
+  _(js::powi)                                                         \
+  _(js::ProxyGetProperty)                                             \
+  _(js::RegExpInstanceOptimizableRaw)                                 \
+  _(js::RegExpPrototypeOptimizableRaw)                                \
+  _(js::SetIteratorObject::next)                                      \
+  _(js::StringToNumberPure)                                           \
+  _(js::TypeOfObject)
+#else
 #define ABIFUNCTION_LIST(_)                                           \
   ABIFUNCTION_JS_GC_PROBES_LIST(_)                                    \
   ABIFUNCTION_JS_CODEGEN_ARM_LIST(_)                                  \
@@ -179,6 +274,7 @@ namespace jit {
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \
   _(js::TypeOfObject)
+#endif
 
 // List of all ABI functions to be used with callWithABI, which are
 // overloaded. Each entry stores the fully qualified name of the C++ function,

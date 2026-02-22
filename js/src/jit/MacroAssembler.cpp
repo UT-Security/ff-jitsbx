@@ -2974,58 +2974,49 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 #ifdef JS_SANDBOX_CET
     Register numFrames = enterRegs.takeAny();
     Register savedPcArr = enterRegs.takeAny();
-    Register pc = enterRegs.takeAny();
-    Register newpc = enterRegs.takeAny();
 
-    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
-    pop(numFrames);
     // TODO(JS_SANDBOX_CET): figure out how many frames to pop
+    pop(numFrames);
     incShadowStack(numFrames);
 
     // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
     pop(savedPcArr);
 
-    Label start, dummy;
-    bind(&start);
-    // fetch pc from array
-    loadPtr(Address(savedPcArr, 0), pc);
-    // call-jmp sequence to restore shadow stack
-    call(&dummy);
-    movq(pc, newpc);
-    jmp(Operand(newpc));
-    bind(&dummy);
-    // load next addr in array
-    addq(Imm32(8), savedPcArr);
-    sub32(Imm32(1), numFrames);
-    branch32(Assembler::GreaterThan, numFrames, Imm32(0), &start);
+    // Back up jitcodeReg
+    push(jitcodeReg);
 
-    // Linked list iteration (deprecated)
-    // Register numFrames = enterRegs.takeAny();
-    // Register savedPcStruct = enterRegs.takeAny();
-    // Register pc = enterRegs.takeAny();
-    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
-    // pop(numFrames);
-    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
-    // pop(savedPcStruct);
+    // breakpoint();
+    
+    // New shstk strategy:
+    // (1) Call ABI function with args (numframes, savedaddrs)
+    // (2) ABI function dynamically generates JIT code stub with shstk setup
+    // (3) ABI function returns entrypoint of generated JIT stub
+    // (4) Call (actually jump) into generated JIT stub, now we setup new shstk
+    // (5) Walk stack and replace old retaddrs with new ones
+    using Fn1 = void* (*)(JSContext* cx, int numFrames, uint64_t* savedAddresses);
+    setupUnalignedABICall(temp);
+    
+    Register context = enterRegs.takeAny();
+    loadJSContext(context);
+    
+    passABIArg(context);
+    passABIArg(numFrames);
+    passABIArg(savedPcArr);
+    callWithABI<Fn1, SetupShstkReconstruction>(
+        MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
 
-    // Label start, dummy;
-    // bind(&start);
-    // // fetch pc from linked list
-    // loadPtr(Address(savedPcStruct, 0), pc);
-    // // call-jmp sequence to restore shadow stack
-    // call(&dummy);
-    // jmp(Operand(pc));
-    // bind(&dummy);
-    // // load next addr in linked list
-    // loadPtr(Address(savedPcStruct, 8), savedPcStruct);
-    // sub32(Imm32(1), numFrames);
-    // branch32(Assembler::GreaterThan, numFrames, Imm32(0), &start);
+    // This should hopefully call straight into our generated stub
+    call(rax);
+    // Restore jitcodeReg
+    pop(jitcodeReg);
+
+    // breakpoint();
 #endif
-
     // Discard exit frame.
     addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
 
     jump(jitcodeReg);
+// #endif
   }
 
   bind(&bailoutFailed);
