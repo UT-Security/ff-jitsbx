@@ -213,6 +213,9 @@ class ExceptionBailoutInfo {
                                            ResumeFromException* rfe,
                                            const ExceptionBailoutInfo& excInfo);
 
+#ifdef JS_SANDBOX_CET
+[[nodiscard]] void* SetupShstkReconstruction(JSContext* cx, int numFrames, uint64_t* savedAddresses);
+#endif
 [[nodiscard]] bool FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg);
 
 #ifdef DEBUG

@@ -22,6 +22,9 @@
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/JitZone.h"
+#ifdef JS_SANDBOX_CET
+  #include "jit/Linker.h"
+#endif
 #include "jit/RematerializedFrame.h"
 #include "jit/SharedICRegisters.h"
 #include "jit/Simulator.h"
@@ -1770,6 +1773,43 @@ enum class BailoutAction {
   DisableIfFrequent,
   NoAction
 };
+
+#ifdef JS_SANDBOX_CET
+void* jit::SetupShstkReconstruction(JSContext* cx, int numFrames, uint64_t* savedAddresses) {
+  TempAllocator temp(&cx->tempLifoAlloc());
+  StackMacroAssembler masm(cx, temp);
+  PerfSpewerRangeRecorder rangeRecorder(masm);
+  AutoCreatedBy acb(masm, "bailoutShstkStub");
+
+  // TODO(JS_SANDBOX_CET): don't generate this inline!
+  JitSpew(JitSpew_Codegen, "# Emitting bailout shadow stack stub");
+
+  // masm.breakpoint();
+  // We have to pop an entry off the shadow stack
+  masm.mov(ImmWord(1), rbx);
+  masm.incShadowStack(rbx);
+
+  // Save pushed return address
+  masm.pop(rax);
+  Label dummy;
+  // We start at 1 here since we don't actually return to the first PC
+  for(int i = 1; i < numFrames; i++) {
+    // call-jmp sequence to restore shadow stack
+    // TODO(JS_SANDBOX_CET): this sequence needs to be done in reverse (I think)
+    // masm.breakpoint();
+    masm.call(&dummy);
+    masm.jmp(ImmPtr((void*) savedAddresses[i], ImmPtr::NoCheckToken()));
+    masm.bind(&dummy);
+    // Pop pushed return address off stack
+    masm.addq(Imm32(8), rsp);
+  }
+  // Jump to saved return address
+  masm.jmp(Operand(rax));
+  
+  Linker linker(masm);
+  return linker.newCode(cx, CodeKind::Other)->raw();
+}
+#endif
 
 bool jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg) {
   JitSpew(JitSpew_BaselineBailouts, "  Done restoring frames");
