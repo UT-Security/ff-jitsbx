@@ -12,7 +12,6 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Variant.h"
-#include "shared/Assembler-shared.h"
 
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/MacroAssembler-x86.h"
@@ -655,8 +654,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
  public:
   // ===============================================================
   // JS Sandbox helpers.
-
-  void bundleAlignNop();
 
  public:
   // ===============================================================
@@ -2189,14 +2186,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
  public:
   // ========================================================================
   // Memory access primitives.
-  inline CodeOffset storeUncanonicalizedDouble(FloatRegister src, const Address& dest)
+  inline void storeUncanonicalizedDouble(FloatRegister src, const Address& dest)
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
-  inline CodeOffset storeUncanonicalizedDouble(FloatRegister src,
+  inline void storeUncanonicalizedDouble(FloatRegister src,
                                          const BaseIndex& dest)
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
-  inline CodeOffset storeUncanonicalizedDouble(FloatRegister src, const Operand& dest)
+  inline void storeUncanonicalizedDouble(FloatRegister src, const Operand& dest)
       DEFINED_ON(x86_shared);
 
   template <class T>
@@ -2207,15 +2204,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   using MacroAssemblerSpecific::boxDouble;
 
-  inline CodeOffset storeUncanonicalizedFloat32(FloatRegister src,
+  inline void storeUncanonicalizedFloat32(FloatRegister src,
                                           const Address& dest)
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
-  inline CodeOffset storeUncanonicalizedFloat32(FloatRegister src,
+  inline void storeUncanonicalizedFloat32(FloatRegister src,
                                           const BaseIndex& dest)
       DEFINED_ON(x86_shared, arm, arm64, mips32, mips64, loong64, riscv64,
                  wasm32);
-  inline CodeOffset storeUncanonicalizedFloat32(FloatRegister src,
+  inline void storeUncanonicalizedFloat32(FloatRegister src,
                                           const Operand& dest)
       DEFINED_ON(x86_shared);
 

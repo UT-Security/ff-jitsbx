@@ -225,27 +225,13 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
 #endif
 
   masm.nopAlign(js::jit::CodeAlignment);
-#ifdef JS_SANDBOX
   masm.bind(theTable);
   for (const auto& label : labels) {
-    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
     CodeLabel cl;
     masm.writeCodePointer(&cl);
     cl.target()->bind(label.offset());
     masm.addCodeLabel(cl);
   }
-#else
-  masm.bind(theTable);
-  for (const auto& label : labels) {
-    CodeLabel cl;
-#ifdef JS_SANDBOX_CFI_MASKS
-    cl.setHltMasked(true);
-#endif
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(label.offset());
-    masm.addCodeLabel(cl);
-  }
-#endif
 }
 
 void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
@@ -253,15 +239,6 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.bind(dispatchCode);
 
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
-#ifdef JS_SANDBOX
-  ScratchI32 scratch(*this);
-  CodeLabel tableCl;
-  masm.mov(&tableCl, scratch);
-  tableCl.target()->bind(theTable->offset());
-  masm.addCodeLabel(tableCl);
-  masm.leal(Operand(switchValue, switchValue, TimesOne), switchValue);
-  masm.jump(BaseIndex(scratch, switchValue, ScalePointer, js::jit::CodeAlignment/4, true /* clobber scratch */));
-#else
   ScratchI32 scratch(*this);
   CodeLabel tableCl;
 
@@ -272,7 +249,6 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
 
   masm.jump(BaseIndex(scratch, switchValue, ScalePointer, 0,
                       true /* clobber scratch */));
-#endif
 #elif defined(JS_CODEGEN_ARM)
   // Flush constant pools: offset must reflect the distance from the MOV
   // to the start of the table; as the address of the MOV is given by the
@@ -668,16 +644,9 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpq(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
-  masm.makeBundleSpace(16);
   // 74 OFFS
   Label L;
-#ifdef JS_SANDBOX_CFI
-  L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
-#elif defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
-  L.bind(masm.currentOffset() + 16);
-#else
   L.bind(masm.currentOffset() + 7);
-#endif
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
@@ -694,16 +663,9 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpl(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
-  masm.makeBundleSpace(16);
   // 74 OFFS
   Label L;
-#ifdef JS_SANDBOX_CFI
-  L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
-#elif defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
-  L.bind(masm.currentOffset() + 16);
-#else
   L.bind(masm.currentOffset() + 7);
-#endif
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
@@ -3980,7 +3942,6 @@ bool BaseCompiler::emitBrTable() {
 
   for (uint32_t depth : depths) {
     stubs.infallibleEmplaceBack(NonAssertingLabel());
-    masm.bundleAlignNop();
     masm.bind(&stubs.back());
     shuffleStackResultsBeforeBranch(resultsBase, controlItem(depth).stackHeight,
                                     branchParams);
@@ -4287,7 +4248,6 @@ bool BaseCompiler::emitDelegate() {
   // The landing pad begins at this point
   TryNoteVector& tryNotes = masm.tryNotes();
   TryNote& tryNote = tryNotes[controlItem().tryNoteIndex];
-  masm.bundleAlignNop();
   tryNote.setLandingPad(masm.currentOffset(), masm.framePushed());
 
   // Store the Instance that was left in InstanceReg by the exception
@@ -4375,7 +4335,6 @@ bool BaseCompiler::endTryCatch(ResultType type) {
   // The landing pad begins at this point
   TryNoteVector& tryNotes = masm.tryNotes();
   TryNote& tryNote = tryNotes[controlItem().tryNoteIndex];
-  masm.bundleAlignNop();
   tryNote.setLandingPad(masm.currentOffset(), masm.framePushed());
 
   // Store the Instance that was left in InstanceReg by the exception

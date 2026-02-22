@@ -402,11 +402,7 @@ Executable ExecutableAllocator::alloc(JSContext* cx, const ExecutableDesc& desc)
   // Caller must ensure 'n' is word-size aligned. If all allocations are
   // of word sized quantities, then all subsequent allocations will be
   // aligned.
-#if defined(JS_SANDBOX_LFI) && defined(JS_SANDBOX_BUNDLE)
-  MOZ_ASSERT(roundUpAllocationSize(desc.xSize, js::sandbox::BUNDLE_SIZE) == desc.xSize);
-#else
   MOZ_ASSERT(roundUpAllocationSize(desc.xSize, sizeof(void*)) == desc.xSize);
-#endif
   MOZ_ASSERT(desc.kind < CodeKind::Count);
 
   if (desc.xSize == uint32_t(OVERSIZE_ALLOCATION)) {

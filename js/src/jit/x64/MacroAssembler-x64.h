@@ -161,17 +161,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void storeValue(const Value& val, const T& dest,
                   Register scratch = ScratchReg) {
     if (val.isGCThing()) {
-      {
-        AutoBundleInstructionScope bundle(*this);
-        masm.movq_i64r(0x0123, scratch.encoding());
-        bundle.end();
-      }
+      masm.movq_i64r(0x0123, scratch.encoding());
       auto offset = CodeOffset(masm.currentOffset());
-      {
-        AutoBundleInstructionScope bundle(*this);
-        masm.movq_mr(0, scratch.encoding(), scratch.encoding());
-        bundle.end();
-      }
+      masm.movq_mr(0, scratch.encoding(), scratch.encoding());
       writeDataSection(offset, val);
     } else {
       mov(ImmWord(val.asRawBits()), scratch);
@@ -240,17 +232,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void pushValue(const Value& val) {
     if (val.isGCThing()) {
       ScratchRegisterScope scratch(asMasm());
-      {
-        AutoBundleInstructionScope bundle(*this);
-        masm.movq_i64r(0x0123, scratch.encoding());
-        bundle.end();
-      }
+      masm.movq_i64r(0x0123, scratch.encoding());
       auto offset = CodeOffset(masm.currentOffset());
-      {
-        AutoBundleInstructionScope bundle(*this);
-        masm.movq_mr(0, scratch.encoding(), scratch.encoding());
-        bundle.end();
-      }
+      masm.movq_mr(0, scratch.encoding(), scratch.encoding());
       writeDataSection(offset, val);
       push(scratch);
     } else {

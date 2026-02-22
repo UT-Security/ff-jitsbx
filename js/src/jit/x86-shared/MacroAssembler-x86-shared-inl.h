@@ -1170,22 +1170,22 @@ void MacroAssembler::spectreZeroRegister(Condition cond, Register scratch,
 
 // ========================================================================
 // Memory access primitives.
-CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const Address& dest) {
-  return vmovsd(src, dest);
+  vmovsd(src, dest);
 }
-CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const BaseIndex& dest) {
-  return vmovsd(src, dest);
+  vmovsd(src, dest);
 }
-CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const Operand& dest) {
   switch (dest.kind()) {
     case Operand::MEM_REG_DISP:
-      return storeUncanonicalizedDouble(src, dest.toAddress());
+      storeUncanonicalizedDouble(src, dest.toAddress());
       break;
     case Operand::MEM_SCALE:
-      return storeUncanonicalizedDouble(src, dest.toBaseIndex());
+      storeUncanonicalizedDouble(src, dest.toBaseIndex());
       break;
     default:
       MOZ_CRASH("unexpected operand kind");
@@ -1195,22 +1195,22 @@ CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
 template void MacroAssembler::storeDouble(FloatRegister src,
                                           const Operand& dest);
 
-CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const Address& dest) {
-  return vmovss(src, dest);
+  vmovss(src, dest);
 }
-CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const BaseIndex& dest) {
-  return vmovss(src, dest);
+  vmovss(src, dest);
 }
-CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const Operand& dest) {
   switch (dest.kind()) {
     case Operand::MEM_REG_DISP:
-      return storeUncanonicalizedFloat32(src, dest.toAddress());
+      storeUncanonicalizedFloat32(src, dest.toAddress());
       break;
     case Operand::MEM_SCALE:
-      return storeUncanonicalizedFloat32(src, dest.toBaseIndex());
+      storeUncanonicalizedFloat32(src, dest.toBaseIndex());
       break;
     default:
       MOZ_CRASH("unexpected operand kind");

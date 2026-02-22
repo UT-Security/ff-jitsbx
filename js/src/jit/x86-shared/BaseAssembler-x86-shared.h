@@ -35,9 +35,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerPrintfMacros.h"
 
-#ifdef JS_SANDBOX_BUNDLE
-#  include "jit/x86-shared/AssemblerBundleBuffer-x86-shared.h"
-#endif
 #include "jit/x86-shared/AssemblerBuffer-x86-shared.h"
 #include "jit/x86-shared/Encoding-x86-shared.h"
 #include "jit/x86-shared/Patching-x86-shared.h"
@@ -63,70 +60,6 @@ class BaseAssembler : public GenericAssembler {
   bool reserve(size_t size) { return m_formatter.reserve(size); }
   bool swapBuffer(wasm::Bytes& other) {
     return m_formatter.swapBuffer(other);
-  }
-
-#ifdef JS_SANDBOX_BUNDLE
-  inline bool beginBundleInstruction() {
-    return m_formatter.beginBundleInstruction();
-  }
-
-  inline void endBundleInstruction() { m_formatter.endBundleInstruction(); }
-
-  inline bool beginBundleGroup() { return m_formatter.beginBundleGroup(); }
-
-  inline bool inBundleGroup() { return m_formatter.inBundleGroup(); }
-
-  inline void endBundleGroup() { m_formatter.endBundleGroup(); }
-  
-  inline void nopAndEndBundleGroup() { m_formatter.nopAndEndBundleGroup(); }
-
-  inline size_t bundleOffset() { return m_formatter.bundleOffset(); }
-
-  inline void pauseBundleGroup() { return m_formatter.pauseBundleGroup(); }
-
-  inline void freezeBundleGroup() { return m_formatter.freezeBundleGroup(); }
-#endif
-
-  struct AutoBundleInstructionScope {
-#ifdef JS_SANDBOX_BUNDLE
-    BaseAssembler& masm_;
-    bool nested_;
-
-    AutoBundleInstructionScope(BaseAssembler& masm) : masm_(masm) {
-      nested_ = !masm_.beginBundleInstruction();
-    }
-
-    ~AutoBundleInstructionScope() {
-      if (!nested_) masm_.endBundleInstruction();
-    }
-#else
-    AutoBundleInstructionScope(BaseAssembler& masm) {}
-    ~AutoBundleInstructionScope() {}
-#endif
-  };
-
-#ifdef JS_SANDBOX_LFI_JIT_MEMORY
-  inline void ensureSpace(size_t space) {
-    m_formatter.ensureSpace(space);
-  }
-#endif
-
-  inline void ensureBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-    m_formatter.ensureBundleSpace(space);
-#endif
-  }
-
-  inline void ensureExactBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-    m_formatter.ensureExactBundleSpace(space);
-#endif
-  }
-
-  inline void makeBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-    m_formatter.makeBundleSpace(space);
-#endif
   }
 
   void nop() {
@@ -189,25 +122,21 @@ class BaseAssembler : public GenericAssembler {
    * They are defined for sequences of sizes from 1 to 9 included.
    */
   void nop_one() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP);
   }
 
   void nop_two() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     m_formatter.oneByteOp(OP_NOP);
   }
 
   void nop_three() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_00);
   }
 
   void nop_four() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_40);
@@ -215,7 +144,6 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_five() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_44);
@@ -224,13 +152,11 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_six() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     nop_five();
   }
 
   void nop_seven() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_80);
@@ -240,7 +166,6 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_eight() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_84);
@@ -250,20 +175,17 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_nine() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     nop_eight();
   }
 
   void nop_ten() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     m_formatter.oneByteOp(PRE_SEG_CS);
     nop_eight();
   }
 
   void nop_eleven() {
-    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(PRE_OPERAND_SIZE);
     nop_ten();
   }
@@ -2822,12 +2744,8 @@ class BaseAssembler : public GenericAssembler {
   // Flow control:
 
   [[nodiscard]] JmpSrc call() {
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
-    MOZ_ASSERT(false, "Unexpected call");
-#endif
     m_formatter.oneByteOp(OP_CALL_rel32);
     JmpSrc r = m_formatter.immediateRel32();
-    m_formatter.freezeBundleGroup();
     spew("call       .Lfrom%d", r.offset());
     return r;
   }
@@ -2838,9 +2756,6 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_r(RegisterID dst) {
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
-    MOZ_ASSERT(false, "Unexpected call");
-#endif
     m_formatter.oneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
     spew("call       *%s", GPRegName(dst));
   }
@@ -2856,9 +2771,6 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_m(int32_t offset, RegisterID base) {
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
-    MOZ_ASSERT(false, "Unexpected call");
-#endif
     spew("call       *" MEM_ob, ADDR_ob(offset, base));
     m_formatter.oneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
   }
@@ -2869,16 +2781,11 @@ class BaseAssembler : public GenericAssembler {
   [[nodiscard]] JmpSrc cmp_eax() {
     m_formatter.oneByteOp(OP_CMP_EAXIv);
     JmpSrc r = m_formatter.immediateRel32();
-    m_formatter.freezeBundleGroup();
     spew("cmpl       %%eax, .Lfrom%d", r.offset());
     return r;
   }
 
   void jmp_i(JmpDst dst) {
-    // Make sure 2-byte jump instruction will not cross a bundle boundary.
-    // This ensures that the subsequent diff calculation is correct.
-    m_formatter.ensureBundleSpace(2);
-
     int32_t diff = dst.offset() - m_formatter.size();
     spew("jmp        .Llabel%d", dst.offset());
 
@@ -2889,22 +2796,13 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(OP_JMP_rel8);
       m_formatter.immediate8s(diff - 2);
     } else {
-#ifdef JS_SANDBOX_BUNDLE
-      // Ensure that a 5-byte jump will not cross a bundle boundary.
-      // We also need to recompute diff to ensure it takes any adjustments
-      // due to bundling into account.
-      m_formatter.ensureBundleSpace(5);
-      diff = dst.offset() - m_formatter.size();
-#endif
       m_formatter.oneByteOp(OP_JMP_rel32);
       m_formatter.immediate32(diff - 5);
     }
-    m_formatter.freezeBundleGroup();
   }
   [[nodiscard]] JmpSrc jmp() {
     m_formatter.oneByteOp(OP_JMP_rel32);
     JmpSrc r = m_formatter.immediateRel32();
-    m_formatter.freezeBundleGroup();
     spew("jmp        .Lfrom%d", r.offset());
     return r;
   }
@@ -2935,10 +2833,6 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void jCC_i(Condition cond, JmpDst dst) {
-    // Make sure 2-byte jump instruction will not cross a bundle boundary.
-    // This ensures that the subsequent diff calculation is correct.
-    m_formatter.ensureBundleSpace(2);
-
     int32_t diff = dst.offset() - m_formatter.size();
     spew("j%s        .Llabel%d", CCName(cond), dst.offset());
 
@@ -2949,22 +2843,13 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(jccRel8(cond));
       m_formatter.immediate8s(diff - 2);
     } else {
-#ifdef JS_SANDBOX_BUNDLE
-      // Ensure that a 6-byte jump will not cross a bundle boundary.
-      // We also need to recompute diff to ensure it takes any adjustments
-      // due to bundling into account.
-      m_formatter.ensureBundleSpace(6);
-      diff = dst.offset() - m_formatter.size();
-#endif
       m_formatter.twoByteOp(jccRel32(cond));
       m_formatter.immediate32(diff - 6);
     }
-    m_formatter.freezeBundleGroup();
   }
   [[nodiscard]] JmpSrc jCC(Condition cond) {
     m_formatter.twoByteOp(jccRel32(cond));
     JmpSrc r = m_formatter.immediateRel32();
-    m_formatter.freezeBundleGroup();
     spew("j%s        .Lfrom%d", CCName(cond), r.offset());
     return r;
   }
@@ -4743,17 +4628,11 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void ret() {
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
-    MOZ_ASSERT(false, "Unexpected ret");
-#endif
     spew("ret");
     m_formatter.oneByteOp(OP_RET);
   }
 
   void ret_i(int32_t imm) {
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
-    MOZ_ASSERT(false, "Unexpected ret");
-#endif
     spew("ret        $%d", imm);
     m_formatter.oneByteOp(OP_RET_Iz);
     m_formatter.immediate16u(imm);
@@ -4771,11 +4650,6 @@ class BaseAssembler : public GenericAssembler {
   // Assembler admin methods:
 
   JmpDst label() {
-#ifdef JS_SANDBOX_BUNDLE_ALIGN_LABELS
-    MOZ_ASSERT(!inBundleGroup(), "Unexpected bundle group when binding label");
-    makeBundleSpace(js::sandbox::BUNDLE_SIZE);
-    MOZ_ASSERT(oom() || m_formatter.isAligned(js::sandbox::BUNDLE_SIZE), "Expected to be bundle aligned");
-#endif
     JmpDst r = JmpDst(m_formatter.size());
     spew(".set .Llabel%d, .", r.offset());
     return r;
@@ -4790,7 +4664,6 @@ class BaseAssembler : public GenericAssembler {
   void haltingAlign(int alignment) {
     spew(".balign %d, 0x%x   # hlt", alignment, unsigned(OP_HLT));
     while (!m_formatter.isAligned(alignment)) {
-      AutoBundleInstructionScope bundle(*this);
       m_formatter.oneByteOp(OP_HLT);
     }
   }
@@ -4799,7 +4672,6 @@ class BaseAssembler : public GenericAssembler {
     spew("0x%x   # hlt", unsigned(OP_HLT));
     spew(".balign %d, 0x%x   # hlt", alignment, unsigned(OP_HLT));
     do {
-      AutoBundleInstructionScope bundle(*this);
       m_formatter.oneByteOp(OP_HLT);
     } while(!m_formatter.isAligned(alignment));
   }
@@ -6779,94 +6651,14 @@ class BaseAssembler : public GenericAssembler {
     }
 
    public:
-    MOZ_ALWAYS_INLINE bool beginBundleInstruction() {
-#ifdef JS_SANDBOX_BUNDLE
-      return m_buffer.beginBundleInstruction();
-#endif
-      return false;
-    }
-
-    MOZ_ALWAYS_INLINE void endBundleInstruction() {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.endBundleInstruction();
-#endif
-    }
-
-    MOZ_ALWAYS_INLINE bool beginBundleGroup() {
-#ifdef JS_SANDBOX_BUNDLE
-      return m_buffer.beginBundleGroup();
-#endif
-      return false;
-    }
-
-    MOZ_ALWAYS_INLINE bool inBundleGroup() {
-#ifdef JS_SANDBOX_BUNDLE
-      return m_buffer.inBundleGroup();
-#endif
-      return false;
-    }
-
-    MOZ_ALWAYS_INLINE void endBundleGroup() {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.endBundleGroup();
-#endif
-    }
-
-    MOZ_ALWAYS_INLINE void nopAndEndBundleGroup() {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.nopAndEndBundleGroup();
-#endif
-    }
-
-    MOZ_ALWAYS_INLINE void pauseBundleGroup() {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.pauseBundleGroup();
-#endif
-    }
-
-    MOZ_ALWAYS_INLINE void freezeBundleGroup() {
-#if defined(JS_SANDBOX_BUNDLE) && (DEBUG)
-      m_buffer.freezeBundleGroup();
-#endif
-    }
-
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
     inline void ensureSpace(size_t space) {
       m_buffer.ensureSpace(space);
     }
 #endif
 
-    inline void ensureBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.ensureBundleSpace(space);
-#endif
-    }
-
-    inline void ensureExactBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.ensureExactBundleSpace(space);
-#endif
-    }
-
-    inline void makeBundleSpace(size_t space) {
-#ifdef JS_SANDBOX_BUNDLE
-      m_buffer.makeBundleSpace(space);
-#endif
-    }
-
-    MOZ_ALWAYS_INLINE size_t bundleOffset() {
-#ifdef JS_SANDBOX_BUNDLE
-      return m_buffer.bundleOffset();
-#endif
-      return 0;
-    }
-
    private:
-#ifdef JS_SANDBOX_BUNDLE
-    AssemblerBundleBuffer m_buffer;
-#else
     AssemblerBuffer m_buffer;
-#endif
 
   } m_formatter;
 

@@ -133,7 +133,6 @@ bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(masm.framePushed() == 0);
   MOZ_ASSERT(!gen->compilingWasm());
 
-  masm.bundleAlignNop();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -799,10 +798,6 @@ void CodeGeneratorShared::markSafepointAt(std::pair<uint32_t, uint32_t> offsets,
   MOZ_ASSERT_IF(
       !safepointIndices_.empty() && !masm.oom(),
       offsets.second - safepointIndices_.back().displacement() >= sizeof(uint32_t));
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!masm.oom(),
-                offsets.second - offsets.first >= 1 + sizeof(uint32_t));
-#endif
   masm.propagateOOM(safepointIndices_.append(
       CodegenSafepointIndex(offsets.second, offsets.first, ins->safepoint())));
 }
@@ -839,16 +834,7 @@ uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
   encode(ins->snapshot());
   ensureOsiSpace();
 
-#ifdef JS_SANDBOX_CFI
-  masm.makeBundleSpace(Assembler::PatchWrite_NearCallSize());
-#endif
-
   uint32_t offset = masm.currentOffset();
-#ifdef JS_SANDBOX_CFI
-  uint32_t bundle_length = offset % js::sandbox::BUNDLE_SIZE;
-  size_t bundle_space = js::sandbox::BUNDLE_SIZE - bundle_length;
-  MOZ_ASSERT_IF(!masm.oom(), bundle_space >= Assembler::PatchWrite_NearCallSize());
-#endif
   SnapshotOffset so = ins->snapshot()->snapshotOffset();
   masm.propagateOOM(osiIndices_.append(OsiIndex(offset, so)));
   lastOsiPointOffset_ = offset;

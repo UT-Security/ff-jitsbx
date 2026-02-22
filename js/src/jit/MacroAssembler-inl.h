@@ -227,15 +227,6 @@ ABIFunctionType MacroAssembler::signature() const {
 // ===============================================================
 // Sandbox helpers.
 
-inline void MacroAssembler::bundleAlignNop() {
-#ifdef JS_SANDBOX_CFI
-  if (!oom()) {
-    nopAlign(sandbox::BUNDLE_SIZE); 
-  }
-#endif
-}
-
-
 // ===============================================================
 // Jit Frames.
 

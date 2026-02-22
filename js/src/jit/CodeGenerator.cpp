@@ -594,7 +594,6 @@ void CodeGeneratorShared::addIC(LInstruction* lir, size_t cacheIndex) {
       new (alloc()) OutOfLineICFallback(lir, cacheIndex, icInfo_.length() - 1);
   addOutOfLineCode(ool, mir);
 
-  masm.bundleAlignNop();
   masm.bind(ool->rejoin());
   cache->setRejoinOffset(CodeOffset(ool->rejoin()->offset()));
 }
@@ -606,7 +605,6 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
   DataPtr<IonIC> ic(this, cacheIndex);
 
-  masm.bundleAlignNop();
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
 
@@ -3778,7 +3776,6 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
   Register temp = ToRegister(lir->temp());
 
   // Remember the OSR entry offset into the code buffer.
-  masm.bundleAlignNop();
   masm.flushBuffer();
   setOsrEntryOffset(masm.size());
 
@@ -6934,7 +6931,6 @@ bool CodeGenerator::generateBody() {
       masm.nopAlign(CodeAlignment);
     }
 
-    masm.bundleAlignNop();
     masm.bind(current->label());
 
     mozilla::Maybe<ScriptCountBlockState> blockCounts;
@@ -13696,15 +13692,12 @@ bool CodeGenerator::generateWasm(
     return false;
   }
 
-  masm.bundleAlignNop();
   masm.bind(&returnLabel_);
   wasm::GenerateFunctionEpilogue(masm, frameSize(), offsets);
 
   if (!generateOutOfLineCode()) {
     return false;
   }
-
-  masm.bundleAlignNop();
 
   masm.flush();
   if (masm.oom()) {

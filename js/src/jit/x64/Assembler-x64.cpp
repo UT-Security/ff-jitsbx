@@ -148,11 +148,7 @@ void Assembler::finish() {
     // Since we may be folowed by non-executable data, eagerly insert an
     // undefined instruction byte to prevent processors from decoding
     // gibberish into their pipelines. See Intel performance guides.
-    AutoBundleGroupScope bundle(*this);
     masm.ud2();
-#ifdef JS_SANDBOX_BUNDLE
-    masm.haltingAlign(js::sandbox::BUNDLE_SIZE);
-#endif
     return;
   }
 
@@ -162,8 +158,6 @@ void Assembler::finish() {
 
   // Zero the extended jumps table.
   for (size_t i = 0; i < extendedJumps_.length(); i++) {
-    AutoBundleGroupScope bundle(*this);
-    bundle.ensureSpace(SizeOfJumpTableEntry);
 #ifdef DEBUG
     size_t oldSize = masm.size();
 #endif
@@ -173,21 +167,12 @@ void Assembler::finish() {
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 2 + 8);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == OffsetInJumpTableEntry);
 
-#ifdef JS_SANDBOX_CFI_MASKS
-    andq(SandboxMaskReg, ScratchReg);
-    andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
-    orq(SandboxBaseReg, ScratchReg);
-#endif
     jmp(Operand(ScratchReg));
 
     masm.ud2();
     masm.haltingAlign(SizeOfJumpTableEntry);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == SizeOfJumpTableEntry);
   }
-
-#ifdef JS_SANDBOX_BUNDLE
-  masm.haltingAlign(js::sandbox::BUNDLE_SIZE);
-#endif
 }
 
 void Assembler::executableCopy(uint8_t* buffer) {

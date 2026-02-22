@@ -104,7 +104,6 @@ uint32_t JitRuntime::startTrampolineCode(MacroAssembler& masm) {
   masm.assumeUnreachable("Shouldn't get here");
   masm.flushBuffer();
   masm.haltingAlign(CodeAlignment);
-  masm.bundleAlignNop();
   masm.setFramePushed(0);
   return masm.currentOffset();
 }
@@ -578,40 +577,12 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
 
-#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
   uint8_t headerContent[JitCodeHeaderSize] = {
-    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
-    0x41, 0x5b,                                                  // pop %r11
-    0x4d, 0x21, 0xfb,                                            // and %r15, %r11
-    0x49, 0x83, 0xe3, 0xe0,                                      // and $0xffffffffffffffe0, %r11
-    0x4d, 0x09, 0xf3,                                            // or  %r14, %r11
-    0x41, 0xff, 0xe3,                                            // jmp *%r11
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4                     // hlt pad bundle
+      0x48, 0xB8, 0x00, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, $rax
+      0xC3,                          // ret
+      0xE5, 0xE5, 0xE5, 0xE5, 0xE5   // in (Illegal x5)
   };
-#elif defined(JS_SANDBOX_USE_RET)
-  uint8_t headerContent[JitCodeHeaderSize] = {
-    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
-    0xC3,                                                        // ret
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,              // hlt pad bundle
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4
-  };
-#elif defined(JS_SANDBOX)
-  uint8_t headerContent[JitCodeHeaderSize] = {
-    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
-    0x41, 0x5b,                                                  // pop %r11
-    0x41, 0xff, 0xe3,                                            // jmp *%r11
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,              // hlt pad bundle
-    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,
-    0xf4,
-  };
-#else
-  uint8_t headerContent[JitCodeHeaderSize] = {
-    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, $rax
-    0xC3,                                                        // ret
-    0xE5, 0xE5, 0xE5, 0xE5, 0xE5                                 // in (Illegal x5)
-  };
-#endif
 
 #ifndef JS_SANDBOX_LFI_JIT_MEMORY
   JitCode* self = this;
@@ -2434,9 +2405,6 @@ static void InvalidateActivation(JS::GCContext* gcx,
 #if defined(JS_SANDBOX_LFI_JIT_MEMORY)
     CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
     Assembler::PatchWrite_HltImm32_Runtime(dataLabelToMunge, hltStartLabel, Imm32(delta));
-#elif defined(JS_SANDBOX_CFI)
-    CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
-    Assembler::PatchWrite_HltImm32(dataLabelToMunge, hltStartLabel, Imm32(delta));
 #else
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));
 #endif

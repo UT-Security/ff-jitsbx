@@ -195,7 +195,6 @@ class MacroAssemblerX86Shared : public Assembler {
   void storeLoadFence() {
     // This implementation follows Linux.
     if (HasSSE2()) {
-      AutoBundleInstructionScope bundle(*this);
       masm.mfence();
     } else {
       lock_addl(Imm32(0), Operand(Address(esp, 0)));
@@ -725,8 +724,8 @@ class MacroAssemblerX86Shared : public Assembler {
   void loadUnalignedSimd128(const Operand& src, FloatRegister dest) {
     vmovups(src, dest);
   }
-  CodeOffset storeUnalignedSimd128(FloatRegister src, const Operand& dest) {
-    return vmovups(src, dest);
+  void storeUnalignedSimd128(FloatRegister src, const Operand& dest) {
+    vmovups(src, dest);
   }
 
   static uint32_t ComputeShuffleMask(uint32_t x = 0, uint32_t y = 1,
@@ -947,14 +946,9 @@ class MacroAssemblerX86Shared : public Assembler {
 
   // Emit a JMP that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   CodeOffset toggledJump(Label* label) {
-#ifdef JS_SANDBOX_BUNDLE
-    jump(label);
-    return CodeOffset(size() - SIZE_OF_TOGGLED_JUMP);
-#else
     CodeOffset offset(size());
     jump(label);
     return offset;
-#endif
   }
 
   template <typename T>
@@ -966,7 +960,7 @@ class MacroAssemblerX86Shared : public Assembler {
     // Exists for ARM compatibility.
   }
 
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
+#if defined(JS_SANDBOX)
   void ret();
 
   void retn(Imm32 n);

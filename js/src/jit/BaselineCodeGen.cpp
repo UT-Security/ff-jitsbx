@@ -1421,7 +1421,6 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   jsbytecode* pc = handler.pc();
   if (JSOp(*pc) == JSOp::LoopHead) {
     uint32_t pcOffset = script->pcToOffset(pc);
-    masm.bundleAlignNop();
     uint32_t nativeOffset = masm.currentOffset();
     if (!handler.osrEntries().emplaceBack(pcOffset, nativeOffset)) {
       ReportOutOfMemory(cx);
@@ -6339,7 +6338,6 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
-  masm.bundleAlignNop();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
@@ -6379,7 +6377,6 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   emitInitializeLocals();
 
   // Ion prologue bailouts will enter here in the Baseline Interpreter.
-  masm.bundleAlignNop();
   masm.bind(&bailoutPrologue_);
 
   frame.assertSyncedStack();
@@ -6401,7 +6398,6 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   }
 
   // TODO(JS_SANDBOX_CFI): confirm what uses this as a indirect jump target.
-  masm.bundleAlignNop();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
 
   return true;
@@ -6477,7 +6473,6 @@ MethodStatus BaselineCompiler::emitBody() {
     // the native code offset.
     if (info->hasResumeOffset) {
       frame.assertSyncedStack();
-      masm.bundleAlignNop();
       uint32_t pcOffset = script->pcToOffset(handler.pc());
       uint32_t nativeOffset = masm.currentOffset();
       if (!resumeOffsetEntries_.emplaceBack(pcOffset, nativeOffset)) {
@@ -6561,21 +6556,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   masm.load8ZeroExtend(Address(pcReg, 0), scratch1);
 
   // Jump to table[op].
-#ifdef JS_SANDBOX
-  {
-    // scratch2 = &table[0]
-    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
-    if (!tableLabels_.append(label)) {
-      return false;
-    }
-    // pointer = table[opcode]
-    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
-    BaseIndex pointer(scratch2, scratch1, ScalePointer,
-                      js::jit::CodeAlignment / 4);
-    // jump *table[opcode]  ; Read the value and jump to it.
-    masm.branchToComputedAddress(pointer);
-  }
-#else
   {
     // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
@@ -6587,7 +6567,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
   }
-#endif
 
   // At the end of each op, emit code to bump the pc and jump to the
   // next op (this is also known as a threaded interpreter).
@@ -6622,19 +6601,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
     // Load the opcode, jump to table[op].
     masm.load8ZeroExtend(Address(InterpreterPCRegAtDispatch, 0), scratch1);
-#ifdef JS_SANDBOX
-    // scratch2 = &table[0]
-    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
-    if (!tableLabels_.append(label)) {
-      return false;
-    }
-    // pointer = table[opcode]
-    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
-    BaseIndex pointer(scratch2, scratch1, ScalePointer,
-                      js::jit::CodeAlignment / 4);
-    // jump *table[opcode]  ; Read the value and jump to it.
-    masm.branchToComputedAddress(pointer);
-#else
     // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
     if (!tableLabels_.append(label)) {
@@ -6644,7 +6610,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
     // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
-#endif
     return true;
   };
 
@@ -6653,7 +6618,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 #define EMIT_OP(OP, ...)                          \
   {                                               \
     AutoCreatedBy acb(masm, "op=" #OP);           \
-    masm.bundleAlignNop();                        \
     perfSpewer_.recordOffset(masm, JSOp::OP);     \
     masm.bind(&opLabels[uint8_t(JSOp::OP)]);      \
     handler.setCurrentOp(JSOp::OP);               \
@@ -6671,7 +6635,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point to start interpreting bytecode ops. This is used for
   // things like exception handling and OSR. DebugModeOSR patches JIT frames to
   // return here from the DebugTrapHandler.
-  masm.bundleAlignNop();
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
   restoreInterpreterPCReg();
@@ -6679,13 +6642,11 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Second external entry point: this skips the debug trap for the first op
   // and is used by OSR.
-  masm.bundleAlignNop();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
 
   // External entry point for Ion prologue bailouts.
-  masm.bundleAlignNop();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);
@@ -6700,27 +6661,12 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
       return false;
     }
 
-    masm.bundleAlignNop();
     debugTrapHandlerOffset_ = masm.currentOffset();
     masm.jump(handlerCode);
   }
 
   // Emit the table.
   masm.haltingAlign(sizeof(void*));
-#ifdef JS_SANDBOX
-  // Generate a table of jump instructions.
-  masm.haltingAlign(js::jit::CodeAlignment);
-  tableOffset_ = masm.currentOffset();
-  for (size_t i = 0; i < JSOP_LIMIT; i++) {
-    Label& opLabel = opLabels[i];
-    MOZ_ASSERT(opLabel.bound());
-    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
-    CodeLabel cl;
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(opLabel.offset());
-    masm.addCodeLabel(cl);
-  }
-#else
   // Generate a table of JIT code pointers.
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
   size_t numInstructions = JSOP_LIMIT * (sizeof(uintptr_t) / sizeof(uint32_t));
@@ -6733,14 +6679,10 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     const Label& opLabel = opLabels[i];
     MOZ_ASSERT(opLabel.bound());
     CodeLabel cl;
-#ifdef JS_SANDBOX_CFI_MASKS
-    cl.setHltMasked(true);
-#endif
     masm.writeCodePointer(&cl);
     cl.target()->bind(opLabel.offset());
     masm.addCodeLabel(cl);
   }
-#endif
   return true;
 }
 

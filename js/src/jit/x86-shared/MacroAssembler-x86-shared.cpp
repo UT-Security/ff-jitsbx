@@ -726,177 +726,18 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // Simple call functions.
 
 std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-  MOZ_ASSERT(reg != StackPointer, "Unexpected stack pointer indirect call");
-
-#ifdef JS_SANDBOX_USE_CALL
-  auto instrOffset = CodeOffset(currentOffset());
-  AutoBundleGroupScope bundle(*this);
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_CFI_MASKS)
-  bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
-  MOZ_ASSERT(Assembler::PatchWrite_HltImm32_Size() >= AssemblerX86Shared::CallSize(reg));
-  nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::CallSize(reg));
-#endif
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, reg);
-  andq(Imm32(sandbox::BUNDLE_MASK), reg);
-  orq(SandboxBaseReg, reg);
-#endif
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(AssemblerX86Shared::CallSize(reg));
-#endif
-  Assembler::call(reg);
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  return std::pair(instrOffset, CodeOffset(currentOffset()));
-#else
-  // Load and push return address.
-  CodeOffset returnPatch;
-  if (reg != SandboxScratchReg) {
-    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-    push(SandboxScratchReg);
-  } else {
-    push(SandboxScratchReg);
-    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-    xchgq(SandboxScratchReg, Operand(Address(StackPointer, 0)));
-  }
-  auto instrOffset = CodeOffset(currentOffset());
-  AutoBundleGroupScope bundle(*this);
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_CFI_MASKS)
-  bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
-  MOZ_ASSERT(Assembler::PatchWrite_HltImm32_Size() >= AssemblerX86Shared::JmpSize(reg));
-  nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::JmpSize(reg));
-#endif
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, reg);
-  andq(Imm32(sandbox::BUNDLE_MASK), reg);
-  orq(SandboxBaseReg, reg);
-#endif
-  Assembler::jmp(Operand(reg));
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  CodeOffset returnOffset = CodeOffset(currentOffset());
-  patchRetAddr(returnPatch, returnOffset);
-  return std::pair(instrOffset, returnOffset);
-#endif
-#else
   auto instrOffset = CodeOffset(currentOffset());
   Assembler::call(reg);
   return std::pair(instrOffset, CodeOffset(currentOffset()));
-#endif
 }
 
 CodeOffset MacroAssembler::call(Label* label) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(AssemblerX86Shared::CallSize(label));
-#endif
   Assembler::call(label);
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-  Assembler::jmp(label);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif // JS_SANDBOX_USE_CALL
-#else
-  Assembler::call(label);
-#endif
   return CodeOffset(currentOffset());
 }
 
 void MacroAssembler::call(const Address& addr) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Call address already uses scratch register");
-  Label sandboxed;
-  movq(Operand(addr), SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(addr));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Call address already uses scratch register");
-  MOZ_ASSERT(!Operand(addr).containsReg(StackPointer),
-             "Call address uses stack pointer register");
-
-#ifdef JS_SANDBOX_USE_CALL
-  movq(Operand(addr), SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(AssemblerX86Shared::CallSize(SandboxScratchReg));
-#endif
-  Assembler::call(SandboxScratchReg);
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  movq(Operand(addr), SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
-  Assembler::jmp(Operand(SandboxScratchReg));
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif // JS_SANDBOX_USE_CALL
-#else
   Assembler::call(Operand(addr.base, addr.offset));
-#endif
 }
 
 std::pair<CodeOffset ,CodeOffset> MacroAssembler::call(wasm::SymbolicAddress target) {
@@ -906,139 +747,23 @@ std::pair<CodeOffset ,CodeOffset> MacroAssembler::call(wasm::SymbolicAddress tar
 }
 
 void MacroAssembler::call(ImmWord target) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(Assembler::CallSize(target));
-#endif
   Assembler::call(target);
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-  Assembler::jmp(ImmPtr((void*)target.value));
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif
-#else
-  Assembler::call(target);
-#endif
 }
 
 std::pair<uint32_t, uint32_t> MacroAssembler::call(ImmPtr target) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT(Assembler::CallSize(target) >= Assembler::PatchWrite_HltImm32_Size());
-  bundle.nopToEnd(Assembler::CallSize(target));
-#endif
-  uint32_t instrOffset = currentOffset();
-  Assembler::call(target);
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  uint32_t retOffset = currentOffset();
-  return std::pair(instrOffset, retOffset);
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT(Assembler::JmpSize(target) >= Assembler::PatchWrite_HltImm32_Size());
-  bundle.ensureSpace(Assembler::JmpSize(target));
-#endif
-  uint32_t instrOffset = currentOffset();
-  Assembler::jmp(target);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  uint32_t retOffset = currentOffset();
-  patchRetAddr(returnPatch, CodeOffset(retOffset));
-  return std::pair(instrOffset, retOffset);
-#endif
-#else
   uint32_t instrOffset = currentOffset();
   Assembler::call(target);
   uint32_t retOffset = currentOffset();
   return std::pair(instrOffset, retOffset);
-#endif
 }
 
 void MacroAssembler::call(JitCode* target) {
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(Assembler::CallSize(target));
-#endif
   Assembler::call(target);
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-  Assembler::jmp(target);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif
-#else
-  Assembler::call(target);
-#endif
 }
 
 std::pair<CodeOffset, CodeOffset> MacroAssembler::callWithPatch() {
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT(Assembler::CallWithPatchSize() >=
-             Assembler::PatchWrite_HltImm32_Size());
-  bundle.nopToEnd(AssemblerX86Shared::CallWithPatchSize());
-#endif
   auto instrOffset = CodeOffset(currentOffset());
   CodeOffset retOffset = Assembler::callWithPatch();
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT(Assembler::JmpWithPatchSize() >=
-             Assembler::PatchWrite_HltImm32_Size());
-  bundle.nopToEnd(AssemblerX86Shared::JmpWithPatchSize());
-#endif
-  auto instrOffset = CodeOffset(currentOffset());
-  CodeOffset retOffset = Assembler::jmpWithPatch();
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif
   return std::pair(instrOffset, retOffset);
 }
 void MacroAssembler::patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
@@ -1057,137 +782,29 @@ void MacroAssembler::callAndPushReturnAddress(Label* label) { call(label); }
 
 #ifdef JS_SANDBOX_CFI
 void MacroAssemblerX86Shared::jump(Register reg) {
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-  AutoBundleGroupScope bundle(*this);
-  andq(SandboxMaskReg, reg);
-  andq(Imm32(sandbox::BUNDLE_MASK), reg);
-  orq(SandboxBaseReg, reg);
-#endif
   jmp(Operand(reg));
 }
 
 void MacroAssemblerX86Shared::jump(const Address& addr) {
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Jump address already uses scratch register");
-  Label sandboxed;
   movq(Operand(addr), SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(addr));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-  movq(Operand(addr), SandboxScratchReg);
-#ifdef JS_SANDBOX_CFI_MASKS
-  AutoBundleGroupScope bundle(*this);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
   jmp(Operand(SandboxScratchReg));
 }
 
 void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(
-      !Operand(addr).containsReg(SandboxScratchReg) || Operand(addr).clobberScratch(),
-      "Jump address already uses scratch register");
-  if (!Operand(addr).clobberScratch()) {
-    Label sandboxed;
-    movq(Operand(addr), SandboxScratchReg);
-    andq(SandboxMaskReg, SandboxScratchReg);
-    andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-    orq(SandboxBaseReg, SandboxScratchReg);
-    cmpq(SandboxScratchReg, Operand(addr));
-    j(Condition::Equal, &sandboxed);
-    breakpoint();
-    bind(&sandboxed);
-  }
-#endif
-#endif
-
   movq(Operand(addr), SandboxScratchReg);
-#ifdef JS_SANDBOX_CFI_MASKS
-  AutoBundleGroupScope bundle(*this);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
   jmp(Operand(SandboxScratchReg));
 }
 #endif
 
 // ===============================================================
 // Return.
-#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
+#if defined(JS_SANDBOX)
 void MacroAssemblerX86Shared::ret() {
-#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
-#ifdef DEBUG
-  Label sandboxed;
-  movq(Operand(StackPointer, 0), SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-  pop(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
-  jmp(Operand(SandboxScratchReg));
+  Assembler::ret();
 }
 
 void MacroAssemblerX86Shared::retn(Imm32 n) {
-#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
-#ifdef DEBUG
-  Label sandboxed;
-  movq(Operand(StackPointer, 0), SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-  pop(SandboxScratchReg);
-  // Remove the size of the return address.
-  addq(Imm32(n.value - sizeof(void*)), StackPointer);
-  AutoBundleGroupScope bundle(*this);
-#if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-#endif
-  jmp(Operand(SandboxScratchReg));
+  Assembler::retn(n);
 }
 #endif
 
@@ -1203,15 +820,7 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(5);
-#endif
   masm.nop_five();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
   return CodeOffset(currentOffset());
 }
 
@@ -1230,14 +839,9 @@ std::pair<uint32_t, uint32_t> MacroAssembler::pushFakeReturnAddress(Register scr
   CodeLabel cl;
 
   mov(&cl, scratch);
-  uint32_t instrOffset = 0;
-  {
-    AutoBundleGroupScope bundle(*this);
-    bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
-    instrOffset = currentOffset();
-    nop(Assembler::PatchWrite_HltImm32_Size() - Assembler::PushSize(scratch));
-    Push(scratch);
-  }
+  uint32_t instrOffset = currentOffset();
+  nop(Assembler::PatchWrite_HltImm32_Size() - Assembler::PushSize(scratch));
+  Push(scratch);
   bind(&cl);
   uint32_t retOffset = currentOffset();
 
@@ -1250,14 +854,6 @@ std::pair<uint32_t, uint32_t> MacroAssembler::pushFakeReturnAddress(Register scr
 
 std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmTrapInstruction(bool resumable) {
   CodeOffset instrOffset = CodeOffset(currentOffset());
-#ifdef JS_SANDBOX_CFI
-  AutoBundleGroupScope bundle(*this);
-  if (resumable) {
-    bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
-    instrOffset = CodeOffset(currentOffset());
-  }
-  bundle.nopToEnd(jit::WasmTrapInstructionLength);
-#endif
   CodeOffset trapOffset = ud2();
   return std::pair(instrOffset, trapOffset);
 }
@@ -1632,37 +1228,20 @@ static void CompareExchange(MacroAssembler& masm,
     masm.movl(oldval, output);
   }
 
-#ifndef JS_SANDBOX_BUNDLE
   if (access) masm.append(*access, masm.size());
-#endif
 
   // NOTE: the generated code must match the assembly code in gen_cmpxchg in
   // GenerateAtomicOperations.py
   switch (Scalar::byteSize(type)) {
     case 1:
       CheckBytereg(newval);
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.lock_cmpxchgb(newval, Operand(mem)).offset());
-      else masm.lock_cmpxchgb(newval, Operand(mem));
-#else
       masm.lock_cmpxchgb(newval, Operand(mem));
-#endif
       break;
     case 2:
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.lock_cmpxchgw(newval, Operand(mem)).offset());
-      else masm.lock_cmpxchgw(newval, Operand(mem));
-#else
       masm.lock_cmpxchgw(newval, Operand(mem));
-#endif
       break;
     case 4:
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.lock_cmpxchgl(newval, Operand(mem)).offset());
-      else masm.lock_cmpxchgl(newval, Operand(mem));
-#else
       masm.lock_cmpxchgl(newval, Operand(mem));
-#endif
       break;
   }
 
@@ -1705,35 +1284,18 @@ static void AtomicExchange(MacroAssembler& masm,
     masm.movl(value, output);
   }
 
-#ifndef JS_SANDBOX_BUNDLE
   if (access) masm.append(*access, masm.size());
-#endif
 
   switch (Scalar::byteSize(type)) {
     case 1:
       CheckBytereg(output);
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.xchgb(output, Operand(mem)).offset());
-      else masm.xchgb(output, Operand(mem));
-#else
       masm.xchgb(output, Operand(mem));
-#endif
       break;
     case 2:
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.xchgw(output, Operand(mem)).offset());
-      else masm.xchgw(output, Operand(mem));
-#else
       masm.xchgw(output, Operand(mem));
-#endif
       break;
     case 4:
-#ifdef JS_SANDBOX_BUNDLE
-      if (access) masm.append(*access, masm.xchgl(output, Operand(mem)).offset());
-      else masm.xchgl(output, Operand(mem));
-#else
       masm.xchgl(output, Operand(mem));
-#endif
       break;
     default:
       MOZ_CRASH("Invalid");
@@ -1793,21 +1355,6 @@ static void AtomicFetchOp(MacroAssembler& masm,
 
   // NOTE: the generated code must match the assembly code in gen_fetchop in
   // GenerateAtomicOperations.py
-#ifdef JS_SANDBOX_BUNDLE
-#define ATOMIC_BITOP_BODY(LOAD, OP, LOCK_CMPXCHG)                            \
-  do {                                                                       \
-    MOZ_ASSERT(output != temp);                                              \
-    MOZ_ASSERT(output == eax);                                               \
-    if (access) masm.append(*access, masm.LOAD(Operand(mem), eax).offset()); \
-    else masm.LOAD(Operand(mem), eax);                                       \
-    Label again;                                                             \
-    masm.bind(&again);                                                       \
-    masm.movl(eax, temp);                                                    \
-    masm.OP(value, temp);                                                    \
-    masm.LOCK_CMPXCHG(temp, Operand(mem));                                   \
-    masm.j(MacroAssembler::NonZero, &again);                                 \
-  } while (0)
-#else
 #define ATOMIC_BITOP_BODY(LOAD, OP, LOCK_CMPXCHG)  \
   do {                                             \
     MOZ_ASSERT(output != temp);                    \
@@ -1821,7 +1368,6 @@ static void AtomicFetchOp(MacroAssembler& masm,
     masm.LOCK_CMPXCHG(temp, Operand(mem));         \
     masm.j(MacroAssembler::NonZero, &again);       \
   } while (0)
-#endif
 
   MOZ_ASSERT_IF(op == AtomicFetchAddOp || op == AtomicFetchSubOp,
                 temp == InvalidReg);
@@ -1834,13 +1380,8 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchSubOp:
           CheckBytereg(value);  // But not for the bitwise ops
           SetupValue(masm, op, value, output);
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xaddb(output, Operand(mem)).offset());
-          else masm.lock_xaddb(output, Operand(mem));
-#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddb(output, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
           CheckBytereg(temp);
@@ -1863,13 +1404,8 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchAddOp:
         case AtomicFetchSubOp:
           SetupValue(masm, op, value, output);
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xaddw(output, Operand(mem)).offset());
-          else masm.lock_xaddw(output, Operand(mem));
-#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddw(output, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
           ATOMIC_BITOP_BODY(movw, andl, lock_cmpxchgw);
@@ -1889,13 +1425,8 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchAddOp:
         case AtomicFetchSubOp:
           SetupValue(masm, op, value, output);
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xaddl(output, Operand(mem)).offset());
-          else masm.lock_xaddl(output, Operand(mem));
-#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddl(output, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
           ATOMIC_BITOP_BODY(movl, andl, lock_cmpxchgl);
@@ -1977,54 +1508,27 @@ static void AtomicEffectOp(MacroAssembler& masm,
                            const wasm::MemoryAccessDesc* access,
                            Scalar::Type arrayType, AtomicOp op, V value,
                            const T& mem) {
-#ifndef JS_SANDBOX_BUNDLE
   if (access) {
     masm.append(*access, masm.size());
   }
-#endif
 
   switch (Scalar::byteSize(arrayType)) {
     case 1:
       switch (op) {
         case AtomicFetchAddOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_addb(value, Operand(mem)).offset());
-          else masm.lock_addb(value, Operand(mem));
-#else
           masm.lock_addb(value, Operand(mem));
-#endif
           break;
         case AtomicFetchSubOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_subb(value, Operand(mem)).offset());
-          else masm.lock_subb(value, Operand(mem));
-#else
           masm.lock_subb(value, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_andb(value, Operand(mem)).offset());
-          else masm.lock_andb(value, Operand(mem));
-#else
           masm.lock_andb(value, Operand(mem));
-#endif
           break;
         case AtomicFetchOrOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_orb(value, Operand(mem)).offset());
-          else masm.lock_orb(value, Operand(mem));
-#else
           masm.lock_orb(value, Operand(mem));
-#endif
           break;
         case AtomicFetchXorOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xorb(value, Operand(mem)).offset());
-          else masm.lock_xorb(value, Operand(mem));
-#else
           masm.lock_xorb(value, Operand(mem));
-#endif
           break;
         default:
           MOZ_CRASH();
@@ -2033,44 +1537,19 @@ static void AtomicEffectOp(MacroAssembler& masm,
     case 2:
       switch (op) {
         case AtomicFetchAddOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_addw(value, Operand(mem)).offset());
-          else masm.lock_addw(value, Operand(mem));
-#else
           masm.lock_addw(value, Operand(mem));
-#endif
           break;
         case AtomicFetchSubOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_subw(value, Operand(mem)).offset());
-          else masm.lock_subw(value, Operand(mem));
-#else
           masm.lock_subw(value, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_andw(value, Operand(mem)).offset());
-          else masm.lock_andw(value, Operand(mem));
-#else
           masm.lock_andw(value, Operand(mem));
-#endif
           break;
         case AtomicFetchOrOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_orw(value, Operand(mem)).offset());
-          else masm.lock_orw(value, Operand(mem));
-#else
           masm.lock_orw(value, Operand(mem));
-#endif
           break;
         case AtomicFetchXorOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xorw(value, Operand(mem)).offset());
-          else masm.lock_xorw(value, Operand(mem));
-#else
           masm.lock_xorw(value, Operand(mem));
-#endif
           break;
         default:
           MOZ_CRASH();
@@ -2079,44 +1558,19 @@ static void AtomicEffectOp(MacroAssembler& masm,
     case 4:
       switch (op) {
         case AtomicFetchAddOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access,  masm.lock_addl(value, Operand(mem)).offset());
-          else  masm.lock_addl(value, Operand(mem));
-#else
           masm.lock_addl(value, Operand(mem));
-#endif
           break;
         case AtomicFetchSubOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_subl(value, Operand(mem)).offset());
-          else masm.lock_subl(value, Operand(mem));
-#else
           masm.lock_subl(value, Operand(mem));
-#endif
           break;
         case AtomicFetchAndOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_andl(value, Operand(mem)).offset());
-          else masm.lock_andl(value, Operand(mem));
-#else
           masm.lock_andl(value, Operand(mem));
-#endif
           break;
         case AtomicFetchOrOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_orl(value, Operand(mem)).offset());
-          else masm.lock_orl(value, Operand(mem));
-#else
           masm.lock_orl(value, Operand(mem));
-#endif
           break;
         case AtomicFetchXorOp:
-#ifdef JS_SANDBOX_BUNDLE
-          if (access) masm.append(*access, masm.lock_xorl(value, Operand(mem)).offset());
-          else masm.lock_xorl(value, Operand(mem)); 
-#else
           masm.lock_xorl(value, Operand(mem));
-#endif
           break;
         default:
           MOZ_CRASH();
@@ -2311,7 +1765,6 @@ void MacroAssembler::speculationBarrier() {
   // Spectre mitigation recommended by Intel and AMD suggest to use lfence as
   // a way to force all speculative execution of instructions to end.
   MOZ_ASSERT(HasSSE2());
-  AutoBundleInstructionScope bundle(*this);
   masm.lfence();
 }
 

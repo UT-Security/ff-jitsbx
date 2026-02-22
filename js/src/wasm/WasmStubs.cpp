@@ -724,7 +724,6 @@ static bool GenerateInterpEntry(MacroAssembler& masm, const FuncExport& fe,
 
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
-  masm.bundleAlignNop();
 
   offsets->begin = masm.currentOffset();
 
@@ -2054,7 +2053,6 @@ static bool GenerateImportInterpExit(MacroAssembler& masm, const FuncImport& fi,
   AutoCreatedBy acb(masm, "GenerateImportInterpExit");
 
   AssertExpectedSP(masm);
-  masm.bundleAlignNop();
   masm.setFramePushed(0);
 
   // Argument types for Instance::callImport_*:
@@ -2224,7 +2222,6 @@ static bool GenerateImportJitExit(MacroAssembler& masm, const FuncImport& fi,
   AutoCreatedBy acb(masm, "GenerateImportJitExit");
 
   AssertExpectedSP(masm);
-  masm.bundleAlignNop();
   masm.setFramePushed(0);
 
   // JIT calls use the following stack layout:
@@ -2715,7 +2712,6 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
                              Offsets* offsets) {
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
-  masm.bundleAlignNop();
 
   masm.setFramePushed(0);
 
@@ -2810,7 +2806,6 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
 
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
-  masm.bundleAlignNop();
   masm.setFramePushed(0);
 
   masm.bind(throwLabel);
@@ -2997,7 +2992,6 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
                                                Offsets* offsets) {
   AssertExpectedSP(masm);
   masm.setFramePushed(0);
-  masm.bundleAlignNop();
   offsets->begin = masm.currentOffset();
 
 #ifdef JS_CODEGEN_ARM64

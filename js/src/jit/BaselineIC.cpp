@@ -738,7 +738,6 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
-  masm.bundleAlignNop();
   if (hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetElemSuper,
                                  masm.currentOffset());
@@ -1295,7 +1294,6 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
-  masm.bundleAlignNop();
   if (hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetPropSuper,
                                  masm.currentOffset());
@@ -1495,7 +1493,6 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
-  masm.bundleAlignNop();
   code.initBailoutReturnOffset(BailoutReturnKind::SetProp,
                                masm.currentOffset());
 
@@ -1787,7 +1784,6 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
-  masm.bundleAlignNop();
 
   MOZ_ASSERT(!isSpread);
 

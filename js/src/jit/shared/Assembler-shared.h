@@ -462,12 +462,6 @@ class CodeLabel {
   // get patched to.
   CodeOffset target_;
 
-#ifdef JS_SANDBOX_CFI_MASKS
-  // Whether this CodeLabel should be masked with a HLT instruction (0xf4) byte
-  // in it's first byte when emitted.
-  bool hltMasked_;
-#endif
-
 #ifdef JS_CODELABEL_LINKMODE
  public:
   enum LinkMode { Uninitialized = 0, RawPointer, MoveImmediate, JumpImmediate };
@@ -488,10 +482,6 @@ class CodeLabel {
 #ifdef JS_CODELABEL_LINKMODE
   LinkMode linkMode() const { return linkMode_; }
   void setLinkMode(LinkMode value) { linkMode_ = value; }
-#endif
-#ifdef JS_SANDBOX_CFI_MASKS
-  bool hltMasked() const { return hltMasked_; }
-  void setHltMasked(bool hltMasked) { hltMasked_ = hltMasked; }
 #endif
 };
 
