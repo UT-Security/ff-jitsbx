@@ -61,6 +61,7 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   AutoCreatedBy acb(masm,
                     "JitRuntime::generateBaselineInterpreterEntryTrampoline");
 
+  masm.cfiIndirectTarget();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -158,6 +159,8 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
       vmInterpreterEntryOffset_ = offset;
     }
   }
+
+  masm.cfiIndirectTargetPost();
 
 #ifdef JS_CODEGEN_ARM64
   // Use the normal stack pointer for the initial pushes.

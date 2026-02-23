@@ -960,9 +960,8 @@ class MacroAssemblerX86Shared : public Assembler {
     // Exists for ARM compatibility.
   }
 
-#if defined(JS_SANDBOX)
+#if defined(JS_SANDBOX_SW_SHSTK)
   void ret();
-
   void retn(Imm32 n);
 #endif
 

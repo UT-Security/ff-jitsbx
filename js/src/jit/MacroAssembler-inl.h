@@ -7,6 +7,7 @@
 #ifndef jit_MacroAssembler_inl_h
 #define jit_MacroAssembler_inl_h
 
+#include "jit/JitCode.h"
 #include "jit/MacroAssembler.h"
 
 #include "mozilla/FloatingPoint.h"
@@ -226,6 +227,25 @@ ABIFunctionType MacroAssembler::signature() const {
 
 // ===============================================================
 // Sandbox helpers.
+
+inline void MacroAssembler::cfiIndirectTargetPre() {
+#if defined(JS_SANDBOX_CFI_LABEL)
+  if (!oom()) {
+    nopAlign(32);
+  }
+#endif
+}
+
+inline void MacroAssembler::cfiIndirectTargetPost() {
+#ifdef JS_SANDBOX_CFI_LABEL
+  cfiLabel();
+#endif
+}
+
+inline void MacroAssembler::cfiIndirectTarget() {
+  cfiIndirectTargetPre();
+  cfiIndirectTargetPost();
+}
 
 // ===============================================================
 // Jit Frames.

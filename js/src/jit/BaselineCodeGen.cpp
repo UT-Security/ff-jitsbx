@@ -1421,11 +1421,13 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   jsbytecode* pc = handler.pc();
   if (JSOp(*pc) == JSOp::LoopHead) {
     uint32_t pcOffset = script->pcToOffset(pc);
+    masm.cfiIndirectTargetPre();
     uint32_t nativeOffset = masm.currentOffset();
     if (!handler.osrEntries().emplaceBack(pcOffset, nativeOffset)) {
       ReportOutOfMemory(cx);
       return false;
     }
+    masm.cfiIndirectTargetPost();
   }
 
   // Emit no warm-up counter increments if Ion is not enabled or if the script
@@ -6338,6 +6340,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+  masm.cfiIndirectTarget();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
@@ -6398,7 +6401,9 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   }
 
   // TODO(JS_SANDBOX_CFI): confirm what uses this as a indirect jump target.
+  masm.cfiIndirectTargetPre();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
+  masm.cfiIndirectTargetPost();
 
   return true;
 }

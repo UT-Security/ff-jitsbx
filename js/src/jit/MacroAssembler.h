@@ -655,6 +655,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ===============================================================
   // JS Sandbox helpers.
 
+  void cfiIndirectTargetPre();
+  void cfiIndirectTargetPost();
+  void cfiIndirectTarget();
+
+#ifdef JS_SANDBOX_CFI_LABEL
+  void cfiLabel() DEFINED_ON(x64);
+#endif
+
  public:
   // ===============================================================
   // Patchable near/far jumps.

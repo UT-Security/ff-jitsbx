@@ -296,7 +296,11 @@ static constexpr Register InterpreterPCReg = r14;
 #endif
 
 static constexpr uint32_t ABIStackAlignment = 16;
+#ifdef JS_SANDBOX_CFI_LABEL
+static constexpr uint32_t CodeAlignment = 32;
+#else
 static constexpr uint32_t CodeAlignment = 16;
+#endif
 static constexpr uint32_t JitStackAlignment = 16;
 
 static constexpr uint32_t JitStackValueAlignment =

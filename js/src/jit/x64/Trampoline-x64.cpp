@@ -85,6 +85,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateEnterJIT");
 
   enterJITOffset_ = startTrampolineCode(masm);
+  masm.cfiIndirectTargetPost();
 
   masm.assertStackAlignment(ABIStackAlignment,
                             -int32_t(sizeof(uintptr_t)) /* return address */);
@@ -217,7 +218,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   CodeLabel returnLabel;
   Label oomReturnLabel;
-#ifdef JS_SANDBOX_CET
+#ifdef JS_SANDBOX_SHSTK
   Label callSiteCET;
 #endif
   {
@@ -235,7 +236,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     Register numStackValues = regs.takeAny();
     masm.movq(numStackValuesAddr, numStackValues);
 
-#ifdef JS_SANDBOX_CET
+#ifdef JS_SANDBOX_SHSTK
     // Do a call instead of a jump
     masm.call(&callSiteCET);
     masm.jump(&oomReturnLabel);
@@ -473,6 +474,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
+  masm.cfiIndirectTargetPost();
+
   // Caller:
   // [arg2] [arg1] [this] [[argc] [callee] [descr] [raddr]] <- rsp
 
@@ -685,6 +688,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateVMWrapper");
 
   *wrapperOffset = startTrampolineCode(masm);
+  masm.cfiIndirectTargetPost();
 
   // Avoid conflicts with argument registers while discarding the result after
   // the function call.

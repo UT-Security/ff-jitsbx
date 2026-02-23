@@ -62,7 +62,7 @@ using GetJitCode = JitCode* (*)();
 
 // Size of the code which is generated at the beginning of the JitCode
 // Executable pages.
-#ifdef JS_SANDBOX
+#if defined(JS_SANDBOX_CFI_LABEL) && defined(JS_SANDBOX_SW_SHSTK)
 const size_t JitCodeHeaderSize = 32;
 #else
 const size_t JitCodeHeaderSize = 16;

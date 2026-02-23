@@ -159,6 +159,7 @@ enum OneByteOpcodeID {
   PRE_LOCK = 0xF0,
   PRE_SSE_F2 = 0xF2,
   PRE_SSE_F3 = 0xF3,
+  PRE_DISTINCT_F3 = 0xF3,
   OP_HLT = 0xF4,
   OP_GROUP3_EbIb = 0xF6,
   OP_GROUP3_Ev = 0xF7,
@@ -415,6 +416,8 @@ enum ThreeByteOpcodeID {
   OP3_SHLX_GyEyBy = 0xF7,
   OP3_SARX_GyEyBy = 0xF7,
   OP3_SHRX_GyEyBy = 0xF7,
+  OP3_ENDBR64 = 0xFA,
+  OP3_ENDBR32 = 0xFB,
 };
 
 // Test whether the given opcode should be printed with its operands reversed.
@@ -430,7 +433,7 @@ inline bool IsXMMReversedOperands(TwoByteOpcodeID opcode) {
   return false;
 }
 
-enum ThreeByteEscape { ESCAPE_38 = 0x38, ESCAPE_3A = 0x3A };
+enum ThreeByteEscape { ESCAPE_38 = 0x38, ESCAPE_3A = 0x3A, ESCAPE_1E = 0x1E };
 
 enum VexOperandType { VEX_PS = 0, VEX_PD = 1, VEX_SS = 2, VEX_SD = 3 };
 

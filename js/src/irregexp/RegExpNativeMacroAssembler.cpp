@@ -72,6 +72,7 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
   }
   savedRegisters_ = js::jit::SavedNonVolatileRegisters(regs);
 
+  masm_.cfiIndirectTarget();
   masm_.jump(&entry_label_);  // We'll generate the entry code later
   masm_.bind(&start_label_);  // and continue from here.
 }
@@ -121,7 +122,9 @@ void SMRegExpMacroAssembler::Backtrack() {
 }
 
 void SMRegExpMacroAssembler::Bind(Label* label) {
+  masm_.cfiIndirectTargetPre();
   masm_.bind(label->inner());
+  masm_.cfiIndirectTargetPost();
   if (label->patchOffset_.bound()) {
     AddLabelPatch(label->patchOffset_, label->pos());
   }

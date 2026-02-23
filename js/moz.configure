@@ -339,6 +339,34 @@ set_config("JS_SANDBOX_HEAP", js_sandbox_heap)
 set_define("JS_SANDBOX_HEAP", js_sandbox_heap)
 
 option(
+    "--enable-js-sandbox-cfi-label",
+    default=False,
+    help="{Enable|Disable} CFI label emission in JIT.",
+)
+
+@depends("--enable-js-sandbox-cfi-label", "--enable-js-sandbox")
+def js_sandbox_cfi_label(js_sandbox_cfi_label, js_sandbox):
+    if js_sandbox and js_sandbox_cfi_label:
+        return True
+
+set_config("JS_SANDBOX_CFI_LABEL", js_sandbox_cfi_label)
+set_define("JS_SANDBOX_CFI_LABEL", js_sandbox_cfi_label)
+
+option(
+    "--enable-js-sandbox-shadow-stack",
+    default=False,
+    help="{Enable|Disable} shadow stack support."
+)
+
+@depends("--enable-js-sandbox-shadow-stack", "--enable-js-sandbox")
+def js_sandbox_shadow_stack(js_sandbox_shadow_stack, js_sandbox):
+    if js_sandbox and js_sandbox_shadow_stack:
+        return True
+
+set_config("JS_SANDBOX_SHSTK", js_sandbox_shadow_stack)
+set_define("JS_SANDBOX_SHSTK", js_sandbox_shadow_stack)
+
+option(
     "--enable-js-sandbox-cet",
     default=False,
     help="{Enable|Disable} CET in JS sandbox.",
@@ -351,6 +379,16 @@ def js_sandbox_cet(js_sandbox_cet, js_sandbox):
 
 set_config("JS_SANDBOX_CET", js_sandbox_cet)
 set_define("JS_SANDBOX_CET", js_sandbox_cet)
+
+@depends(js_sandbox_shadow_stack, js_lfi_toolchain, js_sandbox_cet)
+def js_sandbox_software_shadow_stack(js_sandbox_shadow_stack, js_lfi_toolchain, js_sandbox_cet):
+    if js_sandbox_shadow_stack and (not js_sandbox_cet) and (not js_lfi_toolchain):
+        die("--enable-js-sandbox-shadow-stack requires either --enable-js-sandbox-cet or compilation with LFI") 
+    if js_sandbox_shadow_stack and js_lfi_toolchain and (not js_sandbox_cet):
+        return True
+
+set_config("JS_SANDBOX_SW_SHSTK", js_sandbox_software_shadow_stack)
+set_define("JS_SANDBOX_SW_SHSTK", js_sandbox_software_shadow_stack)
 
 # Profiling
 # =======================================================

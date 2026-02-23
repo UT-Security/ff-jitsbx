@@ -16,6 +16,12 @@ namespace X86Encoding {
 
 class BaseAssemblerX64 : public BaseAssembler {
  public:
+  void endbr64() {
+    spew("endbr64");
+    m_formatter.oneByteOp(PRE_DISTINCT_F3);
+    m_formatter.threeByteOp(OP3_ENDBR64, ESCAPE_1E);
+  }
+
   // Arithmetic operations:
 
   void addq_rr(RegisterID src, RegisterID dst) {

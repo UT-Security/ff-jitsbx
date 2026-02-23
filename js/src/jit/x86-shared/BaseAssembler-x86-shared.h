@@ -5889,6 +5889,13 @@ class BaseAssembler : public GenericAssembler {
       registerModRM(rm, reg);
     }
 
+    void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape) {
+      m_buffer.ensureSpace(MaxInstructionSize);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
+    }
+
     void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                      int32_t offset, RegisterID base, int reg) {
       m_buffer.ensureSpace(MaxInstructionSize);

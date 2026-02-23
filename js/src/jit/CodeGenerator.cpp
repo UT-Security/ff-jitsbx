@@ -605,8 +605,10 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
   DataPtr<IonIC> ic(this, cacheIndex);
 
+  masm.cfiIndirectTargetPre();
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
+  masm.cfiIndirectTargetPost();
 
   switch (ic->kind()) {
     case CacheKind::GetProp:
@@ -3776,8 +3778,10 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
   Register temp = ToRegister(lir->temp());
 
   // Remember the OSR entry offset into the code buffer.
+  masm.cfiIndirectTargetPre();
   masm.flushBuffer();
   setOsrEntryOffset(masm.size());
+  masm.cfiIndirectTargetPost();
 
   // Allocate the full frame for this function
   // Note we have a new entry here. So we reset MacroAssembler::framePushed()
@@ -11474,6 +11478,7 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateLazyLinkStub");
 
   lazyLinkStubOffset_ = startTrampolineCode(masm);
+  masm.cfiIndirectTargetPost();
 
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
@@ -11513,6 +11518,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateInterpreterStub");
 
   interpreterStubOffset_ = startTrampolineCode(masm);
+  masm.cfiIndirectTargetPost();
 
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();

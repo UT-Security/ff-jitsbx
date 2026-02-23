@@ -727,17 +727,111 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 
 std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
   auto instrOffset = CodeOffset(currentOffset());
-  Assembler::call(reg);
-  return std::pair(instrOffset, CodeOffset(currentOffset()));
+#ifdef JS_SANDBOX_SW_SHSTK
+  MOZ_ASSERT(reg != StackPointer, "Unexpected stack pointer indirect call");
+
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  if (reg != SandboxScratchReg) {
+    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+    push(SandboxScratchReg);
+  } else {
+    push(SandboxScratchReg);
+    returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+    xchgq(SandboxScratchReg, Operand(Address(StackPointer, 0)));
+  }
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
+  Assembler::call(reg);  
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  patchRetAddr(returnPatch, returnOffset);
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
+  return std::pair(instrOffset, returnOffset);
 }
 
 CodeOffset MacroAssembler::call(Label* label) {
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
   Assembler::call(label);
-  return CodeOffset(currentOffset());
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  patchRetAddr(returnPatch, returnOffset);
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
+  return returnOffset;
 }
 
 void MacroAssembler::call(const Address& addr) {
+#ifdef JS_SANDBOX_SW_SHSTK
+  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
+             "Call address already uses scratch register");
+  MOZ_ASSERT(!Operand(addr).containsReg(StackPointer),
+             "Call address uses stack pointer register");
+
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
   Assembler::call(Operand(addr.base, addr.offset));
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+  patchRetAddr(returnPatch, returnOffset);
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
 }
 
 std::pair<CodeOffset ,CodeOffset> MacroAssembler::call(wasm::SymbolicAddress target) {
@@ -747,23 +841,128 @@ std::pair<CodeOffset ,CodeOffset> MacroAssembler::call(wasm::SymbolicAddress tar
 }
 
 void MacroAssembler::call(ImmWord target) {
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
   Assembler::call(target);
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+  patchRetAddr(returnPatch, returnOffset);
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
 }
 
 std::pair<uint32_t, uint32_t> MacroAssembler::call(ImmPtr target) {
-  uint32_t instrOffset = currentOffset();
-  Assembler::call(target);
-  uint32_t retOffset = currentOffset();
-  return std::pair(instrOffset, retOffset);
+  auto instrOffset = currentOffset();
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
+  Assembler::call(target);  
+  uint32_t returnOffset = currentOffset();
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  patchRetAddr(returnPatch, CodeOffset(returnOffset));
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
+  return std::pair(instrOffset, returnOffset);
 }
 
 void MacroAssembler::call(JitCode* target) {
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
   Assembler::call(target);
+  
+#ifdef JS_SANDBOX_SW_SHSTK
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+  patchRetAddr(returnPatch, returnOffset);
+
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
 }
 
 std::pair<CodeOffset, CodeOffset> MacroAssembler::callWithPatch() {
   auto instrOffset = CodeOffset(currentOffset());
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  
+  // Load and push return address.
+  CodeOffset returnPatch;
+  returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+
+  // Switch back to real stack before call.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+#endif
+
   CodeOffset retOffset = Assembler::callWithPatch();
+  patchRetAddr(returnPatch, retOffset);
+
+#ifdef JS_SANDBOX_SW_SHSTK
+  // Switch back to real stack after return.
+  movq(StackPointer, Operand(r15, 16, true));
+  movq(Operand(r15, 24), StackPointer);
+
+  // Discard pushed return address from real stack.
+  pop(SandboxScratchReg);
+#endif
   return std::pair(instrOffset, retOffset);
 }
 void MacroAssembler::patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
@@ -798,13 +997,44 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
 
 // ===============================================================
 // Return.
-#if defined(JS_SANDBOX)
+
+#if defined(JS_SANDBOX_SW_SHSTK)
 void MacroAssemblerX86Shared::ret() {
+#ifdef DEBUG
+  Label sandboxed;
+  movq(Operand(r15, 16), SandboxScratchReg);
+  movq(Operand(SandboxScratchReg, 0), SandboxScratchReg);
+  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
+  j(Condition::Equal, &sandboxed);
+  breakpoint();
+  bind(&sandboxed);
+#endif
+
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
   Assembler::ret();
 }
 
 void MacroAssemblerX86Shared::retn(Imm32 n) {
-  Assembler::retn(n);
+#ifdef DEBUG
+  Label sandboxed;
+  movq(Operand(r15, 16), SandboxScratchReg);
+  movq(Operand(SandboxScratchReg, 0), SandboxScratchReg);
+  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
+  j(Condition::Equal, &sandboxed);
+  breakpoint();
+  bind(&sandboxed);
+#endif
+
+  pop(SandboxScratchReg);
+  addq(Imm32(n.value - sizeof(void*)), StackPointer);
+  push(SandboxScratchReg);
+  
+  // Switch to shadow call stack.
+  movq(StackPointer, Operand(r15, 24, true));
+  movq(Operand(r15, 16), StackPointer);
+  Assembler::ret();
 }
 #endif
 

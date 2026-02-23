@@ -692,6 +692,13 @@ const MacroAssembler& MacroAssemblerX64::asMasm() const {
   return *static_cast<const MacroAssembler*>(this);
 }
 
+#ifdef JS_SANDBOX_CFI_LABEL
+void MacroAssembler::cfiLabel() {
+    masm.nopAlign(32);
+    masm.endbr64();
+}
+#endif
+
 void MacroAssembler::subFromStackPtr(Imm32 imm32) {
   if (imm32.value) {
     // On windows, we cannot skip very far down the stack without touching the
