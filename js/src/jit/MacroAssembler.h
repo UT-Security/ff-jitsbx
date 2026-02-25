@@ -615,7 +615,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   std::pair<CodeOffset, CodeOffset> call(Register reg) PER_SHARED_ARCH;
   CodeOffset call(Label* label) PER_SHARED_ARCH;
 
-  void call(const Address& addr) PER_SHARED_ARCH;
+  CodeOffset call(const Address& addr) PER_SHARED_ARCH;
   void call(ImmWord imm) PER_SHARED_ARCH;
   // Call a target native function, which is neither traceable nor movable.
   std::pair<uint32_t, uint32_t> call(ImmPtr imm) PER_SHARED_ARCH;
@@ -624,7 +624,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                          wasm::SymbolicAddress imm);
 
   // Call a target JitCode, which must be traceable, and may be movable.
-  void call(JitCode* c) PER_SHARED_ARCH;
+  CodeOffset call(JitCode* c) PER_SHARED_ARCH;
 
   inline std::pair<uint32_t, uint32_t> call(TrampolinePtr code);
 
@@ -639,7 +639,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // is not defined, push the link register (pushReturnAddress) at the entry
   // point of the callee.
   std::pair<uint32_t, uint32_t> callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
-  void callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
+  CodeOffset callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
 
   // These do not adjust framePushed().
   void pushReturnAddress()
@@ -663,6 +663,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void cfiLabel() DEFINED_ON(x64);
 #endif
 
+
+#ifdef JS_SANDBOX_SHSTK
+  void unwindShstk(const Operand& frames) DEFINED_ON(x64);
+#endif
+
  public:
   // ===============================================================
   // Patchable near/far jumps.
@@ -676,7 +681,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Emit a nop that can be patched to and from a nop and a call with int32
   // relative displacement.
   CodeOffset nopPatchableToCall() PER_SHARED_ARCH;
-  void nopPatchableToCall(const wasm::CallSiteDesc& desc);
   static void patchNopToCall(uint8_t* callsite,
                              uint8_t* target) PER_SHARED_ARCH;
   static void patchCallToNop(uint8_t* callsite) PER_SHARED_ARCH;

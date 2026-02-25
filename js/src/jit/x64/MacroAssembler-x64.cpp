@@ -568,6 +568,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // the entry frame.
   bind(&entryFrame);
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   ret();
@@ -576,6 +579,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // and jump to the catch block.
   bind(&catch_);
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   jump(rax);
@@ -586,6 +592,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   ValueOperand exception = ValueOperand(rcx);
   loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -696,6 +705,20 @@ const MacroAssembler& MacroAssemblerX64::asMasm() const {
 void MacroAssembler::cfiLabel() {
     masm.nopAlign(32);
     masm.endbr64();
+}
+#endif
+
+#ifdef JS_SANDBOX_SHSTK
+void MacroAssembler::unwindShstk(const Operand& frames) {
+#ifdef JS_SANDBOX_SW_SHSTK
+  mov(frames, ScratchReg);
+  push(rdi);
+  mov(ScratchReg, rdi);
+  CodeOffset returnPatch = moveNearAddressWithPatch(ScratchReg);
+  jmp(Operand(r14, 32));
+  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
+  pop(rdi);
+#endif
 }
 #endif
 

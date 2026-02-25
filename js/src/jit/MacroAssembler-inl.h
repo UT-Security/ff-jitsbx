@@ -266,8 +266,7 @@ std::pair<uint32_t, uint32_t> MacroAssembler::callJit(Register callee) {
 
 uint32_t MacroAssembler::callJit(JitCode* callee) {
   AutoProfilerCallInstrumentation profiler(*this);
-  call(callee);
-  return currentOffset();
+  return call(callee).offset();
 }
 
 std::pair<uint32_t, uint32_t> MacroAssembler::callJit(TrampolinePtr code) {
@@ -277,8 +276,7 @@ std::pair<uint32_t, uint32_t> MacroAssembler::callJit(TrampolinePtr code) {
 
 uint32_t MacroAssembler::callJit(ImmPtr callee) {
   AutoProfilerCallInstrumentation profiler(*this);
-  call(callee);
-  return currentOffset();
+  return call(callee).second;
 }
 
 void MacroAssembler::pushFrameDescriptor(FrameType type) {

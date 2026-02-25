@@ -763,8 +763,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
   }
   MOZ_ASSERT(fun.expectTailCall == NonTailCall);
   // Perform the call.
-  masm.call(code);
-  uint32_t callOffset = masm.currentOffset();
+  uint32_t callOffset = masm.call(code).second;
 
   // Pop arguments from framePushed.
   masm.implicitPop(argSize);
@@ -5895,14 +5894,14 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
   // generator returns.
   Label genStart, returnTarget;
 #ifdef JS_USE_LINK_REGISTER
-  masm.call(&genStart);
+  CodeOffset returnOffset = masm.call(&genStart);
 #else
-  masm.callAndPushReturnAddress(&genStart);
+  CodeOffset returnOffset = masm.callAndPushReturnAddress(&genStart);
 #endif
 
   // Record the return address so the return offset -> pc mapping works.
   if (!handler.recordCallRetAddr(cx, RetAddrEntry::Kind::IC,
-                                 masm.currentOffset())) {
+                                 returnOffset.offset())) {
     return false;
   }
 

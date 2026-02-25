@@ -135,6 +135,10 @@ struct ResumeFromException {
 
   BaselineBailoutInfo* bailoutInfo;
 
+#ifdef JS_SANDBOX_SHSTK
+  uint64_t frameDepth;
+#endif
+
 #if defined(JS_CODEGEN_ARM64)
   uint64_t padding_;
 #endif
@@ -158,6 +162,12 @@ struct ResumeFromException {
   static size_t offsetOfBailoutInfo() {
     return offsetof(ResumeFromException, bailoutInfo);
   }
+
+#ifdef JS_SANDBOX_SHSTK
+  static size_t offsetOfFrameDepth() {
+    return offsetof(ResumeFromException, frameDepth);
+  }
+#endif
 };
 
 #if defined(JS_CODEGEN_ARM64)
@@ -399,6 +409,12 @@ class ExitFrameLayout : public CommonFrameLayout {
     return top();
   }
 
+  inline bool isInterpreterStubExit() {
+    return footer()->type() == ExitFrameType::InterpreterStub;
+  }
+  inline bool isLazyLinkExit() {
+    return footer()->type() == ExitFrameType::LazyLink;
+  }
   inline bool isWrapperExit() {
     return footer()->type() == ExitFrameType::VMFunction;
   }

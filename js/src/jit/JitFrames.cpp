@@ -689,6 +689,9 @@ void HandleException(ResumeFromException* rfe) {
   });
 
   rfe->kind = ExceptionResumeKind::EntryFrame;
+#ifdef JS_SANDBOX_SHSTK
+  rfe->frameDepth = 0;
+#endif
 
   JitSpew(JitSpew_IonInvalidate, "handling exception");
 
@@ -794,6 +797,15 @@ void HandleException(ResumeFromException* rfe) {
       }
     }
 
+#ifdef JS_SANDBOX_SHSTK
+    if (!frame.isExitFrame() ||
+        (frame.isExitFrame() && (frame.exitFrame()->isInterpreterStubExit() ||
+                                 frame.exitFrame()->isLazyLinkExit() ||
+                                 frame.exitFrame()->isWrapperExit()))) {
+      rfe->frameDepth += 1;
+    }
+#endif
+
     prevJitFrame = frame.current();
     ++iter;
   }
@@ -804,6 +816,10 @@ void HandleException(ResumeFromException* rfe) {
     rfe->framePointer = iter.asJSJit().current()->callerFramePtr();
     rfe->stackPointer =
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
+#ifdef JS_SANDBOX_SHSTK
+    // Don't count the final frame that we are actually return to.
+    rfe->frameDepth -= 1;
+#endif
   }
 }
 

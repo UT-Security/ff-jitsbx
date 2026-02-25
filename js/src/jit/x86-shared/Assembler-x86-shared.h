@@ -1425,9 +1425,21 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   static void patchFiveByteNopToCall(uint8_t* callsite, uint8_t* target) {
+#ifdef JS_SANDBOX_SW_SHSTK
+    uint8_t* startsite = callsite - 0x20;
+    MOZ_ASSERT(*startsite == 0xeb && *(startsite + 1) == 0x28);
+    *startsite = 0x66;
+    *(startsite + 1) = 0x90;
+#endif
     X86Encoding::BaseAssembler::patchFiveByteNopToCall(callsite, target);
   }
   static void patchCallToFiveByteNop(uint8_t* callsite) {
+#ifdef JS_SANDBOX_SW_SHSTK
+    uint8_t* startsite = callsite - 0x20;
+    MOZ_ASSERT(*startsite == 0x66 && *(startsite + 1) == 0x90);
+    *startsite = 0xeb;
+    *(startsite + 1) = 0x28;
+#endif
     X86Encoding::BaseAssembler::patchCallToFiveByteNop(callsite);
   }
 
