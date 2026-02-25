@@ -547,7 +547,6 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   load32(Address(rsp, ResumeFromException::offsetOfFrameDepth()),
          SandboxScratchReg);
   incShadowStack(SandboxScratchReg);
-  readShadowStack(SandboxScratchReg);
 #endif
 
   load32(Address(rsp, ResumeFromException::offsetOfKind()), rax);

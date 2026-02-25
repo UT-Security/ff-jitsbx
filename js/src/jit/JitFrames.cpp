@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "jit/JSJitFrameIter.h"
 #include "jit/JitFrames-inl.h"
 
 #include "mozilla/ScopeExit.h"
@@ -369,12 +370,6 @@ static void OnLeaveBaselineFrame(JSContext* cx, const JSJitFrameIter& frame,
     rfe->framePointer = frame.fp();
     rfe->stackPointer = reinterpret_cast<uint8_t*>(baselineFrame);
   }
-#ifdef JS_SANDBOX_CET
-  // else {
-  //   // We pop a frame
-  // rfe->frameDepth++;
-  // }
-#endif
 }
 
 static inline void BaselineFrameAndStackPointersFromTryNote(
@@ -399,9 +394,6 @@ static void SettleOnTryNote(JSContext* cx, const TryNote* tn,
   // Compute base pointer and stack pointer.
   BaselineFrameAndStackPointersFromTryNote(tn, frame, &rfe->framePointer,
                                            &rfe->stackPointer);
-#ifdef JS_SANDBOX_CET
-  rfe->frameDepth++;
-#endif
 
   // Compute the pc.
   *pc = script->offsetToPC(tn->start + tn->length);
@@ -512,9 +504,6 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
         uint8_t* stackPointer;
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
-#ifdef JS_SANDBOX_CET
-        rfe->frameDepth++;
-#endif
         Value iterValue(*reinterpret_cast<Value*>(stackPointer));
         JSObject* iterObject = &iterValue.toObject();
         CloseIterator(iterObject);
@@ -526,9 +515,6 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
         uint8_t* stackPointer;
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
-#ifdef JS_SANDBOX_CET
-        rfe->frameDepth++;
-#endif
         // Note: if this ever changes, also update the
         // TryNoteKind::Destructuring code in WarpBuilder.cpp!
         RootedValue doneValue(cx, *(reinterpret_cast<Value*>(stackPointer)));
@@ -586,19 +572,10 @@ static void HandleExceptionBaseline(JSContext* cx, JSJitFrameIter& frame,
     baselineFrame->switchFromJitToInterpreterForExceptionHandler(cx, pc);
     prevFrame->setReturnAddress(retAddr);
 
-#ifdef JS_SANDBOX_CET
-    std::printf("Replaced retaddr after a bailout!\n");
-#endif
-
     // Ensure the current iterator's resumePCInCurrentFrame_ isn't used
     // anywhere.
     frame.setResumePCInCurrentFrame(nullptr);
   }
-#ifdef JS_SANDBOX_CET
-  else {
-    rfe->frameDepth++;
-  }
-#endif
 
   bool frameOk = false;
   RootedScript script(cx, frame.baselineFrame()->script());
@@ -635,9 +612,6 @@ again:
       if (rfe->kind != ExceptionResumeKind::EntryFrame) {
         // No need to increment the PCCounts number of execution here,
         // as the interpreter increments any PCCounts if present.
-#ifdef JS_SANDBOX_CET
-        std::printf("Not an entry frame!\n");
-#endif
         MOZ_ASSERT_IF(script->hasScriptCounts(), script->maybeGetPCCounts(pc));
         return;
       }
@@ -732,17 +706,10 @@ void HandleException(ResumeFromException* rfe) {
   CommonFrameLayout* prevJitFrame = nullptr;
 
 #ifdef JS_SANDBOX_CET
-  std::printf("In HandleException!\n");
   rfe->frameDepth = 0;
-  int it = 0;
 #endif
 
   while (!iter.done()) {
-#ifdef JS_SANDBOX_CET
-    // rfe->frameDepth++;
-    it++;
-    std::printf("In loop! It count %d\n", it);
-#endif
 
     if (iter.isWasm()) {
       prevJitFrame = nullptr;
@@ -760,8 +727,9 @@ void HandleException(ResumeFromException* rfe) {
 
     JSJitFrameIter& frame = iter.asJSJit();
 #ifdef JS_SANDBOX_CET
-    std::printf("Frame type: %d\n", static_cast<int>(frame.type()));
-    std::printf("Frame kind: %d\n", static_cast<int>(rfe->kind));
+    if (!frame.maybeFakeExit()) {
+      rfe->frameDepth++;
+    }
 #endif
 
     // JIT code can enter same-compartment realms, so reset cx->realm to
@@ -786,18 +754,9 @@ void HandleException(ResumeFromException* rfe) {
       bool hitBailoutException = false;
       for (;;) {
         HandleExceptionIon(cx, frames, rfe, &hitBailoutException);
-#ifdef JS_SANDBOX_CET
-        std::printf("Exception frame kind (ion): %d\n",
-                    static_cast<int>(rfe->kind));
-#endif
 
         if (rfe->kind == ExceptionResumeKind::Bailout ||
             rfe->kind == ExceptionResumeKind::ForcedReturnIon) {
-#ifdef JS_SANDBOX_CET
-          MOZ_RELEASE_ASSERT(rfe->frameDepth >= 0);
-          std::printf("Ion bailout/forcedret: frame depth: %ld\n",
-                      rfe->frameDepth);
-#endif
           if (invalidated) {
             ionScript->decrementInvalidationCount(cx->gcContext());
           }
@@ -831,17 +790,9 @@ void HandleException(ResumeFromException* rfe) {
 
     } else if (frame.isBaselineJS()) {
       HandleExceptionBaseline(cx, frame, prevJitFrame, rfe);
-#ifdef JS_SANDBOX_CET
-      std::printf("Exception frame kind (baseline): %d\n",
-                  static_cast<int>(rfe->kind));
-#endif
 
       if (rfe->kind != ExceptionResumeKind::EntryFrame &&
           rfe->kind != ExceptionResumeKind::ForcedReturnBaseline) {
-#ifdef JS_SANDBOX_CET
-        MOZ_RELEASE_ASSERT(rfe->frameDepth >= 0);
-        std::printf("Baseline other: frame depth: %ld\n", rfe->frameDepth);
-#endif
         return;
       }
 
@@ -851,18 +802,9 @@ void HandleException(ResumeFromException* rfe) {
                          /* popProfilerFrame = */ false);
 
       if (rfe->kind == ExceptionResumeKind::ForcedReturnBaseline) {
-#ifdef JS_SANDBOX_CET
-        MOZ_RELEASE_ASSERT(rfe->frameDepth >= 0);
-        std::printf("Baseline forcedret: frame depth: %ld\n", rfe->frameDepth);
-#endif
         return;
       }
     }
-#ifdef JS_SANDBOX_CET
-    else if (frame.isBaselineStub()) {
-      rfe->frameDepth++;
-    }
-#endif
 
     prevJitFrame = frame.current();
     ++iter;
@@ -874,12 +816,11 @@ void HandleException(ResumeFromException* rfe) {
     rfe->framePointer = iter.asJSJit().current()->callerFramePtr();
     rfe->stackPointer =
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
+#ifdef JS_SANDBOX_CET
+    rfe->frameDepth--;
+#endif
   }
 
-#ifdef JS_SANDBOX_CET
-  MOZ_RELEASE_ASSERT(rfe->frameDepth >= 0);
-  std::printf("Frame depth: %ld\n", rfe->frameDepth);
-#endif
 }
 
 // Turns a JitFrameLayout into an UnwoundJit ExitFrameLayout.

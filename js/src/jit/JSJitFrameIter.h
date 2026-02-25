@@ -173,6 +173,9 @@ class JSJitFrameIter {
     return type_ == FrameType::BaselineInterpreterEntry;
   }
   bool isRectifier() const { return type_ == FrameType::Rectifier; }
+#ifdef JS_SANDBOX_CET
+  bool maybeFakeExit() const;
+#endif
   bool isBareExit() const;
   bool isUnwoundJitExit() const;
   template <typename T>

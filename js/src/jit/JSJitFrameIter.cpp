@@ -90,6 +90,15 @@ JSFunction* JSJitFrameIter::maybeCallee() const {
   return nullptr;
 }
 
+#ifdef JS_SANDBOX_CET
+bool JSJitFrameIter::maybeFakeExit() const {
+  if (type_ != FrameType::Exit) {
+    return false;
+  }
+  return exitFrame()->maybeFakeExit();
+}
+#endif
+
 bool JSJitFrameIter::isBareExit() const {
   if (type_ != FrameType::Exit) {
     return false;
