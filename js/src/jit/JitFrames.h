@@ -410,6 +410,21 @@ class ExitFrameLayout : public CommonFrameLayout {
   inline bool isWrapperExit() {
     return footer()->type() == ExitFrameType::VMFunction;
   }
+#ifdef JS_SANDBOX_CET
+  inline bool maybeFakeExit() {
+    return footer()->type() == ExitFrameType::IonDOMGetter ||
+          footer()->type() == ExitFrameType::IonDOMMethod ||
+          footer()->type() == ExitFrameType::IonDOMSetter ||
+          footer()->type() == ExitFrameType::DirectWasmJitCall ||
+          footer()->type() == ExitFrameType::WasmGenericJitEntry ||
+          footer()->type() == ExitFrameType::IonOOLNative || 
+          footer()->type() == ExitFrameType::IonOOLProxy ||
+          footer()->type() == ExitFrameType::Bare || 
+          footer()->type() == ExitFrameType::UnwoundJit || 
+          footer()->type() == ExitFrameType::ConstructNative || 
+          footer()->type() == ExitFrameType::CallNative;
+  }
+#endif
   inline bool isBareExit() { return footer()->type() == ExitFrameType::Bare; }
   inline bool isUnwoundJitExit() {
     return footer()->type() == ExitFrameType::UnwoundJit;
