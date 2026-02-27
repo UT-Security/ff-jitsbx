@@ -433,6 +433,8 @@ struct alignas(uintptr_t) BaselineBailoutInfo {
   // } savedPcList;
   // savedPcList savedPcs = {nullptr, nullptr};
   uintptr_t* savedPcs = nullptr;
+  uint64_t* savedOffsets = nullptr;
+  uint64_t savedPcCount = 0;
 #endif
 
   // The bailout kind.

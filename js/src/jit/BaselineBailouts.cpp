@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <cstddef>
 #include "mozilla/Assertions.h"
 #include "mozilla/ScopeExit.h"
 
@@ -135,6 +136,7 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
  public:
 #ifdef JS_SANDBOX_CET
   JS::RootedVector<uintptr_t> pcs_to_restore;
+  JS::RootedVector<uint64_t> offsets_to_restore;
 #endif
 
   BaselineStackBuilder(JSContext* cx, const JSJitFrameIter& frameIter,
@@ -436,7 +438,8 @@ BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
       suppress_(cx)
 #ifdef JS_SANDBOX_CET
       ,
-      pcs_to_restore(cx)
+      pcs_to_restore(cx),
+      offsets_to_restore(cx)
 #endif
 {
   MOZ_ASSERT(bufferTotal_ >= sizeof(BaselineBailoutInfo));
@@ -888,8 +891,14 @@ bool BaselineStackBuilder::finishOuterFrame() {
 
   uint8_t* retAddr = baselineInterp.retAddrForIC(op_);
 #ifdef JS_SANDBOX_CET
-  bool success = pcs_to_restore.append(reinterpret_cast<uintptr_t>(retAddr));
-  std::printf("Retaddr: %p, success: %d\n", retAddr, success);
+  if(!pcs_to_restore.append(reinterpret_cast<uintptr_t>(retAddr))) {
+    return false;
+  };
+  // std::printf("Retaddr (IC): %p\n", retAddr);
+  if(!offsets_to_restore.append(header_->copyStackTop - header_->copyStackBottom + 8)) {
+    return false;
+  };
+  // std::printf("Written to offset %ld\n", header_->copyStackTop - header_->copyStackBottom + 8);
 #endif
   return writePtr(retAddr, "ReturnAddr");
 }
@@ -1044,6 +1053,16 @@ bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
   // Push return address into ICCall_Scripted stub, immediately after the call.
   void* baselineCallReturnAddr = getStubReturnAddress();
   MOZ_ASSERT(baselineCallReturnAddr);
+#ifdef JS_SANDBOX_CET
+  if(!pcs_to_restore.append(reinterpret_cast<uintptr_t>(baselineCallReturnAddr))) {
+    return false;
+  };
+  // std::printf("Retaddr (baseline call): %p\n", baselineCallReturnAddr);
+  if(!offsets_to_restore.append(header_->copyStackTop - header_->copyStackBottom + 8)) {
+    return false;
+  };
+  // std::printf("Written to offset %ld\n", header_->copyStackTop - header_->copyStackBottom + 8);
+#endif
   if (!writePtr(baselineCallReturnAddr, "ReturnAddr")) {
     return false;
   }
@@ -1147,6 +1166,16 @@ bool BaselineStackBuilder::buildRectifierFrame(uint32_t actualArgc,
   void* rectReturnAddr =
       cx_->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr().value;
   MOZ_ASSERT(rectReturnAddr);
+#ifdef JS_SANDBOX_CET
+  if(!pcs_to_restore.append(reinterpret_cast<uintptr_t>(rectReturnAddr))) {
+    return false;
+  };
+  // std::printf("Retaddr (rect): %p\n", rectReturnAddr);
+  if(!offsets_to_restore.append(header_->copyStackTop - header_->copyStackBottom + 8)) {
+    return false;
+  };
+  // std::printf("Written to offset %ld\n", header_->copyStackTop - header_->copyStackBottom + 8);
+#endif
   if (!writePtr(rectReturnAddr, "ReturnAddr")) {
     return false;
   }
@@ -1184,10 +1213,6 @@ bool BaselineStackBuilder::finishLastFrame() {
     blFrame()->setInterpreterFields(script_, resumePC);
     resumeAddr = baselineInterp.interpretOpAddr().value;
   }
-#ifdef JS_SANDBOX_CET
-  bool success = pcs_to_restore.append(reinterpret_cast<uintptr_t>(resumeAddr));
-  std::printf("Finished stack rebuild: %d! pc: %p\n", success, resumeAddr);
-#endif
   setResumeAddr(resumeAddr);
   JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
 
@@ -1486,10 +1511,6 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   // Caller should have saved the exception while we perform the bailout.
   MOZ_ASSERT(!cx->isExceptionPending());
 
-#ifdef JS_SANDBOX_CET
-  std::printf("Bailing out! Ion->baseline\n");
-#endif
-
   // Ion bailout can fail due to overrecursion and OOM. In such cases we
   // cannot honor any further Debugger hooks on the frame, and need to
   // ensure that its Debugger.Frame entry is cleaned up.
@@ -1662,13 +1683,23 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   info->numFrames = builder.frameNo() + 1;
   info->bailoutKind.emplace(bailoutKind);
 #ifdef JS_SANDBOX_CET
-  int size = info->numFrames;
-  uintptr_t* saved_pcs = (uintptr_t*)malloc(sizeof(uintptr_t) * size--);
-  for (int idx = 0; size >= 0; size--, idx++) {
-    saved_pcs[idx] = builder.pcs_to_restore[size];
-    std::printf("Saved pc: 0x%lx\n", saved_pcs[idx]);
+  int size = builder.pcs_to_restore.length();
+  info->savedPcCount = size;
+  if(size) {
+    uintptr_t* saved_pcs = (uintptr_t*)malloc(sizeof(uintptr_t) * size);
+    uintptr_t* saved_offsets = (uintptr_t*)malloc(sizeof(uint64_t) * size);
+    for (int idx = 0; idx < size; idx++) {
+      saved_pcs[idx] = builder.pcs_to_restore[idx];
+      saved_offsets[idx] = builder.offsets_to_restore[idx];
+      // std::printf("Saved pc: 0x%lx\n", saved_pcs[idx]);
+    }
+    info->savedPcs = saved_pcs;
+    info->savedOffsets = saved_offsets;
   }
-  info->savedPcs = saved_pcs;
+  else {
+    info->savedPcs = NULL;
+    info->savedOffsets = NULL;
+  }
 #endif
   *bailoutInfo = info;
   guardRemoveRematerializedFramesFromDebugger.release();
@@ -1775,7 +1806,8 @@ enum class BailoutAction {
 };
 
 #ifdef JS_SANDBOX_CET
-void* jit::SetupShstkReconstruction(JSContext* cx, int numFrames, uint64_t* savedAddresses) {
+void* jit::SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount, uint64_t* savedAddresses,
+                                    uint64_t savedStack, uint64_t* savedOffsets) {
   TempAllocator temp(&cx->tempLifoAlloc());
   StackMacroAssembler masm(cx, temp);
   PerfSpewerRangeRecorder rangeRecorder(masm);
@@ -1784,24 +1816,34 @@ void* jit::SetupShstkReconstruction(JSContext* cx, int numFrames, uint64_t* save
   // TODO(JS_SANDBOX_CET): don't generate this inline!
   JitSpew(JitSpew_Codegen, "# Emitting bailout shadow stack stub");
 
+  // TODO(JS_SANDBOX_CET): dont hardcode registers, use allocatableset
+  Register tempSavedOffReg = r12;
+  Register tempSavedAddrReg = r10;
+
+  // masm.readShadowStack(SandboxScratchReg);
   // masm.breakpoint();
   // We have to pop an entry off the shadow stack
-  masm.mov(ImmWord(1), rbx);
-  masm.incShadowStack(rbx);
+  masm.mov(ImmWord(1), SandboxScratchReg);
+  masm.incShadowStack(SandboxScratchReg);
 
   // Save pushed return address
   masm.pop(rax);
   // We start at 1 here since we don't actually return to the first PC
-  for(int i = 0; i < numFrames; i++) {
+  // Update: we dont add the first PC so we can return to idx 0
+  for(int i = 0; i < savedAddrCount; i++) {
     // call-jmp sequence to restore shadow stack
-    // TODO(JS_SANDBOX_CET): this sequence needs to be done in reverse (I think)
     // masm.breakpoint();
     Label dummy;
     masm.call(&dummy);
     masm.jmp(ImmPtr((void*) savedAddresses[i], ImmPtr::NoCheckToken()));
     masm.bind(&dummy);
-    // Pop pushed return address off stack
-    masm.addq(Imm32(8), rsp);
+    // Save pushed return address
+    masm.pop(tempSavedAddrReg);
+    // Overwrite saved return address on stack
+    // masm.breakpoint();
+    masm.movq(ImmPtr((void*) savedStack, ImmPtr::NoCheckToken()), tempSavedOffReg);
+    masm.subq(Imm32(savedOffsets[i]), tempSavedOffReg);
+    masm.storePtr(tempSavedAddrReg, Address(tempSavedOffReg, 0));
   }
   // Jump to saved return address
   masm.jmp(Operand(rax));

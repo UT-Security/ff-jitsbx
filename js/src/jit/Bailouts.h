@@ -214,7 +214,8 @@ class ExceptionBailoutInfo {
                                            const ExceptionBailoutInfo& excInfo);
 
 #ifdef JS_SANDBOX_CET
-[[nodiscard]] void* SetupShstkReconstruction(JSContext* cx, int numFrames, uint64_t* savedAddresses);
+[[nodiscard]] void* SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount,
+                      uint64_t* savedAddresses, uint64_t savedStack, uint64_t* savedOffsets);
 #endif
 [[nodiscard]] bool FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg);
 

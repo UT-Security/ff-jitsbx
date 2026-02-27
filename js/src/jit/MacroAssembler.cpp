@@ -2915,6 +2915,11 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     bind(&ok);
 #endif
 
+#ifdef JS_SANDBOX_CET
+    Register copyStackTop = regs.takeAny();
+    movq(getStackPointer(), copyStackTop);
+#endif
+
     Register copyCur = regs.takeAny();
     Register copyEnd = regs.takeAny();
 
@@ -2949,8 +2954,11 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
 #ifdef JS_SANDBOX_CET
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedOffsets)));
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
-    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcCount)));
+    push(copyStackTop);
+    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
 #endif
 
     // Save needed values onto stack temporarily.
@@ -2972,15 +2980,23 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     pop(jitcodeReg);
 
 #ifdef JS_SANDBOX_CET
-    Register numFrames = enterRegs.takeAny();
+    Register savedPcCount = enterRegs.takeAny();
     Register savedPcArr = enterRegs.takeAny();
+    Register savedOffArr = enterRegs.takeAny();
+    Register savedStack = enterRegs.takeAny();
 
+    // readShadowStack(r11);
+    // breakpoint();
+    pop(savedStack);
+    
+    pop(savedPcCount);
     // TODO(JS_SANDBOX_CET): figure out how many frames to pop
-    pop(numFrames);
-    incShadowStack(numFrames);
+    // I'm not sure why, but it seems like we dont need to pop any frames?
+    // incShadowStack(numFrames);
 
     // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
     pop(savedPcArr);
+    pop(savedOffArr);
 
     // Back up jitcodeReg
     push(jitcodeReg);
@@ -2993,15 +3009,18 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     // (3) ABI function returns entrypoint of generated JIT stub
     // (4) Call (actually jump) into generated JIT stub, now we setup new shstk
     // (5) Walk stack and replace old retaddrs with new ones
-    using Fn1 = void* (*)(JSContext* cx, int numFrames, uint64_t* savedAddresses);
+    using Fn1 = void* (*)(JSContext* cx, uint64_t savedAddrCount,
+        uint64_t* savedAddresses, uint64_t savedStack, uint64_t* savedOffsets);
     setupUnalignedABICall(temp);
     
     Register context = enterRegs.takeAny();
     loadJSContext(context);
     
     passABIArg(context);
-    passABIArg(numFrames);
+    passABIArg(savedPcCount);
     passABIArg(savedPcArr);
+    passABIArg(savedStack);
+    passABIArg(savedOffArr);
     callWithABI<Fn1, SetupShstkReconstruction>(
         MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
 
