@@ -415,6 +415,12 @@ class BaselineInterpreterHandler {
   // Offsets of IC calls for IsIonInlinableOp ops, for Ion bailouts.
   BaselineInterpreter::ICReturnOffsetVector icReturnOffsets_;
 
+#ifdef JS_SANDBOX_SHSTK
+  // Offsets of IC shadow stack fixups for IsIonInlinableOp ops, for Ion
+  // bailouts.
+  BaselineInterpreter::ICReturnOffsetVector icShstkBailoutOffsets_;
+#endif
+
   // Offsets of some callVMs for BaselineDebugModeOSR.
   BaselineInterpreter::CallVMOffsets callVMOffsets_;
 
@@ -442,6 +448,11 @@ class BaselineInterpreterHandler {
   BaselineInterpreter::ICReturnOffsetVector& icReturnOffsets() {
     return icReturnOffsets_;
   }
+#ifdef JS_SANDBOX_SHSTK
+  BaselineInterpreter::ICReturnOffsetVector& icShstkBailoutOffsets() {
+    return icShstkBailoutOffsets_;
+  }
+#endif
 
   void setCurrentOp(JSOp op) { currentOp_.emplace(op); }
   void resetCurrentOp() { currentOp_.reset(); }
@@ -511,6 +522,8 @@ class BaselineInterpreterGenerator final : private BaselineInterpreterCodeGen {
  private:
   [[nodiscard]] bool emitInterpreterLoop();
   [[nodiscard]] bool emitDebugTrap();
+
+  [[nodiscard]] bool emitICBailout(JSOp op);
 
   void emitOutOfLineCodeCoverageInstrumentation();
 };

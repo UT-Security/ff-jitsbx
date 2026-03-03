@@ -5465,6 +5465,15 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* ptr = (uint8_t*)inst.raw();
     MOZ_ASSERT(*ptr == 0x3D ||  // <CMP> eax, imm32
                *ptr == 0xE8);   // <CALL> rel32
+#ifdef JS_SANDBOX_SW_SHSTK
+    //TODO: deal with LFI_JIT_MEMORY case
+    uint8_t* beginptr = ptr - 0x1b;
+    MOZ_ASSERT((*beginptr == 0xeb && *(beginptr + 1) == 0x28) ||
+               (*beginptr == 0x66 && *(beginptr + 1) == 0x90));
+    *beginptr = enabled ? 0x66 : 0xeb;
+    *(beginptr + 1) = enabled ? 0x90 : 0x28;
+
+#endif
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
     sys_jitcode_modify(ptr, enabled ? 0xE8 : 0x3D, 1, 0);
 #else

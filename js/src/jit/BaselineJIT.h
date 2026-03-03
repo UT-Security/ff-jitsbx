@@ -432,6 +432,11 @@ struct alignas(uintptr_t) BaselineBailoutInfo {
   // The bailout kind.
   mozilla::Maybe<BailoutKind> bailoutKind = {};
 
+#ifdef JS_SANDBOX_SHSTK
+  uint8_t* frameDataTop = nullptr;
+  uint8_t* frameDataBottom = nullptr;
+#endif
+
   BaselineBailoutInfo() = default;
   BaselineBailoutInfo(const BaselineBailoutInfo&) = default;
 
@@ -503,6 +508,12 @@ class BaselineInterpreter {
   // Offsets of IC calls for IsIonInlinableOp ops, for Ion bailouts.
   ICReturnOffsetVector icReturnOffsets_;
 
+#ifdef JS_SANDBOX_SHSTK
+  // Offsets of IC shadow stack fixups for IsIonInlinableOp ops, for Ion
+  // bailouts.
+  ICReturnOffsetVector icShstkBailoutOffsets_;
+#endif
+
   // Offsets of some callVMs for BaselineDebugModeOSR.
   CallVMOffsets callVMOffsets_;
 
@@ -544,6 +555,11 @@ class BaselineInterpreter {
   }
 
   uint8_t* retAddrForIC(JSOp op) const;
+
+#ifdef JS_SANDBOX_SHSTK
+  void setICShstkBailoutOffsets(ICReturnOffsetVector&& icBailoutOffsets);
+  uint8_t* shstkBailoutAddrForIC(JSOp op) const;
+#endif
 
   TrampolinePtr interpretOpAddr() const {
     return TrampolinePtr(codeAtOffset(interpretOpOffset_));

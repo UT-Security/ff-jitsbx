@@ -658,8 +658,14 @@ bool BaselineInterpreterCodeGen::emitNextIC() {
   saveInterpreterPCReg();
   masm.loadPtr(frame.addressOfInterpreterICEntry(), ICStubReg);
   masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
+#ifdef JS_SANDBOX_SHSTK
   masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
+  // this offset is not actually returned to but is directly
+  // jumped to by the shadow stack bailout fixup code. 
   uint32_t returnOffset = masm.currentOffset();
+#else
+  uint32_t returnOffset = masm.call(Address(ICStubReg, ICStub::offsetOfStubCode())).offset;
+#endif
   restoreInterpreterPCReg();
 
   // If this is an IC for a bytecode op where Ion may inline scripts, we need to
@@ -6399,7 +6405,6 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
     return false;
   }
 
-  // TODO(JS_SANDBOX_CFI): confirm what uses this as a indirect jump target.
   masm.cfiIndirectTargetPre();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
   masm.cfiIndirectTargetPost();
@@ -6523,6 +6528,36 @@ MethodStatus BaselineCompiler::emitBody() {
   return Method_Compiled;
 }
 
+bool BaselineInterpreterGenerator::emitICBailout(JSOp op) {
+  MOZ_ASSERT(handler.currentOp() && *handler.currentOp() == op);
+  MOZ_ASSERT(BytecodeOpHasIC(op) && IsIonInlinableOp(op));
+
+#ifdef JS_SANDBOX_SHSTK
+  for (auto& entry : handler.icReturnOffsets()) {
+    if (entry.op == op) {
+      Label icReturn;
+      icReturn.bind(entry.offset);
+
+      masm.cfiIndirectTargetPre();
+      uint32_t shstkOffset = masm.currentOffset();
+      masm.cfiIndirectTargetPost();
+
+      if (!handler.icShstkBailoutOffsets().emplaceBack(shstkOffset, op)) {
+        return false;
+      }
+
+      uint32_t returnOffset = masm.buildBailoutFrame().offset();
+      entry.offset = returnOffset;
+      masm.jump(&icReturn);
+
+      return true;
+    }
+  }
+#endif
+
+  return false;
+}
+
 bool BaselineInterpreterGenerator::emitDebugTrap() {
   CodeOffset offset = masm.nopPatchableToCall();
   if (!debugTrapOffsets_.append(offset.offset())) {
@@ -6619,19 +6654,25 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Emit code for each bytecode op.
   Label opLabels[JSOP_LIMIT];
-#define EMIT_OP(OP, ...)                          \
-  {                                               \
-    AutoCreatedBy acb(masm, "op=" #OP);           \
-    perfSpewer_.recordOffset(masm, JSOp::OP);     \
-    masm.bind(&opLabels[uint8_t(JSOp::OP)]);      \
-    handler.setCurrentOp(JSOp::OP);               \
-    if (!this->emit_##OP()) {                     \
-      return false;                               \
-    }                                             \
-    if (!opEpilogue(JSOp::OP, JSOpLength_##OP)) { \
-      return false;                               \
-    }                                             \
-    handler.resetCurrentOp();                     \
+#define EMIT_OP(OP, ...)                                           \
+  {                                                                \
+    AutoCreatedBy acb(masm, "op=" #OP);                            \
+    perfSpewer_.recordOffset(masm, JSOp::OP);                      \
+    masm.bind(&opLabels[uint8_t(JSOp::OP)]);                       \
+    handler.setCurrentOp(JSOp::OP);                                \
+    if (!this->emit_##OP()) {                                      \
+      return false;                                                \
+    }                                                              \
+    if (!opEpilogue(JSOp::OP, JSOpLength_##OP)) {                  \
+      return false;                                                \
+    }                                                              \
+    if (BytecodeOpHasIC(JSOp::OP) && IsIonInlinableOp(JSOp::OP)) { \
+      if (!this->emitICBailout(JSOp::OP)) {                        \
+        return false;                                              \
+      }                                                            \
+      masm.assumeUnreachable("unexpected fall through");           \
+    }                                                              \
+    handler.resetCurrentOp();                                      \
   }
   FOR_EACH_OPCODE(EMIT_OP)
 #undef EMIT_OP
@@ -6639,19 +6680,25 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point to start interpreting bytecode ops. This is used for
   // things like exception handling and OSR. DebugModeOSR patches JIT frames to
   // return here from the DebugTrapHandler.
-  masm.bind(handler.interpretOpLabel());
+  masm.cfiIndirectTargetPre();
   interpretOpOffset_ = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
+  masm.bind(handler.interpretOpLabel());
   restoreInterpreterPCReg();
   masm.jump(handler.interpretOpWithPCRegLabel());
 
   // Second external entry point: this skips the debug trap for the first op
   // and is used by OSR.
+  masm.cfiIndirectTargetPre();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
 
   // External entry point for Ion prologue bailouts.
+  masm.cfiIndirectTargetPre();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
+  masm.cfiIndirectTargetPost();
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);
 
@@ -6813,6 +6860,10 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
         std::move(handler.debugInstrumentationOffsets()),
         std::move(debugTrapOffsets_), std::move(handler.codeCoverageOffsets()),
         std::move(handler.icReturnOffsets()), handler.callVMOffsets());
+
+#ifdef JS_SANDBOX_SHSTK
+    interpreter.setICShstkBailoutOffsets(std::move(handler.icShstkBailoutOffsets()));
+#endif
   }
 
   if (cx->runtime()->geckoProfiler().enabled()) {

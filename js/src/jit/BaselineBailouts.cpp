@@ -106,6 +106,12 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   size_t bufferUsed_ = 0;
   size_t framePushed_ = 0;
 
+#ifdef JS_SANDBOX_SHSTK
+  size_t frameDataTotal_ = 128;
+  size_t frameDataAvail_ = 0;
+  size_t frameDataUsed_ = 0;
+#endif
+
   UniquePtr<BaselineBailoutInfo> header_;
 
   JSScript* script_;
@@ -143,12 +149,24 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
     if (!bufferRaw) {
       return false;
     }
+#ifdef JS_SANDBOX_SHSTK
+    MOZ_ASSERT(frameDataUsed_ == 0);
+    frameDataAvail_ = frameDataTotal_;
+    bufferAvail_ = bufferTotal_ - frameDataTotal_ - sizeof(BaselineBailoutInfo);
+#else
     bufferAvail_ = bufferTotal_ - sizeof(BaselineBailoutInfo);
+#endif
+
 
     header_.reset(new (bufferRaw) BaselineBailoutInfo());
     header_->incomingStack = reinterpret_cast<uint8_t*>(frame_);
     header_->copyStackTop = bufferRaw + bufferTotal_;
     header_->copyStackBottom = header_->copyStackTop;
+#ifdef JS_SANDBOX_SHSTK
+    header_->frameDataBottom = bufferRaw + sizeof(BaselineBailoutInfo);
+    header_->frameDataTop = header_->frameDataBottom;
+#endif
+
     return true;
   }
 
@@ -205,6 +223,9 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   bool isPrologueBailout();
   jsbytecode* getResumePC();
   void* getStubReturnAddress();
+#ifdef JS_SANDBOX_SHSTK
+  void* getStubShstkAddress();
+#endif
 
   uint32_t exprStackSlots() const { return exprStackSlots_; }
 
@@ -282,8 +303,18 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
     newHeader->copyStackTop = newBufferRaw + newSize;
     newHeader->copyStackBottom = newHeader->copyStackTop - bufferUsed_;
     memcpy(newHeader->copyStackBottom, header_->copyStackBottom, bufferUsed_);
+#ifdef JS_SANDBOX_SHSTK
+    newHeader->frameDataBottom = newBufferRaw + sizeof(BaselineBailoutInfo);
+    newHeader->frameDataTop = newHeader->frameDataBottom + frameDataUsed_;
+    memcpy(newHeader->frameDataBottom, header_->frameDataBottom, frameDataUsed_);
+    bufferTotal_ = newSize;
+    frameDataTotal_ *= 2;
+    bufferAvail_ = newSize - (sizeof(BaselineBailoutInfo) + bufferUsed_ + frameDataTotal_);
+    frameDataAvail_ = frameDataTotal_ - frameDataUsed_;
+#else
     bufferTotal_ = newSize;
     bufferAvail_ = newSize - (sizeof(BaselineBailoutInfo) + bufferUsed_);
+#endif
     header_ = std::move(newHeader);
     return true;
   }
@@ -292,6 +323,44 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
 
   size_t framePushed() const { return framePushed_; }
 
+#ifdef JS_SANDBOX_SHSTK
+  [[nodiscard]] bool add(size_t size) {
+    header_->frameDataTop += size;
+    frameDataAvail_ -= size;
+    frameDataUsed_ += size;
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] bool writeFrameData(const T& t) {
+    // enlarge the buffer if need be.
+    while (sizeof(T) > frameDataAvail_) {
+      if (!enlarge()) {
+        return false;
+      }
+    }
+
+    MOZ_ASSERT(!(uintptr_t(&t) >= uintptr_t(header_->copyStackBottom) &&
+                 uintptr_t(&t) < uintptr_t(header_->copyStackTop)),
+               "Should not reference memory that can be freed");
+
+    memcpy(header_->frameDataTop, &t, sizeof(T));
+    if (!add(sizeof(T))) {
+      return false;
+    }
+
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] bool writeFrameDataPtr(T* t) {
+    if (!writeFrameData<T*>(t)) {
+      return false;
+    }
+    return true;
+  }
+#endif
+  
   [[nodiscard]] bool subtract(size_t size, const char* info = nullptr) {
     // enlarge the buffer if need be.
     while (size > bufferAvail_) {
@@ -874,6 +943,15 @@ bool BaselineStackBuilder::finishOuterFrame() {
     return false;
   }
 
+#ifdef JS_SANDBOX_SHSTK
+  void* frameLimit = virtualPointerAtStackOffset(0);
+  uint8_t* shstkAddr = baselineInterp.shstkBailoutAddrForIC(op_);
+
+  if (!writeFrameDataPtr(shstkAddr) || !writeFrameDataPtr(frameLimit)) {
+    return false;
+  }
+#endif
+
   uint8_t* retAddr = baselineInterp.retAddrForIC(op_);
   return writePtr(retAddr, "ReturnAddr");
 }
@@ -1026,6 +1104,16 @@ bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
   }
 
   // Push return address into ICCall_Scripted stub, immediately after the call.
+#ifdef JS_SANDBOX_SHSTK
+  void* frameLimit = virtualPointerAtStackOffset(0);
+  void* shstkAddr = getStubShstkAddress();
+  MOZ_ASSERT(shstkAddr);
+
+  if (!writeFrameDataPtr(shstkAddr) || !writeFrameDataPtr(frameLimit)) {
+    return false;
+  }
+#endif
+
   void* baselineCallReturnAddr = getStubReturnAddress();
   MOZ_ASSERT(baselineCallReturnAddr);
   if (!writePtr(baselineCallReturnAddr, "ReturnAddr")) {
@@ -1128,6 +1216,16 @@ bool BaselineStackBuilder::buildRectifierFrame(uint32_t actualArgc,
 
   // Push return address into the ArgumentsRectifier code, immediately after the
   // ioncode call.
+#ifdef JS_SANDBOX_SHSTK
+  void* frameLimit = virtualPointerAtStackOffset(0);
+  void* shstkAddr =
+      cx_->runtime()->jitRuntime()->getArgumentsRectifierShstkAddr().value;
+
+  if (!writeFrameDataPtr(shstkAddr) || !writeFrameDataPtr(frameLimit)) {
+    return false;
+  }
+#endif
+
   void* rectReturnAddr =
       cx_->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr().value;
   MOZ_ASSERT(rectReturnAddr);
@@ -1170,6 +1268,13 @@ bool BaselineStackBuilder::finishLastFrame() {
   }
   setResumeAddr(resumeAddr);
   JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
+
+#ifdef JS_SANDBOX_SHSTK
+  uint8_t* shstkAddr = cx_->runtime()->jitRuntime()->getBailoutTailStackCopy().value;
+  if (!writeFrameDataPtr(shstkAddr)) {
+    return false;
+  }
+#endif
 
   if (cx_->runtime()->geckoProfiler().enabled()) {
     // Register bailout with profiler.
@@ -1308,6 +1413,30 @@ void* BaselineStackBuilder::getStubReturnAddress() {
   }
   return code.bailoutReturnAddr(BailoutReturnKind::Call);
 }
+
+#ifdef JS_SANDBOX_SHSTK
+void* BaselineStackBuilder::getStubShstkAddress() {
+  const BaselineICFallbackCode& code =
+      cx_->runtime()->jitRuntime()->baselineICFallbackCode();
+
+  if (IsGetPropOp(op_)) {
+    return code.bailoutShstkAddr(BailoutReturnKind::GetProp);
+  }
+  if (IsSetPropOp(op_)) {
+    return code.bailoutShstkAddr(BailoutReturnKind::SetProp);
+  }
+  if (IsGetElemOp(op_)) {
+    return code.bailoutShstkAddr(BailoutReturnKind::GetElem);
+  }
+
+  // This should be a call op of some kind, now.
+  MOZ_ASSERT(IsInvokeOp(op_) && !IsSpreadOp(op_));
+  if (IsConstructOp(op_)) {
+    return code.bailoutShstkAddr(BailoutReturnKind::New);
+  }
+  return code.bailoutShstkAddr(BailoutReturnKind::Call);
+}
+#endif
 
 static inline jsbytecode* GetNextNonLoopHeadPc(jsbytecode* pc) {
   JSOp op = JSOp(*pc);

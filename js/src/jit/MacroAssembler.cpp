@@ -2888,8 +2888,9 @@ void MacroAssembler::guardStringToInt32(Register str, Register output,
   bind(&done);
 }
 
-void MacroAssembler::generateBailoutTail(Register scratch,
+uint32_t MacroAssembler::generateBailoutTail(Register scratch,
                                          Register bailoutInfo) {
+  uint32_t stackCopyOffset;
   Label bailoutFailed;
   branchIfFalseBool(ReturnReg, &bailoutFailed);
 
@@ -2914,12 +2915,44 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     bind(&ok);
 #endif
 
+#ifdef JS_SANDBOX_SHSTK
+    loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackTop)),
+            ShstkFrameCopyCurReg);
+    loadPtr(
+        Address(bailoutInfo, offsetof(BaselineBailoutInfo, frameDataBottom)),
+        ShstkFrameDataReg);
+
+    loadPtr(Address(ShstkFrameDataReg, 0), ShstkFrameNextReg);
+    jump(ShstkFrameNextReg);
+    
+    assumeUnreachable("Unexpected fallthrough");
+    cfiIndirectTargetPre();
+    stackCopyOffset = masm.currentOffset();
+    cfiIndirectTargetPost();
+    
+    loadPtr(
+        Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackBottom)),
+        ShstkFrameCopyEndReg);
+    {
+      Label copyLoop;
+      Label endOfCopy;
+      bind(&copyLoop);
+      branchPtr(Assembler::BelowOrEqual, ShstkFrameCopyCurReg, ShstkFrameCopyEndReg, &endOfCopy);
+      subPtr(Imm32(sizeof(uintptr_t)), ShstkFrameCopyCurReg);
+      subFromStackPtr(Imm32(sizeof(uintptr_t)));
+      loadPtr(Address(ShstkFrameCopyCurReg, 0), ShstkScratchReg);
+      storePtr(ShstkScratchReg, Address(getStackPointer(), 0));
+      jump(&copyLoop);
+      bind(&endOfCopy);
+    }
+#else
     Register copyCur = regs.takeAny();
     Register copyEnd = regs.takeAny();
 
     // Copy data onto stack.
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackTop)),
             copyCur);
+    stackCopyOffset = masm.currentOffset();
     loadPtr(
         Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyStackBottom)),
         copyEnd);
@@ -2935,6 +2968,7 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       jump(&copyLoop);
       bind(&endOfCopy);
     }
+#endif
 
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
             FramePointer);
@@ -2981,7 +3015,36 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     enterFakeExitFrame(scratch, scratch, ExitFrameType::UnwoundJit);
     jump(exceptionLabel());
   }
+
+  return stackCopyOffset;
 }
+
+#ifdef JS_SANDBOX_SHSTK
+CodeOffset MacroAssembler::buildBailoutFrame() {
+    loadPtr(Address(ShstkFrameDataReg, 8), ShstkFrameCopyEndReg);
+    {
+      Label copyLoop;
+      Label endOfCopy;
+      bind(&copyLoop);
+      branchPtr(Assembler::BelowOrEqual, StackPointer, ShstkFrameCopyEndReg, &endOfCopy);
+      subPtr(Imm32(sizeof(uintptr_t)), ShstkFrameCopyCurReg);
+      subFromStackPtr(Imm32(sizeof(uintptr_t)));
+      loadPtr(Address(ShstkFrameCopyCurReg, 0), ShstkScratchReg);
+      storePtr(ShstkScratchReg, Address(getStackPointer(), 0));
+      jump(&copyLoop);
+      bind(&endOfCopy);
+    }
+
+    // Move to next frame's data.
+    addPtr(Imm32(16), ShstkFrameDataReg);
+    // Skip return address that will be "copied" by the below call.
+    subPtr(Imm32(sizeof(uintptr_t)), ShstkFrameCopyCurReg);
+    // Load the frame's call address.
+    loadPtr(Address(ShstkFrameDataReg, 0), ShstkFrameNextReg);
+    // call and "copy" the return address onto both the regular and shadow stack.
+    return call(ShstkFrameNextReg).second;
+}
+#endif
 
 void MacroAssembler::loadJitCodeRaw(Register func, Register dest) {
   static_assert(BaseScript::offsetOfJitCodeRaw() ==

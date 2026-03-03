@@ -613,12 +613,21 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   masm.push(rax);  // callee token
   masm.pushFrameDescriptorForJitCall(FrameType::Rectifier, rdx, rdx);
 
+#ifdef JS_SANDBOX_SHSTK
+  uint32_t returnOffset = 0;
+#endif
+  
   // Call the target function.
   masm.andq(Imm32(uint32_t(CalleeTokenMask)), rax);
   switch (kind) {
     case ArgumentsRectifierKind::Normal:
       masm.loadJitCodeRaw(rax, rax);
+#ifdef JS_SANDBOX_SHSTK
+      masm.callJitNoProfiler(rax);
+      returnOffset = masm.currentOffset();
+#else
       argumentsRectifierReturnOffset_ = masm.callJitNoProfiler(rax).second;
+#endif
       break;
     case ArgumentsRectifierKind::TrialInlining:
       Label noBaselineScript, done;
@@ -637,6 +646,22 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   masm.mov(FramePointer, StackPointer);
   masm.pop(FramePointer);
   masm.ret();
+
+#ifdef JS_SANDBOX_SHSTK
+  if (kind == ArgumentsRectifierKind::Normal) {
+    masm.assumeUnreachable("Unexpected fallthrough");
+    Label afterCall;
+    afterCall.bind(returnOffset);
+    masm.cfiIndirectTargetPre();
+    argumentsRectifierShstkOffset_ = masm.currentOffset();
+    masm.cfiIndirectTargetPost();
+
+    argumentsRectifierReturnOffset_ = masm.buildBailoutFrame().offset();
+
+    masm.jump(&afterCall);
+    masm.assumeUnreachable("Unexpected fallthrough");
+  }
+#endif
 }
 
 static void PushBailoutFrame(MacroAssembler& masm, Register spArg) {
@@ -913,5 +938,5 @@ void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
 
   masm.bind(bailoutTail);
-  masm.generateBailoutTail(rdx, r9);
+  bailoutTailStackCopyOffset_ = masm.generateBailoutTail(rdx, r9);
 }

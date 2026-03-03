@@ -88,6 +88,10 @@ class BaselineICFallbackCode {
                                uint32_t>;
   BailoutReturnArray bailoutReturnOffsets_ = {};
 
+#ifdef JS_SANDBOX_SHSTK
+  BailoutReturnArray bailoutShstkOffsets_ = {};
+#endif
+
  public:
   BaselineICFallbackCode() = default;
   BaselineICFallbackCode(const BaselineICFallbackCode&) = delete;
@@ -100,12 +104,22 @@ class BaselineICFallbackCode {
   void initBailoutReturnOffset(BailoutReturnKind kind, uint32_t offset) {
     bailoutReturnOffsets_[kind] = offset;
   }
+#ifdef JS_SANDBOX_SHSTK
+  void initBailoutShstkOffset(BailoutReturnKind kind, uint32_t offset) {
+    bailoutShstkOffsets_[kind] = offset;
+  }
+#endif
   TrampolinePtr addr(BaselineICFallbackKind kind) const {
     return TrampolinePtr(code_->raw() + offsets_[kind]);
   }
   uint8_t* bailoutReturnAddr(BailoutReturnKind kind) const {
     return code_->raw() + bailoutReturnOffsets_[kind];
   }
+#ifdef JS_SANDBOX_SHSTK
+  uint8_t* bailoutShstkAddr(BailoutReturnKind kind) const {
+    return code_->raw() + bailoutShstkOffsets_[kind];
+  }
+#endif
 };
 
 enum class ArgumentsRectifierKind { Normal, TrialInlining };
@@ -140,12 +154,17 @@ class JitRuntime {
   // Generic bailout table; used if the bailout table overflows.
   WriteOnceData<uint32_t> bailoutHandlerOffset_{0};
 
+  WriteOnceData<uint32_t> bailoutTailStackCopyOffset_{0};
+
   // Argument-rectifying thunks, in the case of insufficient arguments passed
   // to a function call site. The return offset is used to rebuild stack frames
   // when bailing out.
   WriteOnceData<uint32_t> argumentsRectifierOffset_{0};
   WriteOnceData<uint32_t> trialInliningArgumentsRectifierOffset_{0};
   WriteOnceData<uint32_t> argumentsRectifierReturnOffset_{0};
+#ifdef JS_SANDBOX_SHSTK
+  WriteOnceData<uint32_t> argumentsRectifierShstkOffset_{0};
+#endif
 
   // Thunk that invalides an (Ion compiled) caller on the Ion stack.
   WriteOnceData<uint32_t> invalidatorOffset_{0};
@@ -322,6 +341,10 @@ class JitRuntime {
     return trampolineCode(bailoutHandlerOffset_);
   }
 
+  TrampolinePtr getBailoutTailStackCopy() const {
+    return trampolineCode(bailoutTailStackCopyOffset_);
+  }
+  
   TrampolinePtr getExceptionTail() const {
     return trampolineCode(exceptionTailOffset_);
   }
@@ -343,6 +366,12 @@ class JitRuntime {
   TrampolinePtr getArgumentsRectifierReturnAddr() const {
     return trampolineCode(argumentsRectifierReturnOffset_);
   }
+
+#ifdef JS_SANDBOX_SHSTK
+  TrampolinePtr getArgumentsRectifierShstkAddr() const {
+    return trampolineCode(argumentsRectifierShstkOffset_);
+  }
+#endif
 
   TrampolinePtr getInvalidationThunk() const {
     return trampolineCode(invalidatorOffset_);

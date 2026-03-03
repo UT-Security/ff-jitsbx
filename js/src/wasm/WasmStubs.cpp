@@ -725,7 +725,9 @@ static bool GenerateInterpEntry(MacroAssembler& masm, const FuncExport& fe,
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
 
+  masm.cfiIndirectTargetPre();
   offsets->begin = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
 
   // Save the return address if it wasn't already saved by the call insn.
 #ifdef JS_USE_LINK_REGISTER

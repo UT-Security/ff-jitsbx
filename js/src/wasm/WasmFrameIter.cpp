@@ -870,7 +870,9 @@ void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
     masm.Str(ARMRegister(lr, 64), MemOperand(sp, 8));
 #else
     // The x86/x64 call instruction pushes the return address.
+    masm.cfiIndirectTargetPre();
     offsets->begin = masm.currentOffset();
+    masm.cfiIndirectTargetPost();
 #endif
     MOZ_ASSERT_IF(!masm.oom(),
                   PushedRetAddr == masm.currentOffset() - offsets->begin);

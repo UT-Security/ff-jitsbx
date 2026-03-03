@@ -5303,7 +5303,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
  public:
   // Generates code used to complete a bailout.
-  void generateBailoutTail(Register scratch, Register bailoutInfo);
+  uint32_t generateBailoutTail(Register scratch, Register bailoutInfo);
+#ifdef JS_SANDBOX_SHSTK
+  CodeOffset buildBailoutFrame();
+#endif
 
  public:
 #ifndef JS_CODEGEN_ARM64

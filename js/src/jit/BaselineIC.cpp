@@ -738,6 +738,22 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
     }
   }
 
+#ifdef JS_SANDBOX_SHSTK
+  masm.assumeUnreachable("Unexpected fallthrough");
+  masm.cfiIndirectTargetPre();
+  uint32_t shstkOffset = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
+  uint32_t returnOffset = masm.buildBailoutFrame().offset();
+
+  assumeStubFrame();
+  if (hasReceiver) {
+    code.initBailoutShstkOffset(BailoutReturnKind::GetElemSuper, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::GetElemSuper, returnOffset);
+  } else {
+    code.initBailoutShstkOffset(BailoutReturnKind::GetElem, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::GetElem, returnOffset);
+  }
+#else
   // This is the resume point used when bailout rewrites call stack to undo
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
@@ -749,7 +765,7 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetElem,
                                  masm.currentOffset());
   }
-
+#endif
   leaveStubFrame(masm);
 
   EmitReturnFromIC(masm);
@@ -1310,6 +1326,22 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
     }
   }
 
+#ifdef JS_SANDBOX_SHSTK
+  masm.assumeUnreachable("Unexpected fallthrough");
+  masm.cfiIndirectTargetPre();
+  uint32_t shstkOffset = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
+  uint32_t returnOffset = masm.buildBailoutFrame().offset();
+  
+  assumeStubFrame();
+  if (hasReceiver) {
+    code.initBailoutShstkOffset(BailoutReturnKind::GetPropSuper, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::GetPropSuper, returnOffset);
+  } else {
+    code.initBailoutShstkOffset(BailoutReturnKind::GetProp, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::GetProp, returnOffset);
+  }
+#else
   // This is the resume point used when bailout rewrites call stack to undo
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
@@ -1321,6 +1353,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetProp,
                                  masm.currentOffset());
   }
+#endif
 
   leaveStubFrame(masm);
 
@@ -1511,12 +1544,24 @@ bool FallbackICCodeCompiler::emit_SetProp() {
     return false;
   }
 
+#ifdef JS_SANDBOX_SHSTK
+  masm.assumeUnreachable("Unexpected fallthrough");
+  masm.cfiIndirectTargetPre();
+  uint32_t shstkOffset = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
+  uint32_t returnOffset = masm.buildBailoutFrame().offset();
+
+  assumeStubFrame();
+  code.initBailoutShstkOffset(BailoutReturnKind::SetProp, shstkOffset);
+  code.initBailoutReturnOffset(BailoutReturnKind::SetProp, returnOffset);
+#else
   // This is the resume point used when bailout rewrites call stack to undo
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
   code.initBailoutReturnOffset(BailoutReturnKind::SetProp,
                                masm.currentOffset());
+#endif
 
   leaveStubFrame(masm);
   EmitReturnFromIC(masm);
@@ -1804,6 +1849,25 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   leaveStubFrame(masm);
   EmitReturnFromIC(masm);
 
+#ifdef JS_SANDBOX_SHSTK
+  masm.assumeUnreachable("Unexpected fallthrough");
+  masm.cfiIndirectTargetPre();
+  uint32_t shstkOffset = masm.currentOffset();
+  masm.cfiIndirectTargetPost();
+  uint32_t returnOffset = masm.buildBailoutFrame().offset();
+
+  assumeStubFrame();
+  
+  MOZ_ASSERT(!isSpread);
+
+  if (isConstructing) {
+    code.initBailoutShstkOffset(BailoutReturnKind::New, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::New, returnOffset);
+  } else {
+    code.initBailoutShstkOffset(BailoutReturnKind::Call, shstkOffset);
+    code.initBailoutReturnOffset(BailoutReturnKind::Call, returnOffset);
+  }
+#else
   // This is the resume point used when bailout rewrites call stack to undo
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
@@ -1816,6 +1880,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   } else {
     code.initBailoutReturnOffset(BailoutReturnKind::Call, masm.currentOffset());
   }
+#endif
 
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
   // before we leave the stub frame since that info will be lost.
@@ -1834,10 +1899,10 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 
     masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
     masm.moveValue(R1, R0);
-#ifdef DEBUG
+#  ifdef DEBUG
     masm.branchTestObject(Assembler::Equal, JSReturnOperand, &skipThisReplace);
     masm.assumeUnreachable("Failed to return object in constructing call.");
-#endif
+#  endif
     masm.bind(&skipThisReplace);
   }
 
@@ -2511,19 +2576,19 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
 
   JitSpew(JitSpew_Codegen, "# Emitting Baseline IC fallback code");
 
-#define EMIT_CODE(kind)                                            \
-  {                                                                \
-    AutoCreatedBy acb(masm, "kind=" #kind);                        \
-    uint32_t offset = startTrampolineCode(masm);                   \
-    InitMacroAssemblerForICStub(masm);                             \
-    if (!compiler.emit_##kind()) {                                 \
-      return false;                                                \
-    }                                                              \
-    fallbackCode.initOffset(BaselineICFallbackKind::kind, offset); \
-    rangeRecorder.recordOffset("BaselineICFallback: " #kind);      \
-  }
+#  define EMIT_CODE(kind)                                            \
+    {                                                                \
+      AutoCreatedBy acb(masm, "kind=" #kind);                        \
+      uint32_t offset = startTrampolineCode(masm);                   \
+      InitMacroAssemblerForICStub(masm);                             \
+      if (!compiler.emit_##kind()) {                                 \
+        return false;                                                \
+      }                                                              \
+      fallbackCode.initOffset(BaselineICFallbackKind::kind, offset); \
+      rangeRecorder.recordOffset("BaselineICFallback: " #kind);      \
+    }
   IC_BASELINE_FALLBACK_CODE_KIND_LIST(EMIT_CODE)
-#undef EMIT_CODE
+#  undef EMIT_CODE
 
   Linker linker(masm);
   JitCode* code = linker.newCode(cx, CodeKind::Other);
@@ -2533,9 +2598,9 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
 
   rangeRecorder.collectRangesForJitCode(code);
 
-#ifdef MOZ_VTUNE
+#  ifdef MOZ_VTUNE
   vtune::MarkStub(code, "BaselineICFallback");
-#endif
+#  endif
 
   fallbackCode.initCode(code);
   return true;

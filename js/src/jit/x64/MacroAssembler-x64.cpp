@@ -607,6 +607,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // Used in debug mode and for GeneratorReturn.
   Label profilingInstrumentation;
   bind(&returnBaseline);
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()),
@@ -617,6 +620,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   bind(&returnIon);
   loadValue(Address(rsp, ResumeFromException::offsetOfException()),
             JSReturnOperand);
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
 
@@ -642,6 +648,9 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
+#ifdef JS_SANDBOX_SHSTK
+  asMasm().unwindShstk(Operand(rsp, ResumeFromException::offsetOfFrameDepth()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   move32(Imm32(1), ReturnReg);
   jump(bailoutTail);

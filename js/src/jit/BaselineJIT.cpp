@@ -1034,6 +1034,21 @@ uint8_t* BaselineInterpreter::retAddrForIC(JSOp op) const {
   MOZ_CRASH("Unexpected op");
 }
 
+#ifdef JS_SANDBOX_SHSTK
+void BaselineInterpreter::setICShstkBailoutOffsets(ICReturnOffsetVector&& icShstkBailoutOffsets) {
+  icShstkBailoutOffsets_ = std::move(icShstkBailoutOffsets);  
+}
+
+uint8_t* BaselineInterpreter::shstkBailoutAddrForIC(JSOp op) const {
+  for (const ICReturnOffset& entry : icShstkBailoutOffsets_) {
+    if (entry.op == op) {
+      return codeAtOffset(entry.offset);
+    }
+  }
+  MOZ_CRASH("Unexpected op");
+}
+#endif
+
 bool jit::GenerateBaselineInterpreter(JSContext* cx,
                                       BaselineInterpreter& interpreter) {
   if (IsBaselineInterpreterEnabled()) {

@@ -194,6 +194,14 @@ static constexpr Register SandboxMaskReg = r15;
 static constexpr Register SandboxScratchReg = r11;
 #endif
 
+#ifdef JS_SANDBOX_SHSTK
+static constexpr Register ShstkFrameDataReg = CallTempReg0;
+static constexpr Register ShstkFrameCopyCurReg = CallTempReg1;
+static constexpr Register ShstkFrameCopyEndReg = CallTempReg2;
+static constexpr Register ShstkFrameNextReg = CallTempReg3; 
+static constexpr Register ShstkScratchReg = CallTempReg4;
+#endif
+
 class ABIArgGenerator {
 #if defined(XP_WIN)
   unsigned regIndex_;
@@ -1372,10 +1380,45 @@ class Assembler : public AssemblerX86Shared {
   // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
+#ifdef JS_SANDBOX_SW_SHSTK
+    Label skip;
+    uint32_t startOffset = currentOffset();
+    skip.bind(startOffset + 0x2a);
+    jmp(&skip);  // 0xeb 0x28
+
+    // Switch to shadow call stack.
+    mov(StackPointer, Operand(r15, 24, true));
+    mov(Operand(r15, 16), StackPointer);
+
+    // Load and push return address.
+    CodeOffset returnPatch;
+    returnPatch = leaRipRelative(SandboxScratchReg);
+    push(SandboxScratchReg);
+
+    // Switch back to real stack before call.
+    movq(StackPointer, Operand(r15, 16, true));
+    movq(Operand(r15, 24), StackPointer);
+#endif
     CodeOffset offset(size());
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
     MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
+#ifdef JS_SANDBOX_SW_SHSTK
+    CodeOffset returnOffset = CodeOffset(currentOffset());
+    patchRetAddr(returnPatch, returnOffset);
+
+    // Switch back to real stack after return.
+    movq(StackPointer, Operand(r15, 16, true));
+    movq(Operand(r15, 24), StackPointer);
+
+    // Discard pushed return address from real stack.
+    pop(SandboxScratchReg);
+
+    uint32_t endOffset = currentOffset();
+
+    MOZ_ASSERT_IF(!oom(), offset.offset() - startOffset == 0x1b);
+    MOZ_ASSERT_IF(!oom(), endOffset - startOffset == 0x2a);
+#endif
     return offset;
   }
 
