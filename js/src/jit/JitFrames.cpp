@@ -798,13 +798,11 @@ void HandleException(ResumeFromException* rfe) {
     }
 
 #ifdef JS_SANDBOX_SHSTK
-    if (!frame.isExitFrame()) {
-      rfe->frameDepth += 1;
-    }
-    
-    if(frame.isExitFrame() && (frame.exitFrame()->isInterpreterStubExit() ||
+    if (!frame.isExitFrame() ||
+        (frame.isExitFrame() && (frame.exitFrame()->isUnwoundJitExit() ||
+                                 frame.exitFrame()->isInterpreterStubExit() ||
                                  frame.exitFrame()->isLazyLinkExit() ||
-                                 frame.exitFrame()->isWrapperExit())) {
+                                 frame.exitFrame()->isWrapperExit()))) {
       rfe->frameDepth += 1;
     }
 #endif
