@@ -1383,8 +1383,8 @@ class Assembler : public AssemblerX86Shared {
 #ifdef JS_SANDBOX_SW_SHSTK
     Label skip;
     uint32_t startOffset = currentOffset();
-    skip.bind(startOffset + 0x2a);
-    jmp(&skip);  // 0xeb 0x28
+    skip.bind(startOffset + 0x29);
+    jmp(&skip);  // 0xeb 0x27
 
     // Switch to shadow call stack.
     mov(StackPointer, Operand(r15, 24, true));
@@ -1409,7 +1409,7 @@ class Assembler : public AssemblerX86Shared {
 
     // Switch back to real stack after return.
     movq(StackPointer, Operand(r15, 16, true));
-    movq(Operand(r15, 24), StackPointer);
+    movq(SandboxScratchReg, StackPointer);
 
     // Discard pushed return address from real stack.
     pop(SandboxScratchReg);
@@ -1417,7 +1417,7 @@ class Assembler : public AssemblerX86Shared {
     uint32_t endOffset = currentOffset();
 
     MOZ_ASSERT_IF(!oom(), offset.offset() - startOffset == 0x1b);
-    MOZ_ASSERT_IF(!oom(), endOffset - startOffset == 0x2a);
+    MOZ_ASSERT_IF(!oom(), endOffset - startOffset == 0x29);
 #endif
     return offset;
   }

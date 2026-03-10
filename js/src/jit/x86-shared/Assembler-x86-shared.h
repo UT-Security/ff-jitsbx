@@ -1427,7 +1427,7 @@ class AssemblerX86Shared : public AssemblerShared {
   static void patchFiveByteNopToCall(uint8_t* callsite, uint8_t* target) {
 #ifdef JS_SANDBOX_SW_SHSTK
     uint8_t* startsite = callsite - 0x20;
-    MOZ_ASSERT(*startsite == 0xeb && *(startsite + 1) == 0x28);
+    MOZ_ASSERT(*startsite == 0xeb && *(startsite + 1) == 0x27);
     *startsite = 0x66;
     *(startsite + 1) = 0x90;
 #endif
@@ -1438,7 +1438,7 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* startsite = callsite - 0x20;
     MOZ_ASSERT(*startsite == 0x66 && *(startsite + 1) == 0x90);
     *startsite = 0xeb;
-    *(startsite + 1) = 0x28;
+    *(startsite + 1) = 0x27;
 #endif
     X86Encoding::BaseAssembler::patchCallToFiveByteNop(callsite);
   }
@@ -5468,10 +5468,10 @@ class AssemblerX86Shared : public AssemblerShared {
 #ifdef JS_SANDBOX_SW_SHSTK
     //TODO: deal with LFI_JIT_MEMORY case
     uint8_t* beginptr = ptr - 0x1b;
-    MOZ_ASSERT((*beginptr == 0xeb && *(beginptr + 1) == 0x28) ||
+    MOZ_ASSERT((*beginptr == 0xeb && *(beginptr + 1) == 0x27) ||
                (*beginptr == 0x66 && *(beginptr + 1) == 0x90));
     *beginptr = enabled ? 0x66 : 0xeb;
-    *(beginptr + 1) = enabled ? 0x90 : 0x28;
+    *(beginptr + 1) = enabled ? 0x90 : 0x27;
 
 #endif
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
