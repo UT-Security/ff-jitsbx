@@ -955,9 +955,9 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::callWithPatch() {
 #endif
 
   CodeOffset retOffset = Assembler::callWithPatch();
-  patchRetAddr(returnPatch, retOffset);
 
 #ifdef JS_SANDBOX_SW_SHSTK
+  patchRetAddr(returnPatch, retOffset);
   // Switch back to real stack after return.
   movq(StackPointer, Operand(r15, 16, true));
   movq(SandboxScratchReg, StackPointer);

@@ -664,7 +664,7 @@ bool BaselineInterpreterCodeGen::emitNextIC() {
   // jumped to by the shadow stack bailout fixup code. 
   uint32_t returnOffset = masm.currentOffset();
 #else
-  uint32_t returnOffset = masm.call(Address(ICStubReg, ICStub::offsetOfStubCode())).offset;
+  uint32_t returnOffset = masm.call(Address(ICStubReg, ICStub::offsetOfStubCode())).offset();
 #endif
   restoreInterpreterPCReg();
 
