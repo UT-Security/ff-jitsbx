@@ -23,19 +23,12 @@ init_verifier(struct LFIVerifier *v, struct LFIOptions *opts)
     else
         v->opts.box = LFI_BOX_FULL;
 
-#ifdef CTXREG
-    v->opts.ctxreg = true;
-#endif
     v->opts.err = logerr;
 
 #if defined(LFI_ARCH_ARM64)
     v->verify = lfiv_verify_arm64;
 #elif defined(LFI_ARCH_X64)
-#ifdef LARGE_SANDBOX
     v->verify = NULL;
-#else
-    v->verify = lfiv_verify_x64;
-#endif
 #elif defined(LFI_ARCH_RISCV64)
     v->verify = lfiv_verify_riscv64;
 #else

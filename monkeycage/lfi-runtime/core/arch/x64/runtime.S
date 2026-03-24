@@ -257,6 +257,42 @@ lfi_set_tp:
 #endif
     jmpq *%r11
 
+#ifdef CTXREG
+
+// SCS unwind: pop n entries from the shadow call stack.
+// Input: %edi = number of entries to unwind.
+.global lfi_scs_unwind
+.p2align 4
+lfi_scs_unwind:
+    // Software shadow call stack: add n*8 to SCS pointer, clamped to limit.
+    movq %rsp, 24(%r15)
+    movq (%r15), %rsp
+    movq REGS_HOST_SP(%rsp), %rsp
+
+    pushq %rax
+    pushq %rcx
+
+    // Compute new SCS pointer
+    movl %edi, %eax
+    shlq $3, %rax
+    movq 16(%r15), %rcx
+    addq %rax, %rcx
+
+    // Bounds check: clamp to scs_limit
+    movq (%r15), %rax
+    cmpq CTX_SCS_LIMIT(%rax), %rcx
+    jbe .Lscs_unwind_ok
+    movq CTX_SCS_LIMIT(%rax), %rcx
+.Lscs_unwind_ok:
+    movq %rcx, 16(%r15)
+
+    popq %rcx
+    popq %rax
+    movq 24(%r15), %rsp
+    jmpq *%r11
+
+#endif
+
 #ifndef __APPLE__
 .section .note.GNU-stack,"",@progbits
 #endif

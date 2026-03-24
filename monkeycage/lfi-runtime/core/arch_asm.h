@@ -118,6 +118,14 @@
 #define CTX_LAST_CALLBACK_KEY 464
 #endif
 
+#ifdef CTXREG
+#ifdef CTX_LAST_CALLBACK_KEY
+#define CTX_SCS_LIMIT 544
+#else
+#define CTX_SCS_LIMIT 536
+#endif
+#endif
+
 // clang-format off
 #ifdef __ASSEMBLER__
 #ifdef CTXREG

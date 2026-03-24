@@ -5,7 +5,7 @@
 #ifdef LARGE_SANDBOX
 #define MAXCALLBACKS 40960
 #else
-#define MAXCALLBACKS 4096
+#define MAXCALLBACKS 40960
 #endif
 
 #ifndef LAST_CALLBACK_KEY

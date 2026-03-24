@@ -34,7 +34,7 @@ elif CONFIG["JS_SANDBOX_DYLIB"]:
         "./dylib/embed/lib.h"
     ]
 elif CONFIG["JS_SANDBOX_LFI"]:
-    LIBRARY_DEFINES["ENABLE_TLS_EXEC"] = True
+    LIBRARY_DEFINES["ENABLE_TLS_DESC"] = True
 
     SOURCES += [
         "./lfilib/lib_init.c",

@@ -87,6 +87,15 @@ struct LFIContext {
     // LFIContext, and remaining slots are available for thread-local data
     // (e.g., thread pointer).
     uint64_t ctxreg[8];
+
+    // Base pointer for the shadow call stack mapping (includes guard pages).
+    void* scs_base;
+
+    // Upper bound for the SCS pointer.
+    void* scs_limit;
+
+    // Total size of the SCS mapping (guard + stack + guard).
+    size_t scs_total;
 #endif
 
     // User-provided data pointer -- tracks per-sandbox context for Linux

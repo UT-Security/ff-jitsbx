@@ -215,29 +215,31 @@ lfi_trampoline_direct:
 # endif
 #endif
 
+#ifdef CTXREG
+    // load ctxreg
+    movq REGS_R15(%r11), %r15
+#endif
+
 #ifdef LARGE_SANDBOX
     // load sandbox mask
     movq REGS_MASK(%r11), %REG_MASK
 #endif
 
-    // load address of the lfi_retfn function that will make the return rtcall
-    movq REGS_RETADDR(%r11), %r11
     // align stack
     andq $0xfffffffffffffff0, %rsp
-    // push this as the return address onto the sandbox stack
+
+    // load return address onto the shadow stack
+    movq %rsp, 24(%r15)
+    movq 16(%r15), %rsp
+    leaq 1f(%rip), %r11
     pushq %r11
+    movq %rsp, 16(%r15)
+    movq 24(%r15), %rsp
 
     // load address of the target function
     movq %r12, %r11
-    // apply mask just to be safe
-#ifdef LARGE_SANDBOX
-    andq %r15, %r11
-    andq $0xffffffffffffffe0, %r11
-#else
-    andl $0xffffffe0, %r11d
-#endif
-    addq %REG_BASE, %r11
 
+#ifndef CTXREG
     // set the sandbox thread control block by saving the old value of
     // %fs:TLS_SLOT_LFI into the context and setting it to point to the context
     // itself
@@ -245,6 +247,7 @@ lfi_trampoline_direct:
     movq (%r13), %r13
     movq %r12, REGS_HOST_TP(%r13)
     write_ctx %r13
+#endif
 
 #ifndef STORES_ONLY
     fldcw REGS_FCW(%r13)
@@ -264,9 +267,39 @@ lfi_trampoline_direct:
     zero_regs
 #endif
 
-    // this function should return via a runtime call
-    jmpq *%r11
-    int3
+    callq *%r11
+.global lfi_trampoline_ret
+lfi_trampoline_ret:
+1:
+    movq %rsp, 16(%r15)
+    movq %r11, %rsp
+    popq %r11
+
+#ifdef HAVE_PKU
+    movq %rax, %rdi
+    pku_all_access
+    movq %rdi, %rax
+#endif
+    get_ctx %rdi
+    // restore host sp
+    movq REGS_HOST_SP(%rdi), %rsp
+#ifndef CTXREG
+    // restore host tp
+    movq REGS_HOST_TP(%rdi), %rbp
+    write_ctx %rbp
+#endif
+    // restore sandbox sp to its initial value
+    popq %rbp
+    movq %rbp, REGS_RSP(%rdi)
+    popq %rbp // pop dummy value
+    // return value should already be in %rax
+    popq %rbp
+    popq %rbx
+    popq %r12
+    popq %r13
+    popq %r14
+    popq %r15
+    ret
 
 // Direct trampoline that doesn't involve a thread-local lookup. Instead the
 // info usually passed via the lfi_invoke_info thread-local are passed via
@@ -318,6 +351,11 @@ lfi_trampoline_stack_args:
 # endif
 #endif
 
+#ifdef CTXREG
+    // load ctxreg
+    movq REGS_R15(%r11), %r15
+#endif
+
 #ifdef LARGE_SANDBOX
     // load sandbox mask
     movq REGS_MASK(%r11), %REG_MASK
@@ -325,8 +363,6 @@ lfi_trampoline_stack_args:
 
     // save application stack pointer to copy arguments below
     movq REGS_HOST_SP(%r11), %r10
-    // load address of the lfi_retfn function that will make the return rtcall
-    movq REGS_RETADDR(%r11), %r11
     // align stack
     andq $0xfffffffffffffff0, %rsp
 
@@ -336,20 +372,18 @@ lfi_trampoline_stack_args:
     pushq 80(%r10)
     pushq 72(%r10)
 
-    // push this as the return address onto the sandbox stack
+    // load return address onto the shadow stack
+    movq %rsp, 24(%r15)
+    movq 16(%r15), %rsp
+    leaq 1f(%rip), %r11
     pushq %r11
+    movq %rsp, 16(%r15)
+    movq 24(%r15), %rsp
 
     // load address of the target function
     movq %r12, %r11
-    // apply mask just to be safe
-#ifdef LARGE_SANDBOX
-    andq %r15, %r11
-    andq $0xffffffffffffffe0, %r11
-#else
-    andl $0xffffffe0, %r11d
-#endif
-    addq %REG_BASE, %r11
 
+#ifndef CTXREG
     // set the sandbox thread control block by saving the old value of
     // %fs:TLS_SLOT_LFI into the context and setting it to point to the context
     // itself
@@ -357,6 +391,7 @@ lfi_trampoline_stack_args:
     movq (%r13), %r13
     movq %r12, REGS_HOST_TP(%r13)
     write_ctx %r13
+#endif
 
 #ifndef STORES_ONLY
     fldcw REGS_FCW(%r13)
@@ -376,9 +411,39 @@ lfi_trampoline_stack_args:
     zero_regs
 #endif
 
-    // this function should return via a runtime call
-    jmpq *%r11
-    int3
+    callq *%r11
+.global lfi_trampoline_stack_args_ret
+lfi_trampoline_stack_args_ret:
+1:
+    movq %rsp, 16(%r15)
+    movq %r11, %rsp
+    popq %r11
+
+#ifdef HAVE_PKU
+    movq %rax, %rdi
+    pku_all_access
+    movq %rdi, %rax
+#endif
+    get_ctx %rdi
+    // restore host sp
+    movq REGS_HOST_SP(%rdi), %rsp
+#ifndef CTXREG
+    // restore host tp
+    movq REGS_HOST_TP(%rdi), %rbp
+    write_ctx %rbp
+#endif
+    // restore sandbox sp to its initial value
+    popq %rbp
+    movq %rbp, REGS_RSP(%rdi)
+    popq %rbp // pop dummy value
+    // return value should already be in %rax
+    popq %rbp
+    popq %rbx
+    popq %r12
+    popq %r13
+    popq %r14
+    popq %r15
+    ret
 
 // Accelerated return for library sandboxes.
 .p2align 4
@@ -394,9 +459,11 @@ lfi_ret:
 lfi_ret_end:
     // restore host sp
     movq REGS_HOST_SP(%rdi), %rsp
+#ifndef CTXREG
     // restore host tp
     movq REGS_HOST_TP(%rdi), %rbp
     write_ctx %rbp
+#endif
     // save return registers
     movq %rax, REGS_RAX(%rdi)
     movq %rdx, REGS_RDX(%rdi)

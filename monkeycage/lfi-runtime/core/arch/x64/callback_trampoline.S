@@ -141,18 +141,9 @@
 #endif
 
     // Return to sandbox
-
-    // NOTE: This pop instruction could fault.
-    popq %r11
-#ifdef LARGE_SANDBOX
-    andq %REG_MASK, %r11
-    andq $0xffffffffffffffe0, %r11
-    addq %REG_BASE, %r11
-#else
-    andl $0xffffffe0, %r11d
-    addq %REG_BASE, %r11
-#endif
-    jmpq *%r11
+    movq %rsp, %r11
+    movq 16(%r15), %rsp
+    ret
 .endm
 
 .p2align 4
