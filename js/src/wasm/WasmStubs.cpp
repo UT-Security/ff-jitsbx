@@ -2855,6 +2855,30 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
   // address of the handler to jump to and the FP/SP values to restore.
   masm.call(SymbolicAddress::HandleThrow);
 
+#ifdef JS_SANDBOX_CET
+  Label done;
+  Label inc;
+  
+  masm.load32(Address(rsp, ResumeFromException::offsetOfFrameDepth()),
+         SandboxScratchReg);
+
+  // TODO(JS_SANDBOX_CET): find a better way to do this
+  // This is necessary because incssp only uses lower 8 bits
+  masm.push(FramePointer);
+  masm.movq(ImmWord(0xff), FramePointer);
+
+  masm.bind(&inc);
+  masm.branch32(Assembler::LessThanOrEqual, SandboxScratchReg,
+                    FramePointer, &done);
+  masm.incShadowStack(FramePointer);
+  masm.subq(FramePointer, SandboxScratchReg);
+  masm.jmp(&inc);
+
+  masm.bind(&done);
+  masm.incShadowStack(SandboxScratchReg);
+  masm.pop(FramePointer);
+#endif
+
   Label resumeCatch, leaveWasm;
 
   masm.load32(Address(ReturnReg, offsetof(jit::ResumeFromException, kind)),

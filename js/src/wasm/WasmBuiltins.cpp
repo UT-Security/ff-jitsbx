@@ -576,8 +576,14 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
   JitActivation* activation = CallingActivation(cx);
   RootedValue exn(cx);
   bool hasCatchableException = HasCatchableException(activation, cx, &exn);
+#ifdef JS_SANDBOX_CET
+  rfe->frameDepth = 0;
+#endif
 
   for (; !iter.done(); ++iter) {
+#ifdef JS_SANDBOX_CET
+    rfe->frameDepth++;
+#endif
     // Wasm code can enter same-compartment realms, so reset cx->realm to
     // this frame's realm.
     cx->setRealmForJitExceptionHandler(iter.instance()->realm());
@@ -614,6 +620,9 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
         if (activation->isWasmTrapping()) {
           activation->finishWasmTrap();
         }
+#ifdef JS_SANDBOX_CET
+        rfe->frameDepth--;
+#endif
 
         return true;
       }
@@ -661,6 +670,10 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
   rfe->stackPointer = (uint8_t*)iter.unwoundAddressOfReturnAddress();
   rfe->instance = (Instance*)FailInstanceReg;
   rfe->target = nullptr;
+#ifdef JS_SANDBOX_CET
+  rfe->frameDepth--;
+#endif
+
   return false;
 }
 

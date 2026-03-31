@@ -2990,9 +2990,6 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     pop(savedStack);
     
     pop(savedPcCount);
-    // TODO(JS_SANDBOX_CET): figure out how many frames to pop
-    // I'm not sure why, but it seems like we dont need to pop any frames?
-    // incShadowStack(numFrames);
 
     // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
     pop(savedPcArr);

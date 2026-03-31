@@ -726,11 +726,6 @@ void HandleException(ResumeFromException* rfe) {
     }
 
     JSJitFrameIter& frame = iter.asJSJit();
-#ifdef JS_SANDBOX_CET
-    if (!frame.maybeFakeExit()) {
-      rfe->frameDepth++;
-    }
-#endif
 
     // JIT code can enter same-compartment realms, so reset cx->realm to
     // this frame's realm.
@@ -805,6 +800,11 @@ void HandleException(ResumeFromException* rfe) {
         return;
       }
     }
+#ifdef JS_SANDBOX_CET
+    if (!frame.maybeFakeExit()) {
+      rfe->frameDepth++;
+    }
+#endif
 
     prevJitFrame = frame.current();
     ++iter;

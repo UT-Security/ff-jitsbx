@@ -558,9 +558,27 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   Label wasmCatch;
 
 #ifdef JS_SANDBOX_CET
+  Label done;
+  Label inc;
+  
   load32(Address(rsp, ResumeFromException::offsetOfFrameDepth()),
          SandboxScratchReg);
+
+  // TODO(JS_SANDBOX_CET): find a better way to do this
+  // This is necessary because incssp only uses lower 8 bits
+  push(FramePointer);
+  movq(ImmWord(0xff), FramePointer);
+
+  bind(&inc);
+  asMasm().branch32(Assembler::LessThanOrEqual, SandboxScratchReg,
+                    FramePointer, &done);
+  incShadowStack(FramePointer);
+  subq(FramePointer, SandboxScratchReg);
+  jmp(&inc);
+
+  bind(&done);
   incShadowStack(SandboxScratchReg);
+  pop(FramePointer);
 #endif
 
   load32(Address(rsp, ResumeFromException::offsetOfKind()), rax);
