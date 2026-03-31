@@ -3887,12 +3887,9 @@ static bool OOMTest(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   OOMSimulator simulator;
-#  ifndef JS_SANDBOX_CET
-  // I dont really want to deal with OOM rn
   if (!RunIterativeFailureTest(cx, args, simulator)) {
     return false;
   }
-#  endif
 
   args.rval().setUndefined();
   return true;

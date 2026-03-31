@@ -452,8 +452,6 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
   // Pop the machine state and the dead frame.
   masm.moveToStackPtr(FramePointer);
 
-  // TODO(JS_SANDBOX_CET): how can this be compatible with CET?
-
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
   masm.jmp(bailoutTail);
 }

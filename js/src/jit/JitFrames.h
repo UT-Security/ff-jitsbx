@@ -415,8 +415,6 @@ class ExitFrameLayout : public CommonFrameLayout {
     return footer()->type() == ExitFrameType::IonDOMGetter ||
           footer()->type() == ExitFrameType::IonDOMMethod ||
           footer()->type() == ExitFrameType::IonDOMSetter ||
-          footer()->type() == ExitFrameType::DirectWasmJitCall ||
-          footer()->type() == ExitFrameType::WasmGenericJitEntry ||
           footer()->type() == ExitFrameType::IonOOLNative || 
           footer()->type() == ExitFrameType::IonOOLProxy ||
           footer()->type() == ExitFrameType::Bare || 
