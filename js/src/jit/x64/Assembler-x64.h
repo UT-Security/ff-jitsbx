@@ -1383,21 +1383,15 @@ class Assembler : public AssemblerX86Shared {
 #ifdef JS_SANDBOX_SW_SHSTK
     Label skip;
     uint32_t startOffset = currentOffset();
-    skip.bind(startOffset + 0x29);
-    jmp(&skip);  // 0xeb 0x27
+    skip.bind(startOffset + 0x1a);
+    jmp(&skip);  // 0xeb 0x18
 
-    // Switch to shadow call stack.
-    mov(StackPointer, Operand(r15, 24, true));
-    mov(Operand(r15, 16), StackPointer);
+    subq(Imm32(8), SandboxMaskReg);
 
     // Load and push return address.
     CodeOffset returnPatch;
     returnPatch = leaRipRelative(SandboxScratchReg);
-    push(SandboxScratchReg);
-
-    // Switch back to real stack before call.
-    movq(StackPointer, Operand(r15, 16, true));
-    movq(Operand(r15, 24), StackPointer);
+    movq(SandboxScratchReg, Operand(Address(SandboxMaskReg, 0)));
 #endif
     CodeOffset offset(size());
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
@@ -1408,16 +1402,15 @@ class Assembler : public AssemblerX86Shared {
     patchRetAddr(returnPatch, returnOffset);
 
     // Switch back to real stack after return.
-    movq(StackPointer, Operand(r15, 16, true));
-    movq(SandboxScratchReg, StackPointer);
+    xchgq(StackPointer, SandboxMaskReg);
 
     // Discard pushed return address from real stack.
     pop(SandboxScratchReg);
 
     uint32_t endOffset = currentOffset();
 
-    MOZ_ASSERT_IF(!oom(), offset.offset() - startOffset == 0x1b);
-    MOZ_ASSERT_IF(!oom(), endOffset - startOffset == 0x29);
+    MOZ_ASSERT_IF(!oom(), offset.offset() - startOffset == 0x10);
+    MOZ_ASSERT_IF(!oom(), endOffset - startOffset == 0x1a);
 #endif
     return offset;
   }

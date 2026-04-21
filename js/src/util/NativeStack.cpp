@@ -197,9 +197,9 @@ void* js::GetNativeStackBaseImpl() {
 #elif defined(JS_SANDBOX_LFI)
   if (gettid() == getpid()) {
     
-    stackSize = 2 * 1024 * 1024;
-    size_t guard_size = (size_t)192 * 1024;
-    size_t sandbox_size = (size_t)4 * 1024 * 1024 * 1024;
+    stackSize = 3 * 1024 * 1024;
+    size_t guard_size = (size_t)2 * 1024 * 1024 * 1024;
+    size_t sandbox_size = (size_t)(512L * 1024 * 1024 * 1024);
 
     uint64_t base;
     __asm__("movq %%r14, %0" : "=r"(base));
