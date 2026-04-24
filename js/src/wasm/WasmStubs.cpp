@@ -2767,7 +2767,12 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
   WasmPop(masm, lr);
   masm.abiret();
 #else
+#ifdef JS_SANDBOX_CET
+  masm.pop(SandboxScratchReg);
+  masm.jmp(Operand(SandboxScratchReg));
+#else
   masm.ret();
+#endif
 #endif
 
   return FinishOffsets(masm, offsets);
