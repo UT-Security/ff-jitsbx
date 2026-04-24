@@ -59,6 +59,31 @@
 #  include <cpuid.h>
 #  include "mozilla/Unused.h"
 
+// test(JS_SANDBOX_CET)
+#include <asm/prctl.h>   /* Definition of ARCH_* constants */
+#include <sys/syscall.h> /* Definition of SYS_* constants */
+#include <unistd.h>
+#define ARCH_PRCTL(arg1, arg2)                           \
+    ({                                                     \
+      long _ret;                                           \
+      register long _num __asm__("eax") = __NR_arch_prctl; \
+      register long _arg1 __asm__("rdi") = (long)(arg1);   \
+      register long _arg2 __asm__("rsi") = (long)(arg2);   \
+                                                           \
+      __asm__ volatile("syscall\n"                         \
+                       : "=a"(_ret)                        \
+                       : "r"(_arg1), "r"(_arg2), "0"(_num) \
+                       : "rcx", "r11", "memory", "cc");    \
+      _ret;                                                \
+    })
+
+#define ARCH_SHSTK_ENABLE 0x5001
+#define ARCH_SHSTK_DISABLE 0x5002
+#define ARCH_SHSTK_SHSTK (1ULL << 0)
+
+#define ENABLE_SHSTK() ARCH_PRCTL(ARCH_SHSTK_ENABLE, ARCH_SHSTK_SHSTK)
+#define DISABLE_SHSTK() ARCH_PRCTL(ARCH_SHSTK_DISABLE, ARCH_SHSTK_SHSTK)
+
 static bool IsSSE2Available() {
   // The rest of the app has been compiled to assume that SSE2 is present
   // unconditionally, so we can't use the normal copy of SSE.cpp here.
@@ -223,6 +248,10 @@ static int do_main(int argc, char* argv[], char* envp[]) {
 #endif
 
   EnsureBrowserCommandlineSafe(argc, argv);
+
+  // Enable shstk on the parent process
+  // test(JS_SANDBOX_CET)
+  ENABLE_SHSTK();
 
   return gBootstrap->XRE_main(argc, argv, config);
 }
@@ -443,6 +472,8 @@ int main(int argc, char* argv[], char* envp[]) {
 #endif
 
   int result = do_main(argc, argv, envp);
+  // test(JS_SANDBOX_CET)  
+  DISABLE_SHSTK();
 
 #if defined(XP_WIN)
   CleanupProcessRuntime();
