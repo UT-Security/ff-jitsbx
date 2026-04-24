@@ -25,6 +25,7 @@
 #include "jit/ABIArgGenerator.h"
 #include "jit/JitFrames.h"
 #include "jit/RegisterAllocator.h"
+#include "jit/x64/Assembler-x64.h"
 #include "js/Printf.h"
 #include "util/Memory.h"
 #include "wasm/WasmCode.h"
@@ -2700,8 +2701,14 @@ void wasm::GenerateTrapExitRegisterOffsets(RegisterOffsets* offsets,
 
 // Generate a stub which calls WasmReportTrap() and can be executed by having
 // the signal handler redirect PC from any trapping instruction.
+#ifdef JS_SANDBOX_CET
+static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
+                             Label* throwAndRestoreShstkLabel,
+                             Offsets* offsets) {
+#else
 static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
                              Offsets* offsets) {
+#endif
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
 
@@ -2734,6 +2741,9 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
   // WasmHandleTrap returns null if control should transfer to the throw stub.
   masm.branchTestPtr(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
 
+#ifdef JS_SANDBOX_CET
+  masm.branch32(Assembler::Equal, ReturnReg, Imm32(1), throwAndRestoreShstkLabel);
+#endif
   // Otherwise, the return value is the TrapData::resumePC we must jump to.
   // We must restore register state before jumping, which will clobber
   // ReturnReg, so store ReturnReg in the above-reserved stack slot which we
@@ -2791,14 +2801,29 @@ static void ClobberWasmRegsForLongJmp(MacroAssembler& masm, Register jumpReg) {
 // the wasm activation, sets the return register to 'false' and then executes a
 // return which will return from this wasm activation to the caller. This stub
 // should only be called after the caller has reported an error.
+
+#ifdef JS_SANDBOX_CET
+static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
+                              Label* throwAndRestoreShstkLabel,
+                              Offsets* offsets) {
+#else
 static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
                               Offsets* offsets) {
+#endif
   Register scratch1 = ABINonArgReturnReg0;
   Register scratch2 = ABINonArgReturnReg1;
 
   AssertExpectedSP(masm);
   masm.haltingAlign(CodeAlignment);
   masm.setFramePushed(0);
+
+#ifdef JS_SANDBOX_CET
+  // This is necessary because this may be directly called into from
+  // wasm import JIT exit code, pop stale retaddr from shadow stack
+  masm.bind(throwAndRestoreShstkLabel);
+  masm.movl(Imm32(0x1), SandboxScratchReg);
+  masm.incShadowStack(SandboxScratchReg);
+#endif
 
   masm.bind(throwLabel);
 
@@ -2892,6 +2917,9 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
       Address(ReturnReg, ResumeFromException::offsetOfStackPointer()));
   MoveSPForJitABI(masm);
   ClobberWasmRegsForLongJmp(masm, scratch1);
+// #ifdef JS_SANDBOX_CET
+//   masm.breakpoint();
+// #endif
   masm.jump(scratch1);
 
   // No catch handler was found, so we will just return out.
@@ -2908,6 +2936,9 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
   masm.addToStackPtr(Imm32(8));
   masm.abiret();
 #else
+// #ifdef JS_SANDBOX_CET
+//   masm.breakpoint();
+// #endif
   masm.ret();
 #endif
 
@@ -3057,6 +3088,9 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
   }
 
   Label throwLabel;
+#ifdef JS_SANDBOX_CET
+  Label throwAndRestoreShstkLabel;
+#endif
 
   JitSpew(JitSpew_Codegen, "# Emitting wasm import stubs");
 
@@ -3065,8 +3099,13 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
     const FuncType& funcType = *env.funcs[funcIndex].type;
 
     CallableOffsets interpOffsets;
+#ifdef JS_SANDBOX_CET
+    if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex,
+                                  &throwAndRestoreShstkLabel, &interpOffsets)) {
+#else
     if (!GenerateImportInterpExit(masm, fi, funcType, funcIndex, &throwLabel,
                                   &interpOffsets)) {
+#endif
       return false;
     }
     if (!code->codeRanges.emplaceBack(CodeRange::ImportInterpExit, funcIndex,
@@ -3081,8 +3120,13 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
     }
 
     CallableOffsets jitOffsets;
+#ifdef JS_SANDBOX_CET
+    if (!GenerateImportJitExit(masm, fi, funcType, funcIndex,
+                               &throwAndRestoreShstkLabel, &jitOffsets)) {
+#else
     if (!GenerateImportJitExit(masm, fi, funcType, funcIndex, &throwLabel,
                                &jitOffsets)) {
+#endif
       return false;
     }
     if (!code->codeRanges.emplaceBack(CodeRange::ImportJitExit, funcIndex,
@@ -3110,7 +3154,11 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
 
   Offsets offsets;
 
+#ifdef JS_SANDBOX_CET
+  if (!GenerateTrapExit(masm, &throwLabel, &throwAndRestoreShstkLabel, &offsets)) {
+#else
   if (!GenerateTrapExit(masm, &throwLabel, &offsets)) {
+#endif
     return false;
   }
   if (!code->codeRanges.emplaceBack(CodeRange::TrapExit, offsets)) {
@@ -3125,7 +3173,11 @@ bool wasm::GenerateStubs(const ModuleEnvironment& env,
     return false;
   }
 
+#ifdef JS_SANDBOX_CET
+  if (!GenerateThrowStub(masm, &throwLabel, &throwAndRestoreShstkLabel, &offsets)) {
+#else
   if (!GenerateThrowStub(masm, &throwLabel, &offsets)) {
+#endif
     return false;
   }
   if (!code->codeRanges.emplaceBack(CodeRange::Throw, offsets)) {

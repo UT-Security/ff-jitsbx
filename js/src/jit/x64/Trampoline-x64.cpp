@@ -452,6 +452,11 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
   // Pop the machine state and the dead frame.
   masm.moveToStackPtr(FramePointer);
 
+#ifdef JS_SANDBOX_CET
+  masm.movl(Imm32(1), SandboxScratchReg);
+  masm.incShadowStack(SandboxScratchReg);
+#endif
+
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
   masm.jmp(bailoutTail);
 }
