@@ -620,9 +620,6 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
         if (activation->isWasmTrapping()) {
           activation->finishWasmTrap();
         }
-#ifdef JS_SANDBOX_CET
-        rfe->frameDepth--;
-#endif
 
         return true;
       }
@@ -733,7 +730,13 @@ static void* WasmHandleTrap() {
     }
     case Trap::IndirectCallBadSig: {
       ReportTrapError(cx, JSMSG_WASM_IND_CALL_BAD_SIG);
+#ifdef JS_SANDBOX_CET
+      // This specific trap is triggered after the call, so it requires an
+      // additional pop off the stack
+      return (void*) 1;
+#else
       return nullptr;
+#endif
     }
     case Trap::NullPointerDereference: {
       ReportTrapError(cx, JSMSG_WASM_DEREF_NULL);
