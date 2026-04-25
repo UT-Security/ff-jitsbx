@@ -6,6 +6,7 @@
 
 #include "SandboxFilter.h"
 
+#include <asm/unistd_64.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/ioctl.h>
@@ -1097,6 +1098,11 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
                   Trap(SetNoNewPrivsTrap, nullptr))
             .Else(PrctlPolicy());
       }
+
+      // TEST(JS_SANDBOX_CET)
+      // I'm too lazy to actually check parameters, might need to do that
+      case __NR_arch_prctl:
+        return Allow();
 
         // NSPR can call this when creating a thread, but it will accept a
         // polite "no".

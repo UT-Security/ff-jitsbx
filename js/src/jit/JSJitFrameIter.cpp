@@ -92,6 +92,9 @@ JSFunction* JSJitFrameIter::maybeCallee() const {
 
 #ifdef JS_SANDBOX_CET
 bool JSJitFrameIter::maybeFakeExit() const {
+  if (type_ == FrameType::IonICCall) {
+    return true;
+  }
   if (type_ != FrameType::Exit) {
     return false;
   }
