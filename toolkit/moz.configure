@@ -111,6 +111,24 @@ def gecko_profiler_define(value):
 set_config("MOZ_GECKO_PROFILER", gecko_profiler_define)
 set_define("MOZ_GECKO_PROFILER", gecko_profiler_define)
 
+@depends(target)
+def has_cet_support(target):
+    return target.kernel == "Linux" and target.cpu == "x86_64"
+
+option(
+    "--enable-browser-cet-shstk",
+    default=False,
+    help="{Enable|Disable} browser CET shstk.",
+)
+
+@depends("--enable-browser-cet-shstk")
+def browser_cet_shstk(browser_cet_shstk):
+    if browser_cet_shstk:
+        return True
+
+set_config("BROWSER_CET_SHSTK", browser_cet_shstk, when=has_cet_support)
+set_define("BROWSER_CET_SHSTK", browser_cet_shstk, when=has_cet_support)
+
 
 # Whether code to parse ELF binaries should be compiled for the Gecko profiler
 # (for symbol table dumping).
