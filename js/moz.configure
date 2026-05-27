@@ -593,44 +593,6 @@ option(
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 
-# JS Sandbox
-# =======================================================
-
-option(
-    "--enable-js-sandbox",
-    default=False,
-    help="{Enable|Disable} JS sandbox.",
-)
-
-@depends("--enable-js-sandbox", target)
-def js_sandbox(js_sandbox, target):
-    if js_sandbox and target.cpu != "x86_64":
-        die("--enable-js-sandbox works only on x86-64")
-
-    is_linux = target.kernel == "Linux" and target.os == "GNU"
-    if js_sandbox and not is_linux:
-        die("--enable-js-sandbox works only on GNU Linux")
-
-    if js_sandbox:
-        return True
-
-set_config("JS_SANDBOX", js_sandbox)
-set_define("JS_SANDBOX", js_sandbox)
-
-option(
-    "--enable-js-sandbox-heap",
-    default=False,
-    help="{Enable|Disable} separate JS VM heap.",
-)
-
-@depends("--enable-js-sandbox-heap", "--enable-js-sandbox")
-def js_sandbox_heap(js_sandbox_heap, js_sandbox):
-    if js_sandbox and js_sandbox_heap:
-        return True
-
-set_config("JS_SANDBOX_HEAP", js_sandbox_heap)
-set_define("JS_SANDBOX_HEAP", js_sandbox_heap)
-
 # Architecture feature flags
 # =======================================================
 
