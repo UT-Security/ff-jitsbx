@@ -6,7 +6,7 @@ load(libdir + "codegen-test-common.js");
 // End of prologue
 var arm64_prefix = `
 910003fd  mov     x29, sp
-910003fc  mov     x28, sp
+910003f4  mov     x20, sp
 `;
 
 // Start of epilogue

@@ -77,7 +77,7 @@ const prefixAndSuffix =
        },
        arm64: {
            prefix: `910003fd        mov x29, sp
-                    910003fc        mov x28, sp`,
+                    910003f4        mov x20, sp`,
            suffix: `f94003fd        ldr x29, \\[sp\\]`
        },
        arm: {

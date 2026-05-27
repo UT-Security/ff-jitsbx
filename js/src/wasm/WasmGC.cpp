@@ -235,9 +235,9 @@ void wasm::EmitWasmPreBarrierCall(MacroAssembler& masm, Register instance,
   }
 
 #if defined(DEBUG) && defined(JS_CODEGEN_ARM64)
-  // The prebarrier assumes that x28 == sp.
+  // The prebarrier assumes that x20 == sp.
   Label ok;
-  masm.Cmp(sp, vixl::Operand(x28));
+  masm.Cmp(sp, vixl::Operand(x20));
   masm.B(&ok, Assembler::Equal);
   masm.breakpoint();
   masm.bind(&ok);

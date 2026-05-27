@@ -101,6 +101,48 @@ patterns = [
         "aSrc",
         "(size_t) aDest",
     ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_<.*>",
+        2,
+        "mozilla::Vector<.*>::internalAppend<.*>",
+        "aInsBegin",
+        "endNoCheck()",
+    ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_<.*>",
+        1,
+        "mozilla::detail::VectorImpl<.*>::copyConstruct<.*>",
+        "aSrcStart",
+        "aDst",
+    ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_",
+        2,
+        "mozilla::Vector<.*>::internalAppend<.*>",
+        "aInsBegin",
+        "endNoCheck()",
+    ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_",
+        1,
+        "mozilla::detail::VectorImpl<.*>::copyConstruct<.*>",
+        "aSrcStart",
+        "aDst",
+    ),
+    (
+        "__memmove_(avx|evex)_unaligned_erms",
+        1,
+        "(js::sandbox::)?arena_t::RallocHuge",
+        "aPtr",
+        "ret",
+    ),
+    (
+        "__memcpy_(avx|evex)_unaligned_erms",
+        1,
+        "(js::sandbox::)?arena_t::RallocHuge",
+        "aPtr",
+        "ret",
+    ),
 ]
 
 
