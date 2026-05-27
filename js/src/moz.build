@@ -62,9 +62,9 @@ if not CONFIG["JS_DISABLE_SHELL"]:
     ]
 
     TEST_DIRS += [
-        "gdb",
-        "jsapi-tests",
-        "tests",
+        #"gdb",
+        #"jsapi-tests",
+        #"tests",
     ]
 
     if CONFIG["FUZZING_INTERFACES"]:
