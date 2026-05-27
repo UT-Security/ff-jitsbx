@@ -99,33 +99,33 @@ CodeOffset MacroAssembler::PushWithPatch(ImmPtr imm) {
 // ===============================================================
 // Simple call functions.
 
-std::pair<uint32_t, uint32_t> MacroAssembler::call(TrampolinePtr code) { return call(ImmPtr(code.value)); }
+void MacroAssembler::call(TrampolinePtr code) { call(ImmPtr(code.value)); }
 
-std::pair<CodeOffset, CodeOffset> MacroAssembler::call(const wasm::CallSiteDesc& desc,
+CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 const Register reg) {
   auto l = call(reg);
-  append(desc, l.second);
+  append(desc, l);
   return l;
 }
 
-std::pair<CodeOffset, CodeOffset> MacroAssembler::call(const wasm::CallSiteDesc& desc,
+CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 uint32_t funcIndex) {
-  std::pair<CodeOffset, CodeOffset> l = callWithPatch();
-  append(desc, l.second, funcIndex);
+  CodeOffset l = callWithPatch();
+  append(desc, l, funcIndex);
   return l;
 }
 
 void MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::Trap trap) {
-  std::pair<CodeOffset, CodeOffset> l = callWithPatch();
-  append(desc, l.second, trap);
+  CodeOffset l = callWithPatch();
+  append(desc, l, trap);
 }
 
-std::pair<CodeOffset, CodeOffset> MacroAssembler::call(const wasm::CallSiteDesc& desc,
+CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 wasm::SymbolicAddress imm) {
   MOZ_ASSERT(wasm::NeedsBuiltinThunk(imm),
              "only for functions which may appear in profiler");
   auto raOffset = call(imm);
-  append(desc, raOffset.second);
+  append(desc, raOffset);
   return raOffset;
 }
 
@@ -239,16 +239,17 @@ inline void MacroAssembler::bundleAlignNop() {
 // ===============================================================
 // Jit Frames.
 
-std::pair<uint32_t, uint32_t> MacroAssembler::callJitNoProfiler(Register callee) {
+uint32_t MacroAssembler::callJitNoProfiler(Register callee) {
 #ifdef JS_USE_LINK_REGISTER
   // The return address is pushed by the callee.
-  return call(callee);
+  call(callee);
 #else
-  return callAndPushReturnAddress(callee);
+  callAndPushReturnAddress(callee);
 #endif
+  return currentOffset();
 }
 
-std::pair<uint32_t, uint32_t> MacroAssembler::callJit(Register callee) {
+uint32_t MacroAssembler::callJit(Register callee) {
   AutoProfilerCallInstrumentation profiler(*this);
   return callJitNoProfiler(callee);
 }
@@ -259,9 +260,10 @@ uint32_t MacroAssembler::callJit(JitCode* callee) {
   return currentOffset();
 }
 
-std::pair<uint32_t, uint32_t> MacroAssembler::callJit(TrampolinePtr code) {
+uint32_t MacroAssembler::callJit(TrampolinePtr code) {
   AutoProfilerCallInstrumentation profiler(*this);
-  return call(code);
+  call(code);
+  return currentOffset();
 }
 
 uint32_t MacroAssembler::callJit(ImmPtr callee) {
@@ -342,15 +344,15 @@ void MacroAssembler::loadFunctionFromCalleeToken(Address token, Register dest) {
   andPtr(Imm32(uint32_t(CalleeTokenMask)), dest);
 }
 
-std::pair<uint32_t, uint32_t> MacroAssembler::buildFakeExitFrame(Register scratch) {
+uint32_t MacroAssembler::buildFakeExitFrame(Register scratch) {
   mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
 
   PushFrameDescriptor(FrameType::IonJS);
-  std::pair<uint32_t, uint32_t> offsets = pushFakeReturnAddress(scratch);
+  uint32_t retAddr = pushFakeReturnAddress(scratch);
   Push(FramePointer);
 
   MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
-  return offsets;
+  return retAddr;
 }
 
 // ===============================================================

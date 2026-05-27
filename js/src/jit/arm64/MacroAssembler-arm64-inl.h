@@ -2185,22 +2185,22 @@ void MacroAssembler::spectreBoundsCheckPtr(Register index,
 
 // ========================================================================
 // Memory access primitives.
-void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const Address& dest) {
-  Str(ARMFPRegister(src, 64), toMemOperand(dest));
+  return Str(ARMFPRegister(src, 64), toMemOperand(dest));
 }
-void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const BaseIndex& dest) {
-  doBaseIndex(ARMFPRegister(src, 64), dest, vixl::STR_d);
+  return doBaseIndex(ARMFPRegister(src, 64), dest, vixl::STR_d);
 }
 
-void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const Address& addr) {
-  Str(ARMFPRegister(src, 32), toMemOperand(addr));
+  return Str(ARMFPRegister(src, 32), toMemOperand(addr));
 }
-void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const BaseIndex& addr) {
-  doBaseIndex(ARMFPRegister(src, 32), addr, vixl::STR_s);
+  return doBaseIndex(ARMFPRegister(src, 32), addr, vixl::STR_s);
 }
 
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {

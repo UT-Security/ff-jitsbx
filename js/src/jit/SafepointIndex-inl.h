@@ -15,12 +15,7 @@ namespace js::jit {
 
 inline SafepointIndex::SafepointIndex(const CodegenSafepointIndex& csi)
     : displacement_(csi.displacement()),
-      instrDisplacement_(csi.instrDisplacement()),
-      safepointOffset_(csi.safepoint()->offset()) {
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT(displacement_ - instrDisplacement_ >= 5, "Insufficient instruction delta for halt");        
-#endif
-}
+      safepointOffset_(csi.safepoint()->offset()) {}
 
 }  // namespace js::jit
 

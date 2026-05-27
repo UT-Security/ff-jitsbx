@@ -604,15 +604,15 @@ struct AssemblerBufferWithConstantPools
   BranchDeadlineSet<NumShortBranchRanges> branchDeadlines_;
 
   // When true dumping pools is inhibited.
-  bool canNotPlacePool_;
+  unsigned int inhibitPools_;
 
 #ifdef DEBUG
   // State for validating the 'maxInst' argument to enterNoPool().
   // The buffer offset when entering the no-pool region.
-  size_t canNotPlacePoolStartOffset_;
+  size_t inhibitPoolsStartOffset_;
   // The maximum number of word sized instructions declared for the no-pool
   // region.
-  size_t canNotPlacePoolMaxInst_;
+  size_t inhibitPoolsMaxInst_;
 #endif
 
   // Instruction to use for alignment fill.
@@ -627,7 +627,7 @@ struct AssemblerBufferWithConstantPools
 
   // For inhibiting the insertion of fill NOPs in the dynamic context in which
   // they are being inserted.
-  bool inhibitNops_;
+  unsigned int inhibitNops_;
 
  private:
   // The buffer slices are in a double linked list.
@@ -648,15 +648,15 @@ struct AssemblerBufferWithConstantPools
         instBufferAlign_(instBufferAlign),
         poolInfo_(this->lifoAlloc_),
         branchDeadlines_(this->lifoAlloc_),
-        canNotPlacePool_(false),
+        inhibitPools_(0),
 #ifdef DEBUG
-        canNotPlacePoolStartOffset_(0),
-        canNotPlacePoolMaxInst_(0),
+        inhibitPoolsStartOffset_(~size_t(0) /* invalid */),
+        inhibitPoolsMaxInst_(0),
 #endif
         alignFillInst_(alignFillInst),
         nopFillInst_(nopFillInst),
         nopFill_(nopFill),
-        inhibitNops_(false) {
+        inhibitNops_(0) {
   }
 
  private:
@@ -677,8 +677,8 @@ struct AssemblerBufferWithConstantPools
  private:
   void insertNopFill() {
     // Insert fill for testing.
-    if (nopFill_ > 0 && !inhibitNops_ && !canNotPlacePool_) {
-      inhibitNops_ = true;
+    if (nopFill_ > 0 && inhibitNops_ == 0 && inhibitPools_ == 0) {
+      inhibitNops_++;
 
       // Fill using a branch-nop rather than a NOP so this can be
       // distinguished and skipped.
@@ -686,7 +686,7 @@ struct AssemblerBufferWithConstantPools
         putInt(nopFillInst_);
       }
 
-      inhibitNops_ = false;
+      inhibitNops_--;
     }
   }
 
@@ -806,7 +806,7 @@ struct AssemblerBufferWithConstantPools
                           PoolEntry* pe = nullptr) {
     // The allocation of pool entries is not supported in a no-pool region,
     // check.
-    MOZ_ASSERT_IF(numPoolEntries, !canNotPlacePool_);
+    MOZ_ASSERT_IF(numPoolEntries > 0, inhibitPools_ == 0);
 
     if (this->oom()) {
       return BufferOffset();
@@ -963,7 +963,7 @@ struct AssemblerBufferWithConstantPools
     }
 
     // Should not be placing a pool in a no-pool region, check.
-    MOZ_ASSERT(!canNotPlacePool_);
+    MOZ_ASSERT(inhibitPools_ == 0);
 
     // Dump the pool with a guard branch around the pool.
     BufferOffset guard = this->putBytes(guardSize_ * InstSize, nullptr);
@@ -1047,11 +1047,28 @@ struct AssemblerBufferWithConstantPools
   }
 
   void enterNoPool(size_t maxInst) {
+    MOZ_ASSERT(maxInst > 0);
+    
     if (this->oom()) {
       return;
     }
-    // Don't allow re-entry.
-    MOZ_ASSERT(!canNotPlacePool_);
+
+    if (inhibitPools_ > 0) {
+      MOZ_ASSERT(inhibitPoolsStartOffset_ != ~size_t(0));
+      MOZ_ASSERT(inhibitPoolsMaxInst_ > 0);
+
+      MOZ_ASSERT(size_t(this->nextOffset().getOffset()) >=
+                 inhibitPoolsStartOffset_);  
+      MOZ_ASSERT(size_t(this->nextOffset().getOffset()) + maxInst * InstSize <=
+                 inhibitPoolsStartOffset_ + inhibitPoolsMaxInst_ * InstSize);
+      inhibitPools_++;
+      return;
+    }
+
+    MOZ_ASSERT(inhibitPools_ == 0);
+    MOZ_ASSERT(inhibitPoolsStartOffset_ == ~size_t(0));
+    MOZ_ASSERT(inhibitPoolsMaxInst_ == 0);
+    
     insertNopFill();
 
     // Check if the pool will spill by adding maxInst instructions, and if
@@ -1071,37 +1088,52 @@ struct AssemblerBufferWithConstantPools
 #ifdef DEBUG
     // Record the buffer position to allow validating maxInst when leaving
     // the region.
-    canNotPlacePoolStartOffset_ = this->nextOffset().getOffset();
-    canNotPlacePoolMaxInst_ = maxInst;
+    inhibitPoolsStartOffset_ = this->nextOffset().getOffset();
+    inhibitPoolsMaxInst_ = maxInst;
+    MOZ_ASSERT(inhibitPoolsStartOffset_ != ~size_t(0));
 #endif
 
-    canNotPlacePool_ = true;
+    inhibitPools_ = 1;
   }
 
   void leaveNoPool() {
     if (this->oom()) {
-      canNotPlacePool_ = false;
+      inhibitPools_ = 0;
       return;
     }
-    MOZ_ASSERT(canNotPlacePool_);
-    canNotPlacePool_ = false;
+    MOZ_ASSERT(inhibitPools_ > 0);
+
+    if (inhibitPools_ > 1) {
+      inhibitPools_--;
+      return;
+    }
+
+    MOZ_ASSERT(inhibitPools_ == 1);
+    MOZ_ASSERT(inhibitPoolsStartOffset_ != ~size_t(0));
+    MOZ_ASSERT(inhibitPoolsMaxInst_ > 0); 
 
     // Validate the maxInst argument supplied to enterNoPool().
-    MOZ_ASSERT(this->nextOffset().getOffset() - canNotPlacePoolStartOffset_ <=
-               canNotPlacePoolMaxInst_ * InstSize);
+    MOZ_ASSERT(this->nextOffset().getOffset() - inhibitPoolsStartOffset_ <=
+               inhibitPoolsMaxInst_ * InstSize);
+
+#ifdef DEBUG
+    inhibitPoolsStartOffset_ = ~size_t(0);
+    inhibitPoolsMaxInst_ = 0;
+#endif
+
+    inhibitPools_ = 0;
   }
 
   void enterNoNops() {
-    MOZ_ASSERT(!inhibitNops_);
-    inhibitNops_ = true;
+    inhibitNops_++;
   }
   void leaveNoNops() {
-    MOZ_ASSERT(inhibitNops_);
-    inhibitNops_ = false;
+    MOZ_ASSERT(inhibitNops_ > 0);
+    inhibitNops_--;
   }
   void assertNoPoolAndNoNops() {
-    MOZ_ASSERT(inhibitNops_);
-    MOZ_ASSERT_IF(!this->oom(), isPoolEmptyFor(InstSize) || canNotPlacePool_);
+    MOZ_ASSERT(inhibitNops_ > 0);
+    MOZ_ASSERT_IF(!this->oom(), isPoolEmptyFor(InstSize) || inhibitPools_ > 0);
   }
 
   void align(unsigned alignment) { align(alignment, alignFillInst_); }
@@ -1129,12 +1161,11 @@ struct AssemblerBufferWithConstantPools
       finishPool(requiredFill);
     }
 
-    bool prevInhibitNops = inhibitNops_;
-    inhibitNops_ = true;
+    inhibitNops_++;
     while ((sizeExcludingCurrentPool() & (alignment - 1)) && !this->oom()) {
       putInt(pattern);
     }
-    inhibitNops_ = prevInhibitNops;
+    inhibitNops_--;
   }
 
  public:

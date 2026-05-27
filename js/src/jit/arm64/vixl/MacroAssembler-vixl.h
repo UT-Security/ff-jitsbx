@@ -315,11 +315,11 @@ class MacroAssembler : public js::jit::Assembler {
 
   // Load/store macros.
 #define DECLARE_FUNCTION(FN, REGTYPE, REG, OP) \
-  void FN(const REGTYPE REG, const MemOperand& addr);
+  js::jit::CodeOffset FN(const REGTYPE REG, const MemOperand& addr);
   LS_MACRO_LIST(DECLARE_FUNCTION)
 #undef DECLARE_FUNCTION
 
-  void LoadStoreMacro(const CPURegister& rt,
+  js::jit::CodeOffset LoadStoreMacro(const CPURegister& rt,
                       const MemOperand& addr,
                       LoadStoreOp op);
 

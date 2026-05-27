@@ -1248,7 +1248,7 @@ std::pair<uint32_t, uint32_t> MacroAssembler::pushFakeReturnAddress(Register scr
 // ===============================================================
 // WebAssembly
 
-std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmTrapInstruction(bool resumable) {
+CodeOffset MacroAssembler::wasmTrapInstruction(bool resumable) {
   CodeOffset instrOffset = CodeOffset(currentOffset());
 #ifdef JS_SANDBOX_CFI
   AutoBundleGroupScope bundle(*this);
@@ -1259,7 +1259,7 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmTrapInstruction(bool resum
   bundle.nopToEnd(jit::WasmTrapInstructionLength);
 #endif
   CodeOffset trapOffset = ud2();
-  return std::pair(instrOffset, trapOffset);
+  return trapOffset;
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,

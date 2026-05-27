@@ -26,13 +26,6 @@ class SafepointIndex {
   // to the return address (of the call that the safepoint was generated for).
   uint32_t displacement_ = 0;
 
-  // The instruction displacement is the distance from the first byte of the JIT'd code
-  // to a sensible instruction boundary before return address displacement.
-  // This is needed to have a place in the instruction stream where we can insert a HLT
-  // instruction before patching in a 32-bit Immediate in the Invalidation sequence.
-  // We also require that displacement_ - instrDisplacement_ >= 5 bytes
-  uint32_t instrDisplacement_ = 0;
-
   // Offset within the safepoint buffer.
   uint32_t safepointOffset_ = 0;
 
@@ -40,27 +33,20 @@ class SafepointIndex {
   inline explicit SafepointIndex(const CodegenSafepointIndex& csi);
 
   uint32_t displacement() const { return displacement_; }
-  uint32_t instrDisplacement() const { return instrDisplacement_; }
   uint32_t safepointOffset() const { return safepointOffset_; }
 };
 
 class CodegenSafepointIndex {
   uint32_t displacement_ = 0;
-  // See comment in SafepointIndex for what this is.
-  uint32_t instrDisplacement_ = 0;
 
   LSafepoint* safepoint_ = nullptr;
 
  public:
-  CodegenSafepointIndex(uint32_t displacement, uint32_t instrDisplacement,
-                        LSafepoint* safepoint)
-      : displacement_(displacement),
-        instrDisplacement_(instrDisplacement),
-        safepoint_(safepoint) {}
+  CodegenSafepointIndex(uint32_t displacement, LSafepoint* safepoint)
+      : displacement_(displacement), safepoint_(safepoint) {}
 
   LSafepoint* safepoint() const { return safepoint_; }
   uint32_t displacement() const { return displacement_; }
-  uint32_t instrDisplacement() const { return instrDisplacement_; }
 
   inline SnapshotOffset snapshotOffset() const;
   inline bool hasSnapshotOffset() const;

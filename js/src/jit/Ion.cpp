@@ -642,7 +642,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   masm.executableCopy(raw());
 
   masm.processCodeLabels(raw());
-  masm.processDataLabels(raw(), this);
+  //masm.processDataLabels(raw(), this);
 #endif
 }
 

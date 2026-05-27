@@ -415,32 +415,6 @@ class LGetInlinedArgumentHole : public LVariadicInstruction<BOX_PIECES, 0> {
   }
 };
 
-#ifdef JS_SANDBOX
-class LInlineArgumentsSlice : public LVariadicInstruction<1, 2> {
- public:
-  LIR_HEADER(InlineArgumentsSlice)
-
-  static const size_t Begin = 0;
-  static const size_t Count = 1;
-  static const size_t NumNonArgumentOperands = 2;
-  static size_t ArgIndex(size_t i) {
-    return NumNonArgumentOperands + BOX_PIECES * i;
-  }
-
-  explicit LInlineArgumentsSlice(uint32_t numOperands, const LDefinition& temp0, const LDefinition& temp1)
-      : LVariadicInstruction(classOpcode, numOperands) {
-    setTemp(0, temp0);
-    setTemp(1, temp1);
-  }
-
-  const LAllocation* begin() { return getOperand(Begin); }
-  const LAllocation* count() { return getOperand(Count); }
-  const LDefinition* temp0() { return getTemp(0); }
-  const LDefinition* temp1() { return getTemp(1); }
-
-  MInlineArgumentsSlice* mir() const { return mir_->toInlineArgumentsSlice(); }
-};
-#else
 class LInlineArgumentsSlice : public LVariadicInstruction<1, 1> {
  public:
   LIR_HEADER(InlineArgumentsSlice)
@@ -463,7 +437,6 @@ class LInlineArgumentsSlice : public LVariadicInstruction<1, 1> {
 
   MInlineArgumentsSlice* mir() const { return mir_->toInlineArgumentsSlice(); }
 };
-#endif
 
 // Common code for LIR descended from MCall.
 template <size_t Defs, size_t Operands, size_t Temps>
@@ -2127,31 +2100,6 @@ class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0> {
 // LStoreElementV, this instruction can store doubles and constants directly,
 // and does not store the type tag if the array is monomorphic and known to
 // be packed.
-#ifdef JS_SANDBOX
-class LStoreElementT : public LInstructionHelper<0, 3, 1> {
- public:
-  LIR_HEADER(StoreElementT)
-
-  LStoreElementT(const LAllocation& elements, const LAllocation& index,
-                 const LAllocation& value, const LDefinition& temp)
-      : LInstructionHelper(classOpcode) {
-    setOperand(0, elements);
-    setOperand(1, index);
-    setOperand(2, value);
-    setTemp(0, temp);
-  }
-
-  const char* extraName() const {
-    return mir()->needsHoleCheck() ? "HoleCheck" : nullptr;
-  }
-
-  const MStoreElement* mir() const { return mir_->toStoreElement(); }
-  const LAllocation* elements() { return getOperand(0); }
-  const LAllocation* index() { return getOperand(1); }
-  const LAllocation* value() { return getOperand(2); }
-  const LDefinition* temp() { return getTemp(0); }
-};
-#else
 class LStoreElementT : public LInstructionHelper<0, 3, 0> {
  public:
   LIR_HEADER(StoreElementT)
@@ -2173,7 +2121,6 @@ class LStoreElementT : public LInstructionHelper<0, 3, 0> {
   const LAllocation* index() { return getOperand(1); }
   const LAllocation* value() { return getOperand(2); }
 };
-#endif
 
 class LArrayPopShift : public LInstructionHelper<BOX_PIECES, 1, 2> {
  public:
@@ -3394,7 +3341,7 @@ class LWasmParameterI64 : public LInstructionHelper<INT64_PIECES, 0, 0> {
 
 // This is used only with LWasmCall.
 class LWasmCallIndirectAdjunctSafepoint : public LInstructionHelper<0, 0, 0> {
-  std::pair<CodeOffset, CodeOffset> offs_;
+  CodeOffset offs_;
   uint32_t framePushedAtStackMapBase_;
 
  public:
@@ -3402,18 +3349,18 @@ class LWasmCallIndirectAdjunctSafepoint : public LInstructionHelper<0, 0, 0> {
 
   LWasmCallIndirectAdjunctSafepoint()
       : LInstructionHelper(classOpcode),
-        offs_(std::pair(0, 0)),
+        offs_(0),
         framePushedAtStackMapBase_(0) {}
 
-  std::pair<CodeOffset, CodeOffset> safepointLocation() const {
-    MOZ_ASSERT(offs_.second.offset() != 0);
+  CodeOffset safepointLocation() const {
+    MOZ_ASSERT(offs_.offset() != 0);
     return offs_;
   }
   uint32_t framePushedAtStackMapBase() const {
-    MOZ_ASSERT(offs_.second.offset() != 0);
+    MOZ_ASSERT(offs_.offset() != 0);
     return framePushedAtStackMapBase_;
   }
-  void recordSafepointInfo(std::pair<CodeOffset, CodeOffset> offs, uint32_t framePushed) {
+  void recordSafepointInfo(CodeOffset offs, uint32_t framePushed) {
     offs_ = offs;
     framePushedAtStackMapBase_ = framePushed;
   }

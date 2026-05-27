@@ -449,7 +449,7 @@ class Assembler : public vixl::Assembler {
 
   typedef vixl::Condition Condition;
 
-  void finish();
+  void finish(bool dataIsExec);
   bool appendRawCode(const uint8_t* code, size_t numBytes);
   bool reserve(size_t size);
   bool swapBuffer(wasm::Bytes& bytes);
@@ -478,26 +478,40 @@ class Assembler : public vixl::Assembler {
 
   void setUnlimitedBuffer() { armbuffer_.setUnlimited(); }
   bool oom() const {
-    return AssemblerShared::oom() || armbuffer_.oom() ||
-           jumpRelocations_.oom() || dataRelocations_.oom();
+    return AssemblerShared::oom() || armbuffer_.oom();
   }
 
   void copyJumpRelocationTable(uint8_t* dest) const {
-    if (jumpRelocations_.length()) {
+    /*if (jumpRelocations_.length()) {
       memcpy(dest, jumpRelocations_.buffer(), jumpRelocations_.length());
-    }
+    }*/
   }
   void copyDataRelocationTable(uint8_t* dest) const {
-    if (dataRelocations_.length()) {
+    /*if (dataRelocations_.length()) {
       memcpy(dest, dataRelocations_.buffer(), dataRelocations_.length());
-    }
+    }*/
   }
 
-  size_t jumpRelocationTableBytes() const { return jumpRelocations_.length(); }
-  size_t dataRelocationTableBytes() const { return dataRelocations_.length(); }
+  size_t dataSectionBytes() const {
+    return dataGCSection_.length() * sizeof(void*) +
+           dataValueSection_.length() * sizeof(Value) +
+           dataJitSection_.length() * sizeof(JitCode*);
+  }
+
+  size_t constantsTableBytes() const {
+    return 0;
+  }
+
+  // Size of executable code, in bytes.
+  size_t execSize() const { return SizeOfCodeGenerated(); }
+
+  // Size of data table, in bytes.
+  size_t dataSize() const {
+    return dataSectionBytes();
+  }
+  
   size_t bytesNeeded() const {
-    return SizeOfCodeGenerated() + jumpRelocationTableBytes() +
-           dataRelocationTableBytes();
+    return execSize() + dataSize();
   }
 
   void processCodeLabels(uint8_t* rawCode) {
@@ -505,6 +519,9 @@ class Assembler : public vixl::Assembler {
       Bind(rawCode, label);
     }
   }
+
+  void copyDataSection(uint8_t* dest);
+  void copyConstantsTable(const uint8_t* codeBase, uint8_t* dataBase) {}
 
   static void UpdateLoad64Value(Instruction* inst0, uint64_t value);
 
@@ -559,7 +576,7 @@ class Assembler : public vixl::Assembler {
  protected:
   // Add a jump whose target is unknown until finalization.
   // The jump may not be patched at runtime.
-  void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind);
+  void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind, JitCode* code = nullptr);
 
  public:
   static uint32_t PatchWrite_NearCallSize() { return 4; }
@@ -596,14 +613,18 @@ class Assembler : public vixl::Assembler {
   static void ToggleToCmp(CodeLocationLabel inst_);
   static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 
-  static void TraceJumpRelocations(JSTracer* trc, JitCode* code,
+  /*static void TraceJumpRelocations(JSTracer* trc, JitCode* code,
                                    CompactBufferReader& reader);
   static void TraceDataRelocations(JSTracer* trc, JitCode* code,
-                                   CompactBufferReader& reader);
+                                   CompactBufferReader& reader);*/
+
+  static void TraceDataSection(JSTracer* trc, JitCode* code);
 
   void assertNoGCThings() const {
 #ifdef DEBUG
-    MOZ_ASSERT(dataRelocations_.length() == 0);
+    MOZ_ASSERT(dataGCSection_.length() == 0 &&
+               dataValueSection_.length() == 0 &&
+               dataJitSection_.length() == 0);
     for (auto& j : pendingJumps_) {
       MOZ_ASSERT(j.kind == RelocationKind::HARDCODED);
     }
@@ -655,9 +676,42 @@ class Assembler : public vixl::Assembler {
   // in the extended jump table, and is patched at finalization.
   js::Vector<RelativePatch, 8, SystemAllocPolicy> pendingJumps_;
 
-  // Final output formatters.
-  CompactBufferWriter jumpRelocations_;
-  CompactBufferWriter dataRelocations_;
+  js::Vector<std::pair<CodeOffset, ImmGCPtr>, 8, SystemAllocPolicy> dataGCSection_;
+  js::Vector<JitCode*, 8, SystemAllocPolicy> dataJitSection_;
+  js::Vector<std::pair<CodeOffset, Value>, 8, SystemAllocPolicy> dataValueSection_;
+
+public:
+  // load: offset to the load instruction obtained by movePatchablePtr().
+  void writeDataSection(ImmGCPtr ptr, BufferOffset load) {
+    // Raw GC pointer relocations and Value relocations both end up in
+    // Assembler::TraceDataRelocations.
+    if (gc::IsInsideNursery(ptr.value)) {
+      embedsNurseryPointers_ = true;
+    }
+    if(!dataGCSection_.append(std::pair(load.getOffset(), ptr))) {
+      enoughMemory_ = false;
+    }
+  }
+
+  void writeDataSection(const Value& val, BufferOffset load) {
+    // Raw GC pointer relocations and Value relocations both end up in
+    // Assembler::TraceDataRelocations.
+    if (val.isGCThing()) {
+      gc::Cell* cell = val.toGCThing();
+      if (cell && gc::IsInsideNursery(cell)) {
+        embedsNurseryPointers_ = true;
+      }
+    }
+    if(!dataValueSection_.append(std::pair(load.getOffset(), val))) {
+      enoughMemory_ = false;
+    }
+  }
+
+  void writeDataSection(JitCode* code) {
+    if (!dataJitSection_.append(code)) {
+      enoughMemory_ = false;
+    }
+  }
 };
 
 static const uint32_t NumIntArgRegs = 8;

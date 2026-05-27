@@ -351,8 +351,8 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
   // on the return value of the C functions.  To guard the outcome of the
   // returned value, use another LIR instruction.
   ensureOsiSpace();
-  std::pair<uint32_t, uint32_t> offsets = masm.callJit(code);
-  markSafepointAt(offsets, ins);
+  uint32_t offset = masm.callJit(code);
+  markSafepointAt(offset, ins);
 
 #ifdef DEBUG
   // Reset the disallowArbitraryCode flag after the call.
@@ -2474,10 +2474,6 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
     // There are not enough registers on x86.
     maybeTemp5 = regs.takeAny();
   }
-#ifdef JS_SANDBOX
-  MOZ_ASSERT(!regs.empty(), "Don't have enough registers for sandbox temporary");
-  Register temp6 = regs.takeAny();
-#endif
 
   Address flagsSlot(regexp, RegExpObject::offsetOfFlags());
   Address lastIndexSlot(regexp, RegExpObject::offsetOfLastIndex());
@@ -2697,19 +2693,11 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 
         // Storing into nursery-allocated results object's elements; no post
         // barrier.
-#ifdef JS_SANDBOX
-        masm.storeValue(JSVAL_TYPE_STRING, depStr.string(), objectMatchElement, temp6);
-#else
         masm.storeValue(JSVAL_TYPE_STRING, depStr.string(), objectMatchElement);
-#endif
         masm.jump(&storeDone);
       }
       masm.bind(&isUndefined);
-#ifdef JS_SANDBOX
-      { masm.storeValue(UndefinedValue(), objectMatchElement, temp6); }
-#else
       { masm.storeValue(UndefinedValue(), objectMatchElement); }
-#endif
       masm.bind(&storeDone);
 
       masm.add32(Imm32(1), matchIndex);
@@ -5459,11 +5447,11 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   masm.Push(argUintNReg);
 
   // Construct native exit frame.
-  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(tempReg);
+  uint32_t safepointOffset = masm.buildFakeExitFrame(tempReg);
   masm.enterFakeExitFrameForNative(argContextReg, tempReg,
                                    call->mir()->isConstructing());
 
-  markSafepointAt(safepointOffsets, call);
+  markSafepointAt(safepointOffset, call);
 
   // Construct and execute call.
   masm.setupAlignedABICall();
@@ -5637,12 +5625,12 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   }
 
   // Construct native exit frame.
-  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(argJSContext);
+  uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
   masm.loadJSContext(argJSContext);
   masm.enterFakeExitFrame(argJSContext, argJSContext,
                           ExitFrameType::IonDOMMethod);
 
-  markSafepointAt(safepointOffsets, call);
+  markSafepointAt(safepointOffset, call);
 
   // Construct and execute call.
   masm.setupAlignedABICall();
@@ -5806,8 +5794,8 @@ void CodeGenerator::visitCallGeneric(LCallGeneric* call) {
   // Finally call the function in objreg.
   masm.bind(&makeCall);
   ensureOsiSpace();
-  std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
-  markSafepointAt(callOffsets, call);
+  uint32_t callOffset = masm.callJit(objreg);
+  markSafepointAt(callOffset, call);
 
   if (call->mir()->maybeCrossRealm()) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -5892,8 +5880,8 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
 
   // Finally call the function in objreg.
   ensureOsiSpace();
-  std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
-  markSafepointAt(callOffsets, call);
+  uint32_t callOffset = masm.callJit(objreg);
+  markSafepointAt(callOffset, call);
 
   if (call->mir()->maybeCrossRealm()) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -5976,11 +5964,7 @@ void CodeGenerator::emitAllocateSpaceForApply(Register argcreg,
     // if the number of arguments is odd, then we do not need any padding.
     masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);
     BaseValueIndex dstPtr(masm.getStackPointer(), argcreg);
-#ifdef JS_SANDBOX
-    masm.storeValue(MagicValue(JS_ARG_POISON), dstPtr, scratch);
-#else
     masm.storeValue(MagicValue(JS_ARG_POISON), dstPtr);
-#endif
     masm.bind(&noPaddingNeeded);
   }
 #endif
@@ -6378,8 +6362,8 @@ void CodeGenerator::emitApplyGeneric(T* apply) {
     // Finally call the function in objreg, as assigned by one of the paths
     // above.
     ensureOsiSpace();
-    std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
-    markSafepointAt(callOffsets, apply);
+    uint32_t callOffset = masm.callJit(objreg);
+    markSafepointAt(callOffset, apply);
 
     if (apply->mir()->maybeCrossRealm()) {
       static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -8488,19 +8472,19 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 
   const wasm::CallSiteDesc& desc = callBase->desc();
   const wasm::CalleeDesc& callee = callBase->callee();
-  std::pair<CodeOffset, CodeOffset> retOffsets;
-  std::pair<CodeOffset, CodeOffset> secondRetOffsets;
+  CodeOffset retOffset;
+  CodeOffset secondRetOffset;
   switch (callee.which()) {
     case wasm::CalleeDesc::Func:
-      retOffsets = masm.call(desc, callee.funcIndex());
+      retOffset = masm.call(desc, callee.funcIndex());
       reloadRegs = false;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::Import:
-      retOffsets = masm.wasmCallImport(desc, callee);
+      retOffset = masm.wasmCallImport(desc, callee);
       break;
     case wasm::CalleeDesc::AsmJSTable:
-      retOffsets = masm.asmCallIndirect(desc, callee);
+      retOffset = masm.asmCallIndirect(desc, callee);
       break;
     case wasm::CalleeDesc::WasmTable: {
       Label* boundsCheckFailed = nullptr;
@@ -8532,7 +8516,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       }
 #endif
       masm.wasmCallIndirect(desc, callee, boundsCheckFailed, nullCheckFailed,
-                            lir->tableSize(), &retOffsets, &secondRetOffsets);
+                            lir->tableSize(), &retOffset, &secondRetOffset);
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallIndirect.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
@@ -8541,12 +8525,12 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       break;
     }
     case wasm::CalleeDesc::Builtin:
-      retOffsets = masm.call(desc, callee.builtin());
+      retOffset = masm.call(desc, callee.builtin());
       reloadRegs = false;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::BuiltinInstanceMethod:
-      retOffsets = masm.wasmCallBuiltinInstanceMethod(
+      retOffset = masm.wasmCallBuiltinInstanceMethod(
           desc, callBase->instanceArg(), callee.builtin(),
           callBase->builtinMethodFailureMode());
       switchRealm = false;
@@ -8555,17 +8539,14 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallRef.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
-      masm.wasmCallRef(desc, callee, &retOffsets, &secondRetOffsets);
+      masm.wasmCallRef(desc, callee, &retOffset, &secondRetOffset);
       reloadRegs = false;
       switchRealm = false;
       break;
   }
 
-  auto realRetOffsets =
-      std::pair(retOffsets.first.offset(), retOffsets.second.offset());
-
   // Note the assembler offset for the associated LSafePoint.
-  markSafepointAt(realRetOffsets, lir);
+  markSafepointAt(retOffset.offset(), lir);
 
   // Now that all the outbound in-memory args are on the stack, note the
   // required lower boundary point of the associated StackMap.
@@ -8577,7 +8558,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   // Note the assembler offset and framePushed for use by the adjunct
   // LSafePoint, see visitor for LWasmCallIndirectAdjunctSafepoint below.
   if (callee.which() == wasm::CalleeDesc::WasmTable) {
-    lir->adjunctSafepoint()->recordSafepointInfo(secondRetOffsets,
+    lir->adjunctSafepoint()->recordSafepointInfo(secondRetOffset,
                                                  framePushedAtStackMapBase);
   }
 
@@ -8646,7 +8627,7 @@ void CodeGenerator::visitWasmCallLandingPrePad(LWasmCallLandingPrePad* lir) {
 
 void CodeGenerator::visitWasmCallIndirectAdjunctSafepoint(
     LWasmCallIndirectAdjunctSafepoint* lir) {
-  markSafepointAt(std::pair(lir->safepointLocation().first.offset(), lir->safepointLocation().second.offset()), lir);
+  markSafepointAt(lir->safepointLocation().offset(), lir);
   lir->safepoint()->setFramePushedAtStackMapBase(
       lir->framePushedAtStackMapBase());
 }
@@ -12380,21 +12361,6 @@ void CodeGenerator::emitStoreHoleCheck(Register elements,
   bailoutFrom(&bail, snapshot);
 }
 
-#ifdef JS_SANDBOX
-void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
-                                          MIRType valueType, Register elements,
-                                          const LAllocation* index, Register scratch) {
-  MOZ_ASSERT(valueType != MIRType::MagicHole);
-  ConstantOrRegister v = ToConstantOrRegister(value, valueType);
-  if (index->isConstant()) {
-    Address dest(elements, ToInt32(index) * sizeof(js::Value));
-    masm.storeUnboxedValue(v, valueType, dest, scratch);
-  } else {
-    BaseObjectElementIndex dest(elements, ToRegister(index));
-    masm.storeUnboxedValue(v, valueType, dest, scratch);
-  }
-}
-#else
 void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
                                           MIRType valueType, Register elements,
                                           const LAllocation* index) {
@@ -12408,14 +12374,10 @@ void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
     masm.storeUnboxedValue(v, valueType, dest);
   }
 }
-#endif
 
 void CodeGenerator::visitStoreElementT(LStoreElementT* store) {
   Register elements = ToRegister(store->elements());
   const LAllocation* index = store->index();
-#ifdef JS_SANDBOX
-  Register temp = ToRegister(store->temp());
-#endif
 
   if (store->mir()->needsBarrier()) {
     emitPreBarrier(elements, index);
@@ -12425,13 +12387,8 @@ void CodeGenerator::visitStoreElementT(LStoreElementT* store) {
     emitStoreHoleCheck(elements, index, store->snapshot());
   }
 
-#ifdef JS_SANDBOX
-  emitStoreElementTyped(store->value(), store->mir()->value()->type(), elements,
-                        index, temp);
-#else
   emitStoreElementTyped(store->value(), store->mir()->value()->type(), elements,
                         index);
-#endif
 }
 
 void CodeGenerator::visitStoreElementV(LStoreElementV* lir) {
@@ -12459,19 +12416,12 @@ void CodeGenerator::visitStoreElementV(LStoreElementV* lir) {
 void CodeGenerator::visitStoreHoleValueElement(LStoreHoleValueElement* lir) {
   Register elements = ToRegister(lir->elements());
   Register index = ToRegister(lir->index());
-#ifdef JS_SANDBOX
-  Register temp = ToRegister(lir->temp0());
-#endif
 
   Address elementsFlags(elements, ObjectElements::offsetOfFlags());
   masm.or32(Imm32(ObjectElements::NON_PACKED), elementsFlags);
 
   BaseObjectElementIndex element(elements, index);
-#ifdef JS_SANDBOX
-  masm.storeValue(MagicValue(JS_ELEMENTS_HOLE), element, temp);
-#else
   masm.storeValue(MagicValue(JS_ELEMENTS_HOLE), element);
-#endif
 }
 
 void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
@@ -12489,13 +12439,8 @@ void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
   emitPreBarrier(elements, lir->index());
 
   masm.bind(ool->rejoin());
-#ifdef JS_SANDBOX
-  emitStoreElementTyped(lir->value(), lir->mir()->value()->type(), elements,
-                        lir->index(), temp);
-#else
   emitStoreElementTyped(lir->value(), lir->mir()->value()->type(), elements,
                         lir->index());
-#endif
 
   if (ValueNeedsPostBarrier(lir->mir()->value())) {
     LiveRegisterSet regs = liveVolatileRegs(lir);
@@ -13044,12 +12989,7 @@ CodeGenerator::RegisterOrInt32 CodeGenerator::ToRegisterOrInt32(
 void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
   RegisterOrInt32 begin = ToRegisterOrInt32(lir->begin());
   RegisterOrInt32 count = ToRegisterOrInt32(lir->count());
-#ifdef JS_SANDBOX
-  Register temp = ToRegister(lir->temp0());
-  Register temp1 = ToRegister(lir->temp1());
-#else
   Register temp = ToRegister(lir->temp());
-#endif
   Register output = ToRegister(lir->output());
 
   uint32_t numActuals = lir->mir()->numActuals();
@@ -13080,21 +13020,12 @@ void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
                                 lir->mir()->getArg(i)->type());
   };
 
-#ifdef JS_SANDBOX
-  auto storeArg = [&](uint32_t i, auto dest, Register scratch = ScratchReg) {
-    // We don't need a pre-barrier because the element at |index| is guaranteed
-    // to be a non-GC thing (either uninitialized memory or the magic hole
-    // value).
-    masm.storeConstantOrRegister(getArg(i), dest, scratch);
-  };
-#else
   auto storeArg = [&](uint32_t i, auto dest) {
     // We don't need a pre-barrier because the element at |index| is guaranteed
     // to be a non-GC thing (either uninitialized memory or the magic hole
     // value).
     masm.storeConstantOrRegister(getArg(i), dest);
   };
-#endif
 
   // Initialize all elements.
   if (numActuals == 1) {
@@ -13130,11 +13061,7 @@ void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
       Label next;
       masm.branch32(Assembler::NotEqual, argIndex, Imm32(i), &next);
 
-#ifdef JS_SANDBOX
-      storeArg(i, BaseObjectElementIndex(elements, index), temp1);
-#else
       storeArg(i, BaseObjectElementIndex(elements, index));
-#endif
 
       masm.add32(Imm32(1), index);
       masm.add32(Imm32(1), argIndex);
@@ -16212,12 +16139,12 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
     masm.switchToRealm(getterRealm, JSContextReg);
   }
 
-  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(JSContextReg);
+  uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
                           ExitFrameType::IonDOMGetter);
 
-  markSafepointAt(safepointOffsets, ins);
+  markSafepointAt(safepointOffset, ins);
 
   masm.setupAlignedABICall();
   masm.loadJSContext(JSContextReg);
@@ -16333,12 +16260,12 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
     masm.switchToRealm(setterRealm, JSContextReg);
   }
 
-  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(JSContextReg);
+  uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
                           ExitFrameType::IonDOMSetter);
 
-  markSafepointAt(safepointOffsets, ins);
+  markSafepointAt(safepointOffset, ins);
 
   masm.setupAlignedABICall();
   masm.loadJSContext(JSContextReg);
@@ -16997,9 +16924,9 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
 void CodeGenerator::visitOutOfLineResumableWasmTrap(
     OutOfLineResumableWasmTrap* ool) {
   LInstruction* lir = ool->lir();
-  auto trapOffsets = masm.wasmTrap(ool->trap(), ool->bytecodeOffset(), true);
+  masm.wasmTrap(ool->trap(), ool->bytecodeOffset());
 
-  markSafepointAt(std::pair(trapOffsets.first, masm.currentOffset()), lir);
+  markSafepoint(lir);
 
   // Note that masm.framePushed() doesn't include the register dump area.
   // That will be taken into account when the StackMap is created from the
@@ -18457,10 +18384,10 @@ void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
 
   Register scratch = ToRegister(lir->temp());
 
-  std::pair<uint32_t, uint32_t> callOffsets;
+  uint32_t callOffset;
   ensureOsiSpace();
   GenerateDirectCallFromJit(masm, funcExport, instObj->instance(), stackArgs,
-                            scratch, &callOffsets);
+                            scratch, &callOffset);
 
   // Add the instance object to the constant pool, so it is transferred to
   // the owning IonScript and so that it gets traced as long as the IonScript
@@ -18469,7 +18396,7 @@ void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
   uint32_t unused;
   masm.propagateOOM(graph.addConstantToPool(ObjectValue(*instObj), &unused));
 
-  markSafepointAt(callOffsets, lir);
+  markSafepointAt(callOffset, lir);
 }
 
 void CodeGenerator::visitIonToWasmCall(LIonToWasmCall* lir) {

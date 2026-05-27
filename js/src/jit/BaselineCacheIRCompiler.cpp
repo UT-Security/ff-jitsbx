@@ -3183,7 +3183,8 @@ void BaselineCacheIRCompiler::loadStackObject(ArgumentKind kind,
   }
 }
 
-void BaselineCacheIRCompiler::storeThis(const ValueOperand& newThis, Register argcReg,
+template <typename T>
+void BaselineCacheIRCompiler::storeThis(const T& newThis, Register argcReg,
                                         CallFlags flags) {
   switch (flags.getArgFormat()) {
     case CallFlags::Standard: {
@@ -3204,52 +3205,6 @@ void BaselineCacheIRCompiler::storeThis(const ValueOperand& newThis, Register ar
       MOZ_CRASH("Invalid arg format for scripted constructor");
   }
 }
-
-#ifdef JS_SANDBOX
-void BaselineCacheIRCompiler::storeThis(const Value& newThis, Register argcReg,
-                                        CallFlags flags, Register scratch) {
-  switch (flags.getArgFormat()) {
-    case CallFlags::Standard: {
-      BaseValueIndex thisAddress(
-          FramePointer,
-          argcReg,                               // Arguments
-          1 * sizeof(Value) +                    // NewTarget
-              BaselineStubFrameLayout::Size());  // Stub frame
-      masm.storeValue(newThis, thisAddress, scratch);
-    } break;
-    case CallFlags::Spread: {
-      Address thisAddress(FramePointer,
-                          2 * sizeof(Value) +  // Arg array, NewTarget
-                              BaselineStubFrameLayout::Size());  // Stub frame
-      masm.storeValue(newThis, thisAddress);
-    } break;
-    default:
-      MOZ_CRASH("Invalid arg format for scripted constructor");
-  }
-}
-#else
-void BaselineCacheIRCompiler::storeThis(const Value& newThis, Register argcReg,
-                                        CallFlags flags) {
-  switch (flags.getArgFormat()) {
-    case CallFlags::Standard: {
-      BaseValueIndex thisAddress(
-          FramePointer,
-          argcReg,                               // Arguments
-          1 * sizeof(Value) +                    // NewTarget
-              BaselineStubFrameLayout::Size());  // Stub frame
-      masm.storeValue(newThis, thisAddress);
-    } break;
-    case CallFlags::Spread: {
-      Address thisAddress(FramePointer,
-                          2 * sizeof(Value) +  // Arg array, NewTarget
-                              BaselineStubFrameLayout::Size());  // Stub frame
-      masm.storeValue(newThis, thisAddress);
-    } break;
-    default:
-      MOZ_CRASH("Invalid arg format for scripted constructor");
-  }
-}
-#endif
 
 /*
  * Scripted constructors require a |this| object to be created prior to the
@@ -3268,11 +3223,7 @@ void BaselineCacheIRCompiler::createThis(Register argcReg, Register calleeReg,
   MOZ_ASSERT(flags.isConstructing());
 
   if (flags.needsUninitializedThis()) {
-#ifdef JS_SANDBOX
-    storeThis(MagicValue(JS_UNINITIALIZED_LEXICAL), argcReg, flags, scratch);
-#else
     storeThis(MagicValue(JS_UNINITIALIZED_LEXICAL), argcReg, flags);
-#endif
     return;
   }
 

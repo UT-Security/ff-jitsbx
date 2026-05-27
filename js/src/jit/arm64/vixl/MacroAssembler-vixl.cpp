@@ -1174,14 +1174,14 @@ void MacroAssembler::AddSubWithCarryMacro(const Register& rd,
 
 
 #define DEFINE_FUNCTION(FN, REGTYPE, REG, OP)                         \
-void MacroAssembler::FN(const REGTYPE REG, const MemOperand& addr) {  \
-  LoadStoreMacro(REG, addr, OP);                                      \
+js::jit::CodeOffset MacroAssembler::FN(const REGTYPE REG, const MemOperand& addr) {  \
+  return LoadStoreMacro(REG, addr, OP);                                      \
 }
 LS_MACRO_LIST(DEFINE_FUNCTION)
 #undef DEFINE_FUNCTION
 
 
-void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
+js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
                                     const MemOperand& addr,
                                     LoadStoreOp op) {
   // Worst case is ldr/str pre/post index:
@@ -1193,6 +1193,7 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
   int64_t offset = addr.offset();
   unsigned access_size = CalcLSDataSize(op);
 
+  js::jit::CodeOffset co;
   // Check if an immediate offset fits in the immediate field of the
   // appropriate instruction. If not, emit two instructions to perform
   // the operation.
@@ -1205,19 +1206,35 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     VIXL_ASSERT(!temp.Is(rt));
     VIXL_ASSERT(!temp.Is(addr.base()) && !temp.Is(addr.regoffset()));
     Mov(temp, addr.offset());
-    LoadStore(rt, MemOperand(addr.base(), temp), op);
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base(), temp), op);
+    }
   } else if (addr.IsPostIndex() && !IsImmLSUnscaled(offset)) {
     // Post-index beyond unscaled addressing range.
-    LoadStore(rt, MemOperand(addr.base()), op);
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
     Add(addr.base(), addr.base(), Operand(offset));
   } else if (addr.IsPreIndex() && !IsImmLSUnscaled(offset)) {
     // Pre-index beyond unscaled addressing range.
     Add(addr.base(), addr.base(), Operand(offset));
-    LoadStore(rt, MemOperand(addr.base()), op);
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
   } else {
     // Encodable in one load/store instruction.
+    js::jit::AutoForbidPoolsAndNops afp(this, 1);
+    co = js::jit::CodeOffset(currentOffset());
     LoadStore(rt, addr, op);
   }
+
+  return co;
 }
 
 

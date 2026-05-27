@@ -225,16 +225,6 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
 #endif
 
   masm.nopAlign(js::jit::CodeAlignment);
-#ifdef JS_SANDBOX
-  masm.bind(theTable);
-  for (const auto& label : labels) {
-    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
-    CodeLabel cl;
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(label.offset());
-    masm.addCodeLabel(cl);
-  }
-#else
   masm.bind(theTable);
   for (const auto& label : labels) {
     CodeLabel cl;
@@ -245,7 +235,6 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
     cl.target()->bind(label.offset());
     masm.addCodeLabel(cl);
   }
-#endif
 }
 
 void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
@@ -253,15 +242,6 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.bind(dispatchCode);
 
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
-#ifdef JS_SANDBOX
-  ScratchI32 scratch(*this);
-  CodeLabel tableCl;
-  masm.mov(&tableCl, scratch);
-  tableCl.target()->bind(theTable->offset());
-  masm.addCodeLabel(tableCl);
-  masm.leal(Operand(switchValue, switchValue, TimesOne), switchValue);
-  masm.jump(BaseIndex(scratch, switchValue, ScalePointer, js::jit::CodeAlignment/4, true /* clobber scratch */));
-#else
   ScratchI32 scratch(*this);
   CodeLabel tableCl;
 
@@ -272,7 +252,6 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
 
   masm.jump(BaseIndex(scratch, switchValue, ScalePointer, 0,
                       true /* clobber scratch */));
-#endif
 #elif defined(JS_CODEGEN_ARM)
   // Flush constant pools: offset must reflect the distance from the MOV
   // to the start of the table; as the address of the MOV is given by the
@@ -1592,13 +1571,13 @@ void BaseCompiler::passArg(ValType type, const Stk& arg, FunctionCall* call) {
 CodeOffset BaseCompiler::callDefinition(uint32_t funcIndex,
                                         const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Func);
-  return masm.call(desc, funcIndex).second;
+  return masm.call(desc, funcIndex);
 }
 
 CodeOffset BaseCompiler::callSymbolic(SymbolicAddress callee,
                                       const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
-  return masm.call(desc, callee).second;
+  return masm.call(desc, callee);
 }
 
 // Precondition: sync()
@@ -1646,11 +1625,8 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
   }
   nullCheckFailed = nullref->entry();
 #endif
-  std::pair<CodeOffset, CodeOffset> tmpFastOffsets, tmpSlowOffsets;
   masm.wasmCallIndirect(desc, callee, oob->entry(), nullCheckFailed,
-                        mozilla::Nothing(), &tmpFastOffsets, &tmpSlowOffsets);
-  *fastCallOffset = tmpFastOffsets.second;
-  *slowCallOffset = tmpSlowOffsets.second;
+                        mozilla::Nothing(), fastCallOffset, slowCallOffset);
   return true;
 }
 
@@ -1672,7 +1648,7 @@ CodeOffset BaseCompiler::callImport(unsigned instanceDataOffset,
                                     const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Import);
   CalleeDesc callee = CalleeDesc::import(instanceDataOffset);
-  return masm.wasmCallImport(desc, callee).second;
+  return masm.wasmCallImport(desc, callee);
 }
 
 CodeOffset BaseCompiler::builtinCall(SymbolicAddress builtin,
@@ -1689,7 +1665,7 @@ CodeOffset BaseCompiler::builtinInstanceMethodCall(
 #endif
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
   return masm.wasmCallBuiltinInstanceMethod(desc, instanceArg, builtin.identity,
-                                            builtin.failureMode).second;
+                                            builtin.failureMode);
 }
 
 bool BaseCompiler::pushCallResults(const FunctionCall& call, ResultType type,

@@ -1353,7 +1353,7 @@ void MacroAssembler::call(JitCode* c) {
   // eg testcase: arrays/new-array-undefined-undefined-more-args-2.js
   syncStackPtr();
   BufferOffset off = immPool64(scratch64, uint64_t(c->raw()));
-  addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE);
+  addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE, c);
   blr(scratch64);
 }
 
@@ -1663,7 +1663,7 @@ void MacroAssembler::moveValue(const Value& src, const ValueOperand& dest) {
 
   BufferOffset load =
       movePatchablePtr(ImmPtr(src.bitsAsPunboxPointer()), dest.valueReg());
-  writeDataRelocation(src, load);
+  writeDataSection(src, load);
 }
 
 // ===============================================================

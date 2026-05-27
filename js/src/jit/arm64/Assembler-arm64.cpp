@@ -85,7 +85,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 namespace js {
 namespace jit {
 
-void Assembler::finish() {
+void Assembler::finish(bool dataIsExec) {
   armbuffer_.flushPool();
 
   // The extended jump table is part of the code buffer.
@@ -172,6 +172,26 @@ BufferOffset Assembler::emitExtendedJumpTable() {
   }
 
   return tableOffset;
+}
+
+void Assembler::copyDataSection(uint8_t* dest) {
+  size_t index = 0;
+
+  for (size_t i = 0; i < dataValueSection_.length(); i++) {
+    *reinterpret_cast<Value*>(&dest[index]) = dataValueSection_[i].second;
+    index += sizeof(Value);
+  }
+
+  for (size_t i = 0; i < dataGCSection_.length(); i++) {
+    *reinterpret_cast<const gc::Cell**>(&dest[index]) =
+      dataGCSection_[i].second.value;
+    index += sizeof(gc::Cell*);
+  }
+
+  for (size_t i = 0; i < dataJitSection_.length(); i++) {
+    *reinterpret_cast<JitCode**>(&dest[index]) = dataJitSection_[i];
+    index += sizeof(JitCode*);
+  }
 }
 
 void Assembler::executableCopy(uint8_t* buffer) {
@@ -303,11 +323,13 @@ void Assembler::bind(Label* label, BufferOffset targetOffset) {
 }
 
 void Assembler::addPendingJump(BufferOffset src, ImmPtr target,
-                               RelocationKind reloc) {
+                               RelocationKind reloc, JitCode* code) {
   MOZ_ASSERT(target.value != nullptr);
 
   if (reloc == RelocationKind::JITCODE) {
-    jumpRelocations_.writeUnsigned(src.getOffset());
+    MOZ_ASSERT(code);
+    MOZ_ASSERT(code->raw() == target.value);
+    writeDataSection(code);
   }
 
   // This jump is not patchable at runtime. Extended jump table entry
@@ -513,7 +535,29 @@ static JitCode* CodeFromJump(JitCode* code, uint8_t* jump) {
   return JitCode::FromExecutable(target);
 }
 
-void Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code,
+void Assembler::TraceDataSection(JSTracer* trc, JitCode* code) {
+  uintptr_t* words = reinterpret_cast<uintptr_t*>(code->dataSection());
+#ifdef JS_PUNBOX64
+  Value* values = reinterpret_cast<Value*>(words);
+#endif
+  gc::Cell** cells = reinterpret_cast<gc::Cell**>(words);
+
+  for (size_t i = 0; i < code->dataSectionEntries(); i++) {
+#ifdef JS_PUNBOX64
+    if (words[i] >> JSVAL_TAG_SHIFT) {
+      MOZ_ASSERT_IF(values[i].isGCThing(),
+        gc::IsCellPointerValid(values[i].toGCThing()));
+      TraceManuallyBarrieredEdge(trc, &values[i], "jit-masm-value");
+      continue;
+    }
+#endif
+
+    MOZ_ASSERT(gc::IsCellPointerValid(cells[i]));
+    TraceManuallyBarrieredGenericPointerEdge(trc, &cells[i], "jit-masm-ptr");
+  }
+}
+
+/*void Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code,
                                      CompactBufferReader& reader) {
   RelocationIterator iter(reader);
   while (iter.read()) {
@@ -521,10 +565,10 @@ void Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code,
     TraceManuallyBarrieredEdge(trc, &child, "rel32");
     MOZ_ASSERT(child == CodeFromJump(code, code->raw() + iter.offset()));
   }
-}
+}*/
 
 /* static */
-void Assembler::TraceDataRelocations(JSTracer* trc, JitCode* code,
+/*void Assembler::TraceDataRelocations(JSTracer* trc, JitCode* code,
                                      CompactBufferReader& reader) {
   mozilla::Maybe<AutoWritableJitCode> awjc;
 
@@ -571,7 +615,7 @@ void Assembler::TraceDataRelocations(JSTracer* trc, JitCode* code,
       *literalAddr = uintptr_t(cell);
     }
   }
-}
+}*/
 
 void Assembler::retarget(Label* label, Label* target) {
 #ifdef JS_DISASM_ARM64

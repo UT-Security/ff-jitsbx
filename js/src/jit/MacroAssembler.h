@@ -613,33 +613,33 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   // The returned CodeOffset is the assembler offset for the instruction
   // immediately following the call; that is, for the return point.
-  std::pair<CodeOffset, CodeOffset> call(Register reg) PER_SHARED_ARCH;
+  CodeOffset call(Register reg) PER_SHARED_ARCH;
   CodeOffset call(Label* label) PER_SHARED_ARCH;
 
   void call(const Address& addr) PER_SHARED_ARCH;
   void call(ImmWord imm) PER_SHARED_ARCH;
   // Call a target native function, which is neither traceable nor movable.
-  std::pair<uint32_t, uint32_t> call(ImmPtr imm) PER_SHARED_ARCH;
-  std::pair<CodeOffset, CodeOffset> call(wasm::SymbolicAddress imm) PER_SHARED_ARCH;
-  inline std::pair<CodeOffset, CodeOffset> call(const wasm::CallSiteDesc& desc,
+  void call(ImmPtr imm) PER_SHARED_ARCH;
+  CodeOffset call(wasm::SymbolicAddress imm) PER_SHARED_ARCH;
+  inline CodeOffset call(const wasm::CallSiteDesc& desc,
                          wasm::SymbolicAddress imm);
 
   // Call a target JitCode, which must be traceable, and may be movable.
   void call(JitCode* c) PER_SHARED_ARCH;
 
-  inline std::pair<uint32_t, uint32_t> call(TrampolinePtr code);
+  inline void call(TrampolinePtr code);
 
-  inline std::pair<CodeOffset, CodeOffset> call(const wasm::CallSiteDesc& desc, const Register reg);
-  inline std::pair<CodeOffset, CodeOffset> call(const wasm::CallSiteDesc& desc, uint32_t funcDefIndex);
+  inline CodeOffset call(const wasm::CallSiteDesc& desc, const Register reg);
+  inline CodeOffset call(const wasm::CallSiteDesc& desc, uint32_t funcDefIndex);
   inline void call(const wasm::CallSiteDesc& desc, wasm::Trap trap);
 
-  std::pair<CodeOffset, CodeOffset> callWithPatch() PER_SHARED_ARCH;
+  CodeOffset callWithPatch() PER_SHARED_ARCH;
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) PER_SHARED_ARCH;
 
   // Push the return address and make a call. On platforms where this function
   // is not defined, push the link register (pushReturnAddress) at the entry
   // point of the callee.
-  std::pair<uint32_t, uint32_t> callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
+  void callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
   void callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
 
   // These do not adjust framePushed().
@@ -893,10 +893,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // These functions return the offset of the return address, in order to use
   // the return address to index the safepoints, which are used to list all
   // live registers.
-  inline std::pair<uint32_t, uint32_t> callJitNoProfiler(Register callee);
-  inline std::pair<uint32_t, uint32_t> callJit(Register callee);
+  inline uint32_t callJitNoProfiler(Register callee);
+  inline uint32_t callJit(Register callee);
   inline uint32_t callJit(JitCode* code);
-  inline std::pair<uint32_t, uint32_t> callJit(TrampolinePtr code);
+  inline uint32_t callJit(TrampolinePtr code);
   inline uint32_t callJit(ImmPtr callee);
 
   // The frame descriptor is the second field of all Jit frames, pushed before
@@ -937,14 +937,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
   //
   // This function should be balanced with a call to adjustStack, to pop the
   // exit frame and emulate the return statement of the inlined function.
-  inline std::pair<uint32_t, uint32_t> buildFakeExitFrame(Register scratch);
+  inline uint32_t buildFakeExitFrame(Register scratch);
 
  private:
   // This function is used by buildFakeExitFrame to push a fake return address
   // on the stack. This fake return address should never be used for resuming
   // any execution, and can even be an invalid pointer into the instruction
   // stream, as long as it does not alias any other.
-  std::pair<uint32_t, uint32_t> pushFakeReturnAddress(Register scratch) PER_SHARED_ARCH;
+  uint32_t pushFakeReturnAddress(Register scratch) PER_SHARED_ARCH;
 
  public:
   // ===============================================================
@@ -2222,15 +2222,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <class T>
   inline void storeFloat32(FloatRegister src, const T& dest);
 
-#ifdef JS_SANDBOX
-  template <typename T>
-  void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
-                         const T& dest, Register scratch = ScratchReg) PER_ARCH;
-#else
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest) PER_ARCH;
-#endif
 
   inline void memoryBarrier(MemoryBarrierBits barrier) PER_SHARED_ARCH;
 
@@ -3642,9 +3636,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ========================================================================
   // wasm support
 
-  std::pair<CodeOffset, CodeOffset> wasmTrapInstruction(bool resumable = false) PER_SHARED_ARCH;
+  CodeOffset wasmTrapInstruction() PER_SHARED_ARCH;
 
-  std::pair<uint32_t, uint32_t> wasmTrap(wasm::Trap trap, wasm::BytecodeOffset bytecodeOffset, bool resumable = false);
+  void wasmTrap(wasm::Trap trap, wasm::BytecodeOffset bytecodeOffset);
 
   // Load all pinned regs via InstanceReg.  If the trapOffset is something,
   // give the first load a trap descriptor with type IndirectCallToNull, so that
@@ -3828,7 +3822,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // This function takes care of loading the callee's instance and pinned regs
   // but it is the caller's responsibility to save/restore instance or pinned
   // regs.
-  std::pair<CodeOffset, CodeOffset> wasmCallImport(const wasm::CallSiteDesc& desc,
+  CodeOffset wasmCallImport(const wasm::CallSiteDesc& desc,
                             const wasm::CalleeDesc& callee);
 
   // WasmTableCallIndexReg must contain the index of the indirect call.  This is
@@ -3848,25 +3842,25 @@ class MacroAssembler : public MacroAssemblerSpecific {
                         Label* boundsCheckFailedLabel,
                         Label* nullCheckFailedLabel,
                         mozilla::Maybe<uint32_t> tableSize,
-                        std::pair<CodeOffset, CodeOffset>* fastCallOffset,
-                        std::pair<CodeOffset, CodeOffset>* slowCallOffset);
+                        CodeOffset* fastCallOffset,
+                        CodeOffset* slowCallOffset);
 
   // This function takes care of loading the callee's instance and address from
   // pinned reg.
   void wasmCallRef(const wasm::CallSiteDesc& desc,
                    const wasm::CalleeDesc& callee,
-                   std::pair<CodeOffset, CodeOffset>* fastCallOffset,
-                   std::pair<CodeOffset, CodeOffset>* slowCallOffset);
+                   CodeOffset* fastCallOffset,
+                   CodeOffset* slowCallOffset);
 
   // WasmTableCallIndexReg must contain the index of the indirect call.
   // This is for asm.js calls only.
-  std::pair<CodeOffset, CodeOffset> asmCallIndirect(const wasm::CallSiteDesc& desc,
+  CodeOffset asmCallIndirect(const wasm::CallSiteDesc& desc,
                              const wasm::CalleeDesc& callee);
 
   // This function takes care of loading the pointer to the current instance
   // as the implicit first argument. It preserves instance and pinned registers.
   // (instance & pinned regs are non-volatile registers in the system ABI).
-  std::pair<CodeOffset, CodeOffset> wasmCallBuiltinInstanceMethod(const wasm::CallSiteDesc& desc,
+  CodeOffset wasmCallBuiltinInstanceMethod(const wasm::CallSiteDesc& desc,
                                            const ABIArg& instanceArg,
                                            wasm::SymbolicAddress builtin,
                                            wasm::FailureMode failureMode);
@@ -4730,37 +4724,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
     }
   }
 
-#ifdef JS_SANDBOX
-  template <typename T>
-  void storeTypedOrValue(TypedOrValueRegister src, const T& dest,
-                         Register scratch = ScratchReg) {
-    if (src.hasValue()) {
-      storeValue(src.valueReg(), dest);
-    } else if (IsFloatingPointType(src.type())) {
-      FloatRegister reg = src.typedReg().fpu();
-      if (src.type() == MIRType::Float32) {
-        ScratchDoubleScope fpscratch(*this);
-        convertFloat32ToDouble(reg, fpscratch);
-        boxDouble(fpscratch, dest);
-      } else {
-        boxDouble(reg, dest);
-      }
-    } else {
-      storeValue(ValueTypeFromMIRType(src.type()), src.typedReg().gpr(), dest,
-                 scratch);
-    }
-  }
-
-  template <typename T>
-  void storeConstantOrRegister(const ConstantOrRegister& src, const T& dest,
-                               Register scratch = ScratchReg) {
-    if (src.constant()) {
-      storeValue(src.value(), dest, scratch);
-    } else {
-      storeTypedOrValue(src.reg(), dest, scratch);
-    }
-  }
-#else
   template <typename T>
   void storeTypedOrValue(TypedOrValueRegister src, const T& dest) {
     if (src.hasValue()) {
@@ -4787,7 +4750,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
       storeTypedOrValue(src.reg(), dest);
     }
   }
-#endif
 
   void storeCallPointerResult(Register reg) {
     if (reg != ReturnReg) {
