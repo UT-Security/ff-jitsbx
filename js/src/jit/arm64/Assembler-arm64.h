@@ -352,6 +352,21 @@ static constexpr Register PseudoStackPointer{Registers::x20};
 static constexpr ARMRegister PseudoStackPointer64 = {Registers::x20, 64};
 static constexpr ARMRegister PseudoStackPointer32 = {Registers::x20, 32};
 
+#ifdef JS_SANDBOX
+static constexpr Register SandboxOffsetReg{Registers::x24};
+static constexpr ARMRegister SandboxOffsetReg64 = {Registers::x24, 64};
+
+static constexpr Register SandboxTemporaryReg{Registers::x26};
+static constexpr ARMRegister SandboxTemporaryReg64 = {Registers::x26, 64};
+
+static constexpr Register SandboxBaseReg{Registers::x27};
+static constexpr ARMRegister SandboxBaseReg64 = {Registers::x27, 64};
+
+static constexpr Register SandboxAddressReg{Registers::x28};
+static constexpr ARMRegister SandboxAddressReg64 = {Registers::x28, 64};
+static constexpr ARMRegister SandboxAddressReg32 = {Registers::x28, 32};
+#endif
+
 static constexpr Register IntArgReg0{Registers::x0};
 static constexpr Register IntArgReg1{Registers::x1};
 static constexpr Register IntArgReg2{Registers::x2};

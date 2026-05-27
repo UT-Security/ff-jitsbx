@@ -543,6 +543,10 @@ static const LiveRegisterSet NonVolatileRegs = LiveRegisterSet(
 // Include d31 (scratch) to make a 16-byte aligned amount of floating registers.
 static const LiveRegisterSet NonVolatileRegs = LiveRegisterSet(
     GeneralRegisterSet((Registers::NonVolatileMask &
+#ifdef JS_SANDBOX
+  ~(Registers::SetType(1) << Registers::x24 | Registers::SetType(1) << Registers::x25 |
+    Registers::SetType(1) << Registers::x27 | Registers::SetType(1) << Registers::x28) &
+#endif
                         ~(Registers::SetType(1) << Registers::lr)) |
                        (Registers::SetType(1) << Registers::x16)),
     FloatRegisterSet(FloatRegisters::NonVolatileMask |
@@ -2656,6 +2660,10 @@ static const LiveRegisterSet RegsToPreserve(
 static const LiveRegisterSet RegsToPreserve(
     GeneralRegisterSet(Registers::AllMask &
                        ~((Registers::SetType(1) << RealStackPointer.code()) |
+#ifdef JS_SANDBOX
+    (Registers::SetType(1) << Registers::x24) | (Registers::SetType(1) << Registers::x26) |
+    (Registers::SetType(1) << Registers::x27) | (Registers::SetType(1) << Registers::x28) |
+#endif
                          (Registers::SetType(1) << Registers::lr))),
 #  ifdef ENABLE_WASM_SIMD
     FloatRegisterSet(FloatRegisters::AllSimd128Mask));

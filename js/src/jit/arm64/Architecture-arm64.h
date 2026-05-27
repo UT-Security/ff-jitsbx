@@ -172,7 +172,11 @@ class Registers {
   static const uint32_t Total = 32;
   static const uint32_t TotalPhys = 32;
   static const uint32_t Allocatable =
+#ifdef JS_SANDBOX
+      23;  // Sandbox base, address, offset and temporary registers.
+#else
       27;  // No named special-function registers.
+#endif
 
   static const SetType AllMask = 0xFFFFFFFF;
   static const SetType NoneMask = 0x0;
@@ -199,6 +203,13 @@ class Registers {
 
   static const SetType NonAllocatableMask =
       (1 << Registers::x20) |  // PseudoStackPointer.
+#ifdef JS_SANDBOX
+      (1 << Registers::x24) |  // Sandbox offset.
+      (1 << Registers::x25) |  // Sandbox context.
+      (1 << Registers::x26) |  // Sandbox temporary.
+      (1 << Registers::x27) |  // Sandbox base.
+      (1 << Registers::x28) |  // Sandbox address.
+#endif
       (1 << Registers::ip0) |  // First scratch register.
       (1 << Registers::ip1) |  // Second scratch register.
       (1 << Registers::tls) | (1 << Registers::lr) | (1 << Registers::sp) |

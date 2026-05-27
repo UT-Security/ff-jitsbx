@@ -52,9 +52,14 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Save callee-save integer registers.
   // Also save x7 (reg_vp) and x30 (lr), for use later.
+#ifdef JS_SANDBOX
+  masm.push(r19, r20, r21, r22);
+  masm.push(r23, r7);
+#else
   masm.push(r19, r20, r21, r22);
   masm.push(r23, r24, r25, r26);
   masm.push(r27, r28, r7, r30);
+#endif
 
   // Save callee-save floating-point registers.
   // AArch64 ABI specifies that only the lower 64 bits must be saved.
@@ -63,9 +68,9 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
 #ifdef DEBUG
   // Emit stack canaries.
-  masm.movePtr(ImmWord(0xdeadd00d), r23);
-  masm.movePtr(ImmWord(0xdeadd11d), r24);
-  masm.push(r23, r24);
+  masm.movePtr(ImmWord(0xdeadd00d), r22);
+  masm.movePtr(ImmWord(0xdeadd11d), r23);
+  masm.push(r22, r23);
 #endif
 
   // Common code below attempts to push single registers at a time,
@@ -111,7 +116,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.andToStackPtr(Imm32(~0xf));
   // We needn't worry about the Gecko Profiler mark because touchFrameValues
   // touches in large increments.
-  masm.touchFrameValues(reg_argc, r28, r21);
+  masm.touchFrameValues(reg_argc, r22, r21);
   // Restore stack pointer, preserved above.
   masm.moveToStackPtr(r19);
 
@@ -149,11 +154,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&loopHead);
 
       // Load an argument from argv, then increment argv by 8.
-      masm.Ldr(x24, MemOperand(ARMRegister(reg_argv, 64), Operand(8),
+      masm.Ldr(x22, MemOperand(ARMRegister(reg_argv, 64), Operand(8),
                                vixl::PostIndex));
 
       // Store the argument to tmp_sp, then increment tmp_sp by 8.
-      masm.Str(x24, MemOperand(tmp_sp, Operand(8), vixl::PostIndex));
+      masm.Str(x22, MemOperand(tmp_sp, Operand(8), vixl::PostIndex));
 
       // Decrement tmp_argc and set the condition codes for the new value.
       masm.Subs(tmp_argc, tmp_argc, Operand(1));
@@ -285,10 +290,18 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Discard arguments and padding. Set sp to the address of the saved
   // registers. In debug builds we have to include the two stack canaries
   // checked below.
+#ifdef JS_SANDBOX
+#ifdef DEBUG
+  static constexpr size_t SavedRegSize = 16 * sizeof(void*);
+#else
+  static constexpr size_t SavedRegSize = 14 * sizeof(void*);
+#endif
+#else
 #ifdef DEBUG
   static constexpr size_t SavedRegSize = 22 * sizeof(void*);
 #else
   static constexpr size_t SavedRegSize = 20 * sizeof(void*);
+#endif
 #endif
   masm.computeEffectiveAddress(Address(FramePointer, -int32_t(SavedRegSize)),
                                masm.getStackPointer());
@@ -298,16 +311,16 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
 #ifdef DEBUG
   // Check that canaries placed on function entry are still present.
-  masm.pop(r24, r23);
-  Label x23OK, x24OK;
+  masm.pop(r23, r22);
+  Label x22OK, x23OK;
 
-  masm.branchPtr(Assembler::Equal, r23, ImmWord(0xdeadd00d), &x23OK);
+  masm.branchPtr(Assembler::Equal, r22, ImmWord(0xdeadd00d), &x22OK);
+  masm.breakpoint();
+  masm.bind(&x22OK);
+
+  masm.branchPtr(Assembler::Equal, r23, ImmWord(0xdeadd11d), &x23OK);
   masm.breakpoint();
   masm.bind(&x23OK);
-
-  masm.branchPtr(Assembler::Equal, r24, ImmWord(0xdeadd11d), &x24OK);
-  masm.breakpoint();
-  masm.bind(&x24OK);
 #endif
 
   // Restore callee-save floating-point registers.
@@ -316,9 +329,14 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore callee-save integer registers.
   // Also restore x7 (reg_vp) and x30 (lr).
+#ifdef JS_SANDBOX
+  masm.pop(r7, r23);
+  masm.pop(r22, r21, r20, r19);
+#else
   masm.pop(r30, r7, r28, r27);
   masm.pop(r26, r25, r24, r23);
   masm.pop(r22, r21, r20, r19);
+#endif
 
   // Store return value (in JSReturnReg = x2 to just-popped reg_vp).
   masm.storeValue(JSReturnOperand, Address(reg_vp, 0));
