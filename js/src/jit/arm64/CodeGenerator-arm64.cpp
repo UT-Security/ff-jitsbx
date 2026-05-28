@@ -1144,14 +1144,18 @@ void CodeGeneratorARM64::visitOutOfLineTableSwitch(OutOfLineTableSwitch* ool) {
   for (size_t i = 0; i < mir->numCases(); i++) {
     LBlock* caseblock = skipTrivialBlocks(mir->getCase(i))->lir();
     Label* caseheader = caseblock->label();
-    uint32_t caseoffset = caseheader->offset();
 
+#ifdef JS_SANDBOX
+    masm.jump(caseheader);
+#else
+    uint32_t caseoffset = caseheader->offset();
     // The entries of the jump table need to be absolute addresses,
     // and thus must be patched after codegen is finished.
     CodeLabel cl;
     masm.writeCodePointer(&cl);
     cl.target()->bind(caseoffset);
     masm.addCodeLabel(cl);
+#endif
   }
 }
 
@@ -1181,10 +1185,15 @@ void CodeGeneratorARM64::emitTableSwitchDispatch(MTableSwitch* mir,
 
   // Use the index to get the address of the jump target from the table.
   masm.mov(ool->jumpLabel(), base);
+#ifdef JS_SANDBOX
+  masm.computeEffectiveAddress(BaseIndex(base, index, TimesFour), base);
+  masm.jump(base);
+#else
   BaseIndex pointer(base, index, ScalePointer);
 
   // Load the target from the jump table and branch to it.
   masm.branchToComputedAddress(pointer);
+#endif
 }
 
 void CodeGenerator::visitMathD(LMathD* math) {

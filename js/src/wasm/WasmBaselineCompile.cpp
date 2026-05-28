@@ -214,7 +214,7 @@ void BaseCompiler::checkDivideSignedOverflow(RegI64 rhs, RegI64 srcDest,
   masm.bind(&notmin);
 }
 
-void BaseCompiler::jumpTable(const LabelVector& labels, Label* theTable) {
+void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
   // Flush constant pools to ensure that the table is never interrupted by
   // constant pool entries.
   masm.flush();
@@ -225,11 +225,15 @@ void BaseCompiler::jumpTable(const LabelVector& labels, Label* theTable) {
 #endif
   masm.bind(theTable);
 
-  for (const auto& label : labels) {
+  for (auto& label : labels) {
+#ifdef JS_SANDBOX
+    masm.jump(&label);
+#else
     CodeLabel cl;
     masm.writeCodePointer(&cl);
     cl.target()->bind(label.offset());
     masm.addCodeLabel(cl);
+#endif
   }
 }
 
@@ -286,6 +290,18 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
 
   masm.branchToComputedAddress(BaseIndex(scratch, switchValue, ScalePointer));
 #elif defined(JS_CODEGEN_ARM64)
+#  ifdef JS_SANDBOX
+  AutoForbidPoolsAndNops afp(&masm,
+                             /* number of instructions in scope = */ 4);
+
+  ScratchI32 scratch(*this);
+
+  ARMRegister s(scratch, 64);
+  ARMRegister v(switchValue, 64);
+  masm.Adr(s, theTable);
+  masm.Add(s, s, Operand(v, vixl::LSL, 2));
+  masm.Br(s);
+#  else
   AutoForbidPoolsAndNops afp(&masm,
                              /* number of instructions in scope = */ 4);
 
@@ -297,6 +313,7 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.Add(s, s, Operand(v, vixl::LSL, 3));
   masm.Ldr(s, MemOperand(s, 0));
   masm.Br(s);
+#  endif
 #else
   MOZ_CRASH("BaseCompiler platform hook: tableSwitch");
 #endif

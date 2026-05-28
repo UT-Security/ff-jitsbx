@@ -6555,8 +6555,14 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     if (!tableLabels_.append(label)) {
       return false;
     }
+#ifdef JS_SANDBOX
+    masm.computeEffectiveAddress(BaseIndex(scratch2, scratch1, TimesFour),
+                                 scratch2);
+    masm.jump(scratch2);
+#else
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
     masm.branchToComputedAddress(pointer);
+#endif
   }
 
   // At the end of each op, emit code to bump the pc and jump to the
@@ -6596,8 +6602,14 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     if (!tableLabels_.append(label)) {
       return false;
     }
+#ifdef JS_SANDBOX
+    masm.computeEffectiveAddress(BaseIndex(scratch2, scratch1, TimesFour),
+                                 scratch2);
+    masm.jump(scratch2);
+#else
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
     masm.branchToComputedAddress(pointer);
+#endif
     return true;
   };
 
@@ -6664,12 +6676,16 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   tableOffset_ = masm.currentOffset();
 
   for (size_t i = 0; i < JSOP_LIMIT; i++) {
-    const Label& opLabel = opLabels[i];
+    Label& opLabel = opLabels[i];
     MOZ_ASSERT(opLabel.bound());
+#ifdef JS_SANDBOX
+    masm.jump(&opLabel);
+#else
     CodeLabel cl;
     masm.writeCodePointer(&cl);
     cl.target()->bind(opLabel.offset());
     masm.addCodeLabel(cl);
+#endif
   }
 
   return true;
