@@ -194,7 +194,7 @@ void* js::GetNativeStackBaseImpl() {
     // the truth.
     rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
   }
-#elif defined(JS_SANDBOX_LFI)
+/*#elif defined(JS_SANDBOX_LFI)
   if (gettid() == getpid()) {
     
     //WARNING(JS_SANDBOX): Hardcoding expected main thread stack size.
@@ -211,7 +211,7 @@ void* js::GetNativeStackBaseImpl() {
     // For non main-threads pthread allocates the stack itself so it tells
     // the truth.
     rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
-  }
+  }*/
 #else
   rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
 #    endif
