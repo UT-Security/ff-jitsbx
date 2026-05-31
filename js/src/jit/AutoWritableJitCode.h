@@ -35,17 +35,12 @@ class MOZ_RAII AutoWritableJitCodeFallible {
   size_t size_;
 
  public:
-  AutoWritableJitCodeFallible(JSRuntime* rt, void* addr, size_t size)
-      : rt_(rt), addr_(addr), size_(size) {
+  explicit AutoWritableJitCodeFallible(JitCode* code)
+      : rt_(code->runtimeFromMainThread()),
+        addr_((void*)((uintptr_t)code->raw() - sizeof(JitCodeHeader))),
+        size_(code->bufferSize() + sizeof(JitCodeHeader)) {
     rt_->toggleAutoWritableJitCodeActive(true);
   }
-
-  AutoWritableJitCodeFallible(void* addr, size_t size)
-      : AutoWritableJitCodeFallible(TlsContext.get()->runtime(), addr, size) {}
-
-  explicit AutoWritableJitCodeFallible(JitCode* code)
-      : AutoWritableJitCodeFallible(code->runtimeFromMainThread(), code->raw(),
-                                    code->bufferSize()) {}
 
   [[nodiscard]] bool makeWritable() {
     return ExecutableAllocator::makeWritable(addr_, size_);
@@ -70,17 +65,13 @@ class MOZ_RAII AutoWritableJitCodeFallible {
 // construction
 class MOZ_RAII AutoWritableJitCode : private AutoWritableJitCodeFallible {
  public:
-  AutoWritableJitCode(JSRuntime* rt, void* addr, size_t size)
-      : AutoWritableJitCodeFallible(rt, addr, size) {
-    MOZ_RELEASE_ASSERT(makeWritable());
-  }
-
-  AutoWritableJitCode(void* addr, size_t size)
-      : AutoWritableJitCode(TlsContext.get()->runtime(), addr, size) {}
-
   explicit AutoWritableJitCode(JitCode* code)
-      : AutoWritableJitCode(code->runtimeFromMainThread(), code->raw(),
-                            code->bufferSize()) {}
+      : AutoWritableJitCodeFallible(code) {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    if (!makeWritable()) {
+      oomUnsafe.crash("Failed to mmap. Likely no mappings available.");
+    }
+  }
 };
 
 }  // namespace js::jit
