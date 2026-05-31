@@ -21,8 +21,17 @@ static const size_t MaxCodeBytesPerProcess = 140 * 1024 * 1024;
 // asserts that is <= INT32_MAX. The INT32_MAX limit is required for making a
 // single call to RtlInstallFunctionTableCallback(). (This limit could be
 // relaxed in the future by making multiple calls.)
-static const size_t MaxCodeBytesPerProcess = 2044 * 1024 * 1024;
+static const size_t MaxCodeBytesPerProcess = 1788 * 1024 * 1024;
 #endif
+
+// When we allocate code, we also allocate a data section, which is meant to
+// remain read-write. The goal is to avoid storing constants as part of the code
+// as constants might be reinterpreted if an attacker gain random code execution
+// capabilities.
+//
+// The quantity of constants available per code pages might vary, but there is
+// roughtly a 1/10 ratio.
+static const size_t MaxDataBytesPerProcess = 256 * 1024 * 1024;
 
 // Limit on the number of bytes of code memory per buffer.  This limit comes
 // about because we encode an unresolved relative unconditional branch during
@@ -62,6 +71,12 @@ static const size_t MaxCodeBytesPerBuffer = MaxCodeBytesPerProcess;
 // alignment though.
 static const size_t ExecutableCodePageSize = 64 * 1024;
 
+// Data are also allocated in 64K chunks, to use large pages on Windows.
+// Unfortunately the ratio of data pages compared to code pages is 1/10, which
+// implies that data pages have their own data-allocator, which is managed
+// separately.
+static const size_t ReadWriteDataPageSize = 64 * 1024;
+
 enum class ProtectionSetting {
   Protected,  // Not readable, writable, or executable.
   Writable,
@@ -78,14 +93,20 @@ enum class MustFlushICache { No, Yes };
 
 // Functions called at process start-up/shutdown to initialize/release the
 // executable memory region.
-[[nodiscard]] extern bool InitProcessExecutableMemory();
-extern void ReleaseProcessExecutableMemory();
+[[nodiscard]] extern bool InitProcessJitMemory();
+extern void ReleaseProcessJitMemory();
 
-// Allocate/deallocate executable pages.
+// Allocate/deallocate executable pages with their associated data section.
 extern void* AllocateExecutableMemory(size_t bytes,
                                       ProtectionSetting protection,
                                       MemCheckKind checkKind);
 extern void DeallocateExecutableMemory(void* addr, size_t bytes);
+
+// Allocate/deallocate executable pages with their associated data section.
+extern void* AllocateReadWriteMemory(size_t bytes, ProtectionSetting protection,
+                                     MemCheckKind checkKind);
+
+extern void DeallocateReadWriteMemory(void* addr, size_t bytes);
 
 // Returns true if we can allocate a few more MB of executable code without
 // hitting our code limit. This function can be used to stop compiling things

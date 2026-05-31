@@ -30,34 +30,37 @@ namespace js::jit {
 // fail to make JIT code executable (because the creating code has no chance to
 // recover from a failed destructor).
 class MOZ_RAII AutoWritableJitCodeFallible {
-  JSRuntime* rt_;
-  void* addr_;
-  size_t size_;
+  JitCode* code_;
+
+  JSRuntime* runtime() { return code_->runtimeFromMainThread(); }
+
+  void* addr() const { return code_->executable_.xStart; }
+  size_t size() const { return code_->executable_.desc.xSize; }
+
+  void* dataAddr() const { return code_->executable_.rwStart; }
+  size_t dataSize() const { return code_->executable_.desc.rwSize; }
 
  public:
-  explicit AutoWritableJitCodeFallible(JitCode* code)
-      : rt_(code->runtimeFromMainThread()),
-        addr_((void*)((uintptr_t)code->raw() - sizeof(JitCodeHeader))),
-        size_(code->bufferSize() + sizeof(JitCodeHeader)) {
-    rt_->toggleAutoWritableJitCodeActive(true);
+  explicit AutoWritableJitCodeFallible(JitCode* code) : code_(code) {
+    runtime()->toggleAutoWritableJitCodeActive(true);
   }
 
   [[nodiscard]] bool makeWritable() {
-    return ExecutableAllocator::makeWritable(addr_, size_);
+    return ExecutableAllocator::makeWritable(addr(), size());
   }
 
   ~AutoWritableJitCodeFallible() {
     mozilla::TimeStamp startTime = mozilla::TimeStamp::Now();
     auto timer = mozilla::MakeScopeExit([&] {
-      if (Realm* realm = rt_->mainContextFromOwnThread()->realm()) {
+      if (Realm* realm = runtime()->mainContextFromOwnThread()->realm()) {
         realm->timers.protectTime += mozilla::TimeStamp::Now() - startTime;
       }
     });
 
-    if (!ExecutableAllocator::makeExecutableAndFlushICache(addr_, size_)) {
+    if (!ExecutableAllocator::makeExecutableAndFlushICache(addr(), size())) {
       MOZ_CRASH();
     }
-    rt_->toggleAutoWritableJitCodeActive(false);
+    runtime()->toggleAutoWritableJitCodeActive(false);
   }
 };
 

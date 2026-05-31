@@ -558,45 +558,47 @@ void JitCodeHeader::init(JitCode* jitCode) {
 }
 
 template <AllowGC allowGC>
-JitCode* JitCode::New(JSContext* cx, Executable&& exec, uint32_t totalSize,
-                      uint32_t headerSize, CodeKind kind) {
-  uint32_t bufferSize = totalSize - headerSize;
-  // Copy to handle errors if we fail to allocate.
-  ExecutablePool* pool = exec.pool;
-  JitCode* codeObj = cx->newCell<JitCode, allowGC>(std::move(exec), bufferSize,
-                                                   headerSize, kind);
+JitCode* JitCode::New(JSContext* cx, Executable&& exec, uint32_t headerSize) {
+  JitCode* codeObj = cx->newCell<JitCode, allowGC>(std::move(exec), headerSize);
   if (!codeObj) {
-    // The caller already allocated `totalSize` bytes of executable memory.
-    pool->release(totalSize, kind);
+    // If we fail to allocate, apparently the move operator has not been
+    // executed yet.
+    exec.discard(nullptr);
     return nullptr;
   }
 
-  cx->zone()->incJitMemory(totalSize);
+  cx->zone()->incJitMemory(exec.desc.xSize);
 
   return codeObj;
 }
 
 template JitCode* JitCode::New<CanGC>(JSContext* cx, Executable&& exec,
-                                      uint32_t bufferSize, uint32_t headerSize,
-                                      CodeKind kind);
+                                      uint32_t headerSize);
 
 template JitCode* JitCode::New<NoGC>(JSContext* cx, Executable&& exec,
-                                     uint32_t bufferSize, uint32_t headerSize,
-                                     CodeKind kind);
+                                     uint32_t headerSize);
 
 void JitCode::copyFrom(MacroAssembler& masm) {
   // Store the JitCode pointer in the JitCodeHeader so we can recover the
   // gcthing from relocation tables.
   JitCodeHeader::FromExecutable(raw())->init(this);
 
-  insnSize_ = masm.instructionsSize();
-  masm.executableCopy(raw());
+  // Copy data and patch the code.
+  MOZ_ASSERT(executable_.desc.rwSize >= masm.jumpRelocationTableBytes() +
+                                            masm.dataRelocationTableBytes() +
+                                            masm.constantsTableBytes());
 
   jumpRelocTableBytes_ = masm.jumpRelocationTableBytes();
-  masm.copyJumpRelocationTable(raw() + jumpRelocTableOffset());
-
   dataRelocTableBytes_ = masm.dataRelocationTableBytes();
-  masm.copyDataRelocationTable(raw() + dataRelocTableOffset());
+  constantsTableBytes_ = masm.constantsTableBytes();
+  
+  masm.copyDataRelocationTable(dataRelocTable());
+  masm.copyJumpRelocationTable(jumpRelocTable());
+  masm.copyConstantsTable(raw(), constantsTable());
+
+  // Copy the code.
+  insnSize_ = masm.instructionsSize();
+  masm.executableCopy(raw());
 
   masm.processCodeLabels(raw());
 }
@@ -609,12 +611,12 @@ void JitCode::traceChildren(JSTracer* trc) {
   }
 
   if (jumpRelocTableBytes_) {
-    uint8_t* start = raw() + jumpRelocTableOffset();
+    uint8_t* start = jumpRelocTable();
     CompactBufferReader reader(start, start + jumpRelocTableBytes_);
     MacroAssembler::TraceJumpRelocations(trc, this, reader);
   }
   if (dataRelocTableBytes_) {
-    uint8_t* start = raw() + dataRelocTableOffset();
+    uint8_t* start = dataRelocTable();
     CompactBufferReader reader(start, start + dataRelocTableBytes_);
     MacroAssembler::TraceDataRelocations(trc, this, reader);
   }
@@ -623,10 +625,12 @@ void JitCode::traceChildren(JSTracer* trc) {
 void JitCode::finalize(JS::GCContext* gcx) {
   // If this jitcode had a bytecode map, it must have already been removed.
 #ifdef DEBUG
-  JSRuntime* rt = gcx->runtime();
-  if (hasBytecodeMap_) {
-    MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
-    MOZ_ASSERT(!rt->jitRuntime()->getJitcodeGlobalTable()->lookup(raw()));
+  if (gcx) {
+    JSRuntime* rt = gcx->runtime();
+    if (hasBytecodeMap_) {
+      MOZ_ASSERT(rt->jitRuntime()->hasJitcodeGlobalTable());
+      MOZ_ASSERT(!rt->jitRuntime()->getJitcodeGlobalTable()->lookup(raw()));
+    }
   }
 #endif
 
@@ -634,32 +638,8 @@ void JitCode::finalize(JS::GCContext* gcx) {
   vtune::UnmarkCode(this);
 #endif
 
-  MOZ_ASSERT(executable_.pool);
-
-  // With W^X JIT code, reprotecting memory for each JitCode instance is
-  // slow, so we record the ranges and poison them later all at once. It's
-  // safe to ignore OOM here, it just means we won't poison the code.
-  if (gcx->appendJitPoisonRange(JitPoisonRange(executable_.pool, executable_.xStart,
-                                               headerSize_ + bufferSize_))) {
-    executable_.pool->addRef();
-  }
-  executable_.xStart = nullptr;
-
-#ifdef JS_ION_PERF
-  // Code buffers are stored inside ExecutablePools. Pools are refcounted.
-  // Releasing the pool may free it. Horrible hack: if we are using perf
-  // integration, we don't want to reuse code addresses, so we just leak the
-  // memory instead.
-  if (!PerfEnabled()) {
-    executable_.pool->release(headerSize_ + bufferSize_, CodeKind(kind_));
-  }
-#else
-  executable_.pool->release(headerSize_ + bufferSize_, CodeKind(kind_));
-#endif
-
-  zone()->decJitMemory(headerSize_ + bufferSize_);
-
-  executable_.pool = nullptr;
+  executable_.discard(gcx);
+  zone()->decJitMemory(executable_.desc.xSize);
 }
 
 IonScript::IonScript(IonCompilationId compilationId, uint32_t localSlotsSize,

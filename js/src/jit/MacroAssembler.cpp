@@ -3374,7 +3374,8 @@ void MacroAssembler::finish() {
     handleFailure();
   }
 
-  MacroAssemblerSpecific::finish();
+  bool dataIsExec = !useDataSection_;
+  MacroAssemblerSpecific::finish(dataIsExec);
 
   MOZ_RELEASE_ASSERT(
       size() <= MaxCodeBytesPerProcess,
@@ -3506,9 +3507,10 @@ void MacroAssembler::alignJitStackBasedOnNArgs(uint32_t argc,
 
 MacroAssembler::MacroAssembler(TempAllocator& alloc,
                                CompileRuntime* maybeRuntime,
-                               CompileRealm* maybeRealm)
+                               CompileRealm* maybeRealm, bool useDataSection)
     : maybeRuntime_(maybeRuntime),
       maybeRealm_(maybeRealm),
+       useDataSection_(useDataSection),
       wasmMaxOffsetGuardLimit_(0),
       framePushed_(0),
 #ifdef DEBUG
@@ -3530,7 +3532,7 @@ IonHeapMacroAssembler::IonHeapMacroAssembler(TempAllocator& alloc,
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
-    : MacroAssembler(alloc) {
+    : MacroAssembler(alloc, nullptr, nullptr, /* useDataSection */ false) {
 #if defined(JS_CODEGEN_ARM64)
   // Stubs + builtins + the baseline compiler all require the native SP,
   // not the PSP.
@@ -3544,7 +3546,7 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
                                        const wasm::ModuleEnvironment& env,
                                        bool limitedSize)
-    : MacroAssembler(alloc) {
+    : MacroAssembler(alloc, nullptr, nullptr, /* useDataSection */ false) {
 #if defined(JS_CODEGEN_ARM64)
   // Stubs + builtins + the baseline compiler all require the native SP,
   // not the PSP.

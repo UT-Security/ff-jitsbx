@@ -464,7 +464,7 @@ class Assembler : public vixl::Assembler {
 
   typedef vixl::Condition Condition;
 
-  void finish();
+  void finish(bool dataIsExec);
   bool appendRawCode(const uint8_t* code, size_t numBytes);
   bool reserve(size_t size);
   bool swapBuffer(wasm::Bytes& bytes);
@@ -508,12 +508,25 @@ class Assembler : public vixl::Assembler {
     }
   }
 
+  void copyConstantsTable(const uint8_t* codeBase, uint8_t* dataBase) {}
+
   size_t jumpRelocationTableBytes() const { return jumpRelocations_.length(); }
   size_t dataRelocationTableBytes() const { return dataRelocations_.length(); }
-  size_t bytesNeeded() const {
-    return SizeOfCodeGenerated() + jumpRelocationTableBytes() +
-           dataRelocationTableBytes();
+
+  size_t constantsTableBytes() const { return 0; }
+
+  // Size of executable code, in bytes.
+  size_t execSize() const { return SizeOfCodeGenerated(); }
+
+  size_t dataSize() const {
+    return jumpRelocationTableBytes() + dataRelocationTableBytes();
   }
+
+  // Total size
+  //
+  // TODO: We should remove this function, but it is still needed for Wasm which
+  // aggregates all in the code section.
+  size_t bytesNeeded() const { return execSize() + dataSize(); }
 
   void processCodeLabels(uint8_t* rawCode) {
     for (const CodeLabel& label : codeLabels_) {
