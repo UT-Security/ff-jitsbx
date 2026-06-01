@@ -34,6 +34,7 @@
 #include "jit/IonIC.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/IonScript.h"
+#include "jit/JitCommon.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRealm.h"
@@ -550,11 +551,16 @@ void JitZone::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
       optimizedStubSpace_.sizeOfExcludingThis(mallocSizeOf);
 }
 
-void JitCodeHeader::init(JitCode* jitCode) {
-  // As long as JitCode isn't moveable, we can avoid tracing this and
-  // mutating executable data.
-  MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
-  jitCode_ = jitCode;
+JitCode* JitCode::FromExecutable(uint8_t* entry) {
+  // The JitCode pointer associated with this entry point is stored in the
+  // early bits of the executable code. At an offset ahead which let us encode
+  // enough instruction to encode the code pointer, and which can be returned
+  // once called.
+  uint8_t* fetchJitCode = entry - JitCodeHeaderSize;
+  GetJitCode fetch = reinterpret_cast<GetJitCode>(fetchJitCode);
+  auto code = (JitCode*)CALL_GENERATED_0(fetch);
+  MOZ_RELEASE_ASSERT(code->raw() == entry);
+  return code;
 }
 
 template <AllowGC allowGC>
@@ -579,9 +585,11 @@ template JitCode* JitCode::New<NoGC>(JSContext* cx, Executable&& exec,
                                      uint32_t headerSize);
 
 void JitCode::copyFrom(MacroAssembler& masm) {
-  // Store the JitCode pointer in the JitCodeHeader so we can recover the
-  // gcthing from relocation tables.
-  JitCodeHeader::FromExecutable(raw())->init(this);
+  // As long as JitCode isn't moveable, we can avoid tracing this and
+  // mutating executable data.
+  MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
+
+  masm.emitJitCodeHeader(header(), this);
 
   // Copy data and patch the code.
   MOZ_ASSERT(executable_.desc.rwSize >= masm.jumpRelocationTableBytes() +

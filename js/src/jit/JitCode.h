@@ -26,17 +26,13 @@ namespace jit {
 class JitCode;
 class MacroAssembler;
 
-// Header at start of raw code buffer
-struct JitCodeHeader {
-  // Link back to corresponding gcthing
-  JitCode* jitCode_;
+// All JitCode executable allocations are prefixed by a tiny function which
+// returns the JitCode pointer for the class which is referencing it.
+// This is necessary to keep the generated code alive while there are any
+// reference live on the stack.
+using GetJitCode = JitCode* (*)();
 
-  void init(JitCode* jitCode);
-
-  static JitCodeHeader* FromExecutable(uint8_t* buffer) {
-    return (JitCodeHeader*)(buffer - sizeof(JitCodeHeader));
-  }
-};
+const size_t JitCodeHeaderSize = 16;
 
 class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   friend class gc::CellAllocator;
@@ -47,6 +43,11 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   // Entry point used in the generated code, it corresponds to the
   // aligned(Executable.xStart + sizeof(JitCodeHeader))
   uint8_t* raw() const { return headerPtr(); }
+
+  // The executable is allocated and aligned, the headerSize can be larger than
+  // JitCodeHeaderSize, and the header should be at an offset from the code
+  // entry point. (see FromExecutable)
+  uint8_t* header() const { return raw() - JitCodeHeaderSize; }
 
  protected:
   Executable executable_;
@@ -133,11 +134,7 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 
   void copyFrom(MacroAssembler& masm);
 
-  static JitCode* FromExecutable(uint8_t* buffer) {
-    JitCode* code = JitCodeHeader::FromExecutable(buffer)->jitCode_;
-    MOZ_ASSERT(code->raw() == buffer);
-    return code;
-  }
+  static JitCode* FromExecutable(uint8_t* entry);
 
   static size_t offsetOfCode() { return offsetOfHeaderPtr(); }
 

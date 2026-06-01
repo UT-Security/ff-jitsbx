@@ -116,6 +116,28 @@ bool Assembler::swapBuffer(wasm::Bytes& bytes) {
   return true;
 }
 
+void Assembler::emitJitCodeHeader(uint8_t* header, JitCode* code) {
+  // We want to emit a header that looks like this:
+  // MOVZ x0, [8-byte JitCode pointer first 16-bits]
+  // MOVK x0, [8-byte JitCode pointer second 16-bits], 16
+  // MOVK x0, [8-byte JitCode pointer third 16-bits], 32
+  // RET
+
+  uint32_t* instrs = reinterpret_cast<uint32_t*>(header);
+  uintptr_t ptr = reinterpret_cast<uintptr_t>(code);
+
+  Emit(reinterpret_cast<Instruction*>(&instrs[0]),
+       SF(x0) | vixl::MoveWideImmediateFixed | vixl::MOVZ | Rd(x0) |
+           ImmMoveWide(ptr & 0xFFFF) | ShiftMoveWide(0));
+  Emit(reinterpret_cast<Instruction*>(&instrs[1]),
+       SF(x0) | vixl::MoveWideImmediateFixed | vixl::MOVK | Rd(x0) |
+           ImmMoveWide((ptr >> 16) & 0xFFFF) | ShiftMoveWide(1));
+  Emit(reinterpret_cast<Instruction*>(&instrs[2]),
+       SF(x0) | vixl::MoveWideImmediateFixed | vixl::MOVK | Rd(x0) |
+           ImmMoveWide((ptr >> 32) & 0xFFFF) | ShiftMoveWide(2));
+  Emit(reinterpret_cast<Instruction*>(&instrs[3]), vixl::RET | Rn(vixl::lr));
+}
+
 BufferOffset Assembler::emitExtendedJumpTable() {
   if (!pendingJumps_.length() || oom()) {
     return BufferOffset();

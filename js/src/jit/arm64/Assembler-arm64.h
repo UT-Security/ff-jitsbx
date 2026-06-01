@@ -469,6 +469,7 @@ class Assembler : public vixl::Assembler {
   bool reserve(size_t size);
   bool swapBuffer(wasm::Bytes& bytes);
 
+  void emitJitCodeHeader(uint8_t* header, JitCode* code);
   // Emit the jump table, returning the BufferOffset to the first entry in the
   // table.
   BufferOffset emitExtendedJumpTable();
