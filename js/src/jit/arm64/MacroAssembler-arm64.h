@@ -108,17 +108,19 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
         Operand(ARMRegister(reg, 32), vixl::Extend::UXTW));
   }
 
-  void sandboxCodePointer(Register src, Register dest) {
+  Register sandboxCodePointer(Register src, Register dest) {
     Add(ARMRegister(dest, 64), SandboxBaseReg64,
         Operand(ARMRegister(src, 32), vixl::Extend::UXTW));
+    return dest;
   }
 #elif defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_NOOP)
   void sandboxCodePointer(Register reg) {
     vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
   }
 
-  void sandboxCodePointer(Register src, Register dest) {
+  Register sandboxCodePointer(Register src, Register dest) {
     vixl::MacroAssembler::mov(ARMRegister(src, 64), ARMRegister(src, 64));
+    return src;
   }
 #endif
   void Push(ARMRegister reg) {
@@ -744,14 +746,25 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     addPendingJump(loc, ptr, RelocationKind::HARDCODED);
   }
   void jump(TrampolinePtr code) { jump(ImmPtr(code.value)); }
-  void jump(Register reg) { Br(ARMRegister(reg, 64)); }
+  void jump(Register reg) {
+#ifdef JS_SANDBOX_CFI
+    Br(ARMRegister(sandboxCodePointer(reg, SandboxAddressReg), 64));
+#else
+    Br(ARMRegister(reg, 64));
+#endif
+  }
   void jump(const Address& addr) {
     vixl::UseScratchRegisterScope temps(this);
     MOZ_ASSERT(temps.IsAvailable(ScratchReg64));  // ip0
     temps.Exclude(ScratchReg64);
     MOZ_ASSERT(addr.base != ScratchReg64.asUnsized());
     loadPtr(addr, ScratchReg64.asUnsized());
+#ifdef JS_SANDBOX_CFI
+    br(ARMRegister(
+        sandboxCodePointer(ScratchReg64.asUnsized(), SandboxAddressReg), 64));
+#else
     br(ScratchReg64);
+#endif
   }
 
   void align(int alignment) { armbuffer_.align(alignment); }

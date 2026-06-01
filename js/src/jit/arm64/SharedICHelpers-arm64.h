@@ -35,7 +35,7 @@ inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
   masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), r0);
 
   // Call the stubcode via a direct branch-and-link.
-  masm.Blr(x0);
+  masm.call(r0);
   *callOffset = CodeOffset(masm.currentOffset());
 }
 

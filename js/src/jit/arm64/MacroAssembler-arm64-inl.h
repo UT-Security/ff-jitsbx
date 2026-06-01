@@ -2023,7 +2023,7 @@ void MacroAssembler::branchToComputedAddress(const BaseIndex& addr) {
   vixl::UseScratchRegisterScope temps(&this->asVIXL());
   const ARMRegister scratch64 = temps.AcquireX();
   loadPtr(addr, scratch64.asUnsized());
-  Br(scratch64);
+  jump(scratch64.asUnsized());
 }
 
 void MacroAssembler::cmp32Move32(Condition cond, Register lhs, Register rhs,

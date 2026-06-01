@@ -270,7 +270,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(Label* profilerExitTail,
       Address(PseudoStackPointer, ResumeFromException::offsetOfStackPointer()),
       PseudoStackPointer);
   syncStackPtr();
-  Br(x0);
+  jump(r0);
 
   // If we found a finally block, this must be a baseline frame. Push two
   // values expected by the finally block: the exception and BooleanValue(true).
@@ -289,7 +289,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(Label* profilerExitTail,
   syncStackPtr();
   push(exception);
   pushValue(BooleanValue(true));
-  Br(x0);
+  jump(r0);
 
   // Return BaselineFrame->returnValue() to the caller.
   // Used in debug mode and for GeneratorReturn.
@@ -379,7 +379,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(Label* profilerExitTail,
       Address(PseudoStackPointer, ResumeFromException::offsetOfStackPointer()),
       PseudoStackPointer);
   syncStackPtr();
-  Br(x0);
+  jump(r0);
 
   MOZ_ASSERT(GetStackPointer64().Is(PseudoStackPointer64));
 }
@@ -1320,7 +1320,11 @@ CodeOffset MacroAssembler::call(Register reg) {
   // This sync has been observed (and is expected) to be necessary.
   // eg testcase: tests/debug/bug1107525.js
   syncStackPtr();
+#ifdef JS_SANDBOX_CFI
+  Blr(ARMRegister(sandboxCodePointer(reg, SandboxAddressReg), 64));
+#else
   Blr(ARMRegister(reg, 64));
+#endif
   return CodeOffset(currentOffset());
 }
 
@@ -1352,7 +1356,11 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
   // has been observed to cause SP != PSP here.
   syncStackPtr();
   movePtr(imm, scratch);
+#ifdef JS_SANDBOX_CFI
+  Blr(ARMRegister(sandboxCodePointer(scratch, SandboxAddressReg), 64));
+#else
   Blr(ARMRegister(scratch, 64));
+#endif
   return CodeOffset(currentOffset());
 }
 
@@ -1363,7 +1371,11 @@ void MacroAssembler::call(const Address& addr) {
   // eg testcase: tests/backup-point-bug1315634.js
   syncStackPtr();
   loadPtr(addr, scratch);
+#ifdef JS_SANDBOX_CFI
+  Blr(ARMRegister(sandboxCodePointer(scratch, SandboxAddressReg), 64));
+#else
   Blr(ARMRegister(scratch, 64));
+#endif
 }
 
 void MacroAssembler::call(JitCode* c) {
