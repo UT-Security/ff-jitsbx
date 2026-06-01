@@ -388,7 +388,11 @@ static const unsigned BeforePushRetAddr = 0;
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 12;
 static const unsigned SetFP = 16;
+#ifdef JS_SANDBOX_CFI
+static const unsigned PoppedFP = 8;
+#else
 static const unsigned PoppedFP = 4;
+#endif
 static const unsigned PoppedFPJitEntry = 8;
 static_assert(BeforePushRetAddr == 0, "Required by StartUnwinding");
 static_assert(PushedFP > PushedRetAddr, "Required by StartUnwinding");
@@ -598,6 +602,19 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   const vixl::Register stashedSPreg = masm.GetStackPointer64();
   masm.SetStackPointer64(vixl::sp);
 
+#  ifdef JS_SANDBOX_CFI
+  AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 6);
+
+  masm.Ldr(ARMRegister(FramePointer, 64),
+           MemOperand(sp, Frame::callerFPOffset()));
+  poppedFP = masm.currentOffset();
+
+  masm.loadPtr(Address(masm.getStackPointer(), Frame::returnAddressOffset()),
+               lr);
+  *ret = masm.currentOffset();
+
+  masm.Add(sp, sp, sizeof(Frame));
+#  else
   AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 5);
 
   masm.Ldr(ARMRegister(FramePointer, 64),
@@ -608,6 +625,7 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   *ret = masm.currentOffset();
 
   masm.Add(sp, sp, sizeof(Frame));
+#  endif
 
   // Reinitialise PSP from SP. This is less than elegant because the prologue
   // operates on the raw stack pointer SP and does not keep the PSP in sync.
@@ -896,8 +914,13 @@ void wasm::GenerateJitEntryEpilogue(MacroAssembler& masm,
   DebugOnly<uint32_t> poppedFP{};
 #ifdef JS_CODEGEN_ARM64
   RegisterOrSP sp = masm.getStackPointer();
+#ifdef JS_SANDBOX_CFI
+  AutoForbidPoolsAndNops afp(&masm,
+                             /* number of instructions in scope = */ 6);
+#else
   AutoForbidPoolsAndNops afp(&masm,
                              /* number of instructions in scope = */ 5);
+#endif
   masm.loadPtr(Address(sp, 8), lr);
   masm.loadPtr(Address(sp, 0), FramePointer);
   poppedFP = masm.currentOffset();

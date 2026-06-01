@@ -729,7 +729,7 @@ static constexpr Register ABINonVolatileReg{Registers::x19};
 // This register is guaranteed to be clobberable during the prologue and
 // epilogue of an ABI call which must preserve both ABI argument, return
 // and non-volatile registers.
-static constexpr Register ABINonArgReturnVolatileReg = lr;
+static constexpr Register ABINonArgReturnVolatileReg = r8;
 
 // Instance pointer argument register for WebAssembly functions. This must not
 // alias any other register used for passing function arguments or return

@@ -339,28 +339,14 @@ set_config("JS_SANDBOX_HEAP", js_sandbox_heap)
 set_define("JS_SANDBOX_HEAP", js_sandbox_heap)
 
 option(
-    "--enable-js-sandbox-bundle",
-    default=False,
-    help="{Enable|Disable} JIT code bundling for JS sandbox.",
-)
-
-@depends("--enable-js-sandbox-bundle", "--enable-js-sandbox")
-def js_sandbox_bundle(js_sandbox_bundle, js_sandbox):
-    if js_sandbox and js_sandbox_bundle:
-        return True
-
-set_config("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
-set_define("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
-
-option(
     "--enable-js-sandbox-cfi",
     default=False,
     help="{Enable|Disable} JS sandbox CFI.",
 )
 
-@depends("--enable-js-sandbox-cfi", "--enable-js-sandbox-bundle")
-def js_sandbox_cfi(js_sandbox_cfi, js_sandbox_bundle):
-    if js_sandbox_bundle and js_sandbox_cfi:
+@depends("--enable-js-sandbox-cfi", "--enable-js-sandbox")
+def js_sandbox_cfi(js_sandbox_cfi, js_sandbox):
+    if js_sandbox and js_sandbox_cfi:
         return True
 
 set_config("JS_SANDBOX_CFI", js_sandbox_cfi)

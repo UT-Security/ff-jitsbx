@@ -102,6 +102,25 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Add(scratch64, base, Operand(index, vixl::LSL, scale));
     LoadStoreMacro(rt, MemOperand(scratch64, addr.offset), op);
   }
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  void sandboxCodePointer(Register reg) {
+    Add(ARMRegister(reg, 64), SandboxBaseReg64,
+        Operand(ARMRegister(reg, 32), vixl::Extend::UXTW));
+  }
+
+  void sandboxCodePointer(Register src, Register dest) {
+    Add(ARMRegister(dest, 64), SandboxBaseReg64,
+        Operand(ARMRegister(src, 32), vixl::Extend::UXTW));
+  }
+#elif defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_NOOP)
+  void sandboxCodePointer(Register reg) {
+    vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
+  }
+
+  void sandboxCodePointer(Register src, Register dest) {
+    vixl::MacroAssembler::mov(ARMRegister(src, 64), ARMRegister(src, 64));
+  }
+#endif
   void Push(ARMRegister reg) {
     push(reg);
     adjustFrame(reg.size() / 8);
@@ -200,17 +219,39 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
 
   // Pop registers.
-  void pop(Register reg) { vixl::MacroAssembler::Pop(ARMRegister(reg, 64)); }
+  void pop(Register reg) {
+    vixl::MacroAssembler::Pop(ARMRegister(reg, 64));
+#ifdef JS_SANDBOX_CFI
+    if (reg == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
+  }
   void pop(Register r0, Register r1) {
     vixl::MacroAssembler::Pop(ARMRegister(r0, 64), ARMRegister(r1, 64));
+#ifdef JS_SANDBOX_CFI
+    if (r0 == lr || r1 == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
   }
   void pop(Register r0, Register r1, Register r2) {
     vixl::MacroAssembler::Pop(ARMRegister(r0, 64), ARMRegister(r1, 64),
                               ARMRegister(r2, 64));
+#ifdef JS_SANDBOX_CFI
+    if (r0 == lr || r1 == lr || r2 == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
   }
   void pop(Register r0, Register r1, Register r2, Register r3) {
     vixl::MacroAssembler::Pop(ARMRegister(r0, 64), ARMRegister(r1, 64),
                               ARMRegister(r2, 64), ARMRegister(r3, 64));
+#ifdef JS_SANDBOX_CFI
+    if (r0 == lr || r1 == lr || r2 == lr || r3 == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
   }
   void pop(ARMFPRegister r0, ARMFPRegister r1, ARMFPRegister r2,
            ARMFPRegister r3) {
@@ -228,6 +269,11 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   void Pop(ARMRegister r) {
     vixl::MacroAssembler::Pop(r);
+#ifdef JS_SANDBOX_CFI
+    if (r.asUnsized() == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
     adjustFrame(0 - r.size() / 8);
   }
   // FIXME: This is the same on every arch.
@@ -717,6 +763,11 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 
   void movePtr(Register src, Register dest) {
     Mov(ARMRegister(dest, 64), ARMRegister(src, 64));
+#ifdef JS_SANDBOX_CFI
+    if (dest == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
   }
   void movePtr(ImmWord imm, Register dest) {
     Mov(ARMRegister(dest, 64), int64_t(imm.value));
@@ -766,6 +817,11 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   void loadPtr(const Address& address, Register dest) {
     Ldr(ARMRegister(dest, 64), MemOperand(address));
+#ifdef JS_SANDBOX_CFI
+    if (dest == lr) {
+      sandboxCodePointer(lr);
+    }
+#endif
   }
   void loadPtr(const BaseIndex& src, Register dest) {
     ARMRegister base = toARMRegister(src.base, 64);
@@ -1295,6 +1351,9 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Ldr(ScratchReg64,
         MemOperand(GetStackPointer64(), ptrdiff_t(n.value), vixl::PostIndex));
     syncStackPtr();  // SP is always used to transmit the stack between calls.
+#ifdef JS_SANDBOX_CFI
+    sandboxCodePointer(ScratchReg64.asUnsized());
+#endif
     Ret(ScratchReg64);
   }
 

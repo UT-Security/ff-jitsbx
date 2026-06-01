@@ -200,6 +200,11 @@ class CPURegister {
     return IsRegister() && (code_ == kSPRegInternalCode);
   }
 
+  bool IsLR() const {
+    VIXL_ASSERT(IsValid());
+    return IsRegister() && (code_ == kLinkRegCode);
+  }
+
   bool IsRegister() const {
     return type_ == kRegister;
   }

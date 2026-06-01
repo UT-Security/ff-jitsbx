@@ -339,7 +339,7 @@ void MacroAssemblerCompat::handleFailureWithHandlerTail(Label* profilerExitTail,
   syncStackPtr();
   vixl::MacroAssembler::Pop(ARMRegister(FramePointer, 64));
 
-  vixl::MacroAssembler::Pop(vixl::lr);
+  pop(lr);
   syncStackPtr();
   vixl::MacroAssembler::Ret(vixl::lr);
 
@@ -1087,16 +1087,36 @@ static void GeneratePendingLoadsThenFlush(MacroAssembler* masm,
       if (offsets[0] + transactionSize == offsets[1]) {
         masm->Ldp(dests[0], dests[1],
                   MemOperand(masm->GetStackPointer64(), offsets[0]));
+#ifdef JS_SANDBOX_CFI
+        if (dests[0].IsLR() || dests[1].IsLR()) {
+          masm->sandboxCodePointer(lr);
+        }
+#endif
       } else {
         // Theoretically we could check for a load-pair with the destinations
         // switched, but our callers will never generate that.  Hence there's
         // no loss in giving up at this point and generating two loads.
         masm->Ldr(dests[0], MemOperand(masm->GetStackPointer64(), offsets[0]));
+#ifdef JS_SANDBOX_CFI
+        if (dests[0].IsLR()) {
+          masm->sandboxCodePointer(lr);
+        }
+#endif
         masm->Ldr(dests[1], MemOperand(masm->GetStackPointer64(), offsets[1]));
+#ifdef JS_SANDBOX_CFI
+        if (dests[1].IsLR()) {
+          masm->sandboxCodePointer(lr);
+        }
+#endif
       }
     } else {
       // [0] only.
       masm->Ldr(dests[0], MemOperand(masm->GetStackPointer64(), offsets[0]));
+#ifdef JS_SANDBOX_CFI
+      if (dests[0].IsLR()) {
+        masm->sandboxCodePointer(lr);
+      }
+#endif
     }
   } else {
     if (!dests[1].IsNone()) {
