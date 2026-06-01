@@ -129,7 +129,7 @@ static const uint64_t WasmReservedBytesStartSyncFullGC =
     WasmReservedBytesMax - 15 * wasm::HugeMappedSize;
 static const uint64_t WasmReservedBytesPerTrigger = 15 * wasm::HugeMappedSize;
 
-#elif defined(JS_SANDBOX_LFI)
+#elif defined(JS_CODEGEN_ARM64) && defined(JS_SANDBOX_LFI)
 
 static const uint64_t WasmReservedBytesMax =
     75 * wasm::HugeMappedSize / WasmMemAsanOverhead;

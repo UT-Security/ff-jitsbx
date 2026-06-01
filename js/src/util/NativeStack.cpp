@@ -194,24 +194,23 @@ void* js::GetNativeStackBaseImpl() {
     // the truth.
     rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
   }
-/*#elif defined(JS_SANDBOX_LFI)
+#elif defined(JS_SANDBOX_LFI)
   if (gettid() == getpid()) {
     
     //WARNING(JS_SANDBOX): Hardcoding expected main thread stack size.
-    stackSize = 3 * 1024 * 1024;
-    size_t guard_size = (size_t)4 * 1024 * 1024 * 1024;
+    stackSize = 2 * 1024 * 1024;
+    size_t guard_size = (size_t)192 * 1024;
+    size_t sandbox_size = (size_t)1 * 1024 * 1024 * 1024 * 1024;
 
-    uint64_t base;
-    uint64_t mask;
-    __asm__("movq %%r14, %0" : "=r"(base));
-    __asm__("movq %%r15, %0" : "=r"(mask));
-    stackBase = (void*)(base + mask + 1 - guard_size - stackSize);
+    uint64_t sandbox_base;
+    asm volatile("mov %0, x27" : "=r"(sandbox_base));
+    stackBase = (void*)(sandbox_base + sandbox_size - guard_size - stackSize);
     rc = 0;
   } else {
     // For non main-threads pthread allocates the stack itself so it tells
     // the truth.
     rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
-  }*/
+  }
 #else
   rc = pthread_attr_getstack(&sattr, &stackBase, &stackSize);
 #    endif
