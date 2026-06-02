@@ -802,17 +802,23 @@ class MemOperand {
                  (ptrdiff_t)addr.offset) {
   }
 
+  const Register& GetBaseRegister() const { return base_; }
   const Register& base() const { return base_; }
+  const Register& GetRegisterOffset() const { return regoffset_; }
   const Register& regoffset() const { return regoffset_; }
+  int64_t GetOffset() const { return offset_; }
   int64_t offset() const { return offset_; }
   AddrMode addrmode() const { return addrmode_; }
   Shift shift() const { return shift_; }
   Extend extend() const { return extend_; }
   unsigned shift_amount() const { return shift_amount_; }
+  bool IsEquivalentToPlainRegister() const;
   bool IsImmediateOffset() const;
   bool IsRegisterOffset() const;
   bool IsPreIndex() const;
   bool IsPostIndex() const;
+  bool IsImmediatePreIndex() const;
+  bool IsImmediatePostIndex() const;
 
   void AddOffset(int64_t offset);
 

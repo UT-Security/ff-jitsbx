@@ -12,6 +12,9 @@
 #include "jit/arm64/vixl/MacroAssembler-vixl.h"
 #include "jit/AtomicOp.h"
 #include "jit/MoveResolver.h"
+#ifdef JS_SANDBOX_HEAP
+#include "jit/Sandbox.h"
+#endif
 #include "vm/BigIntType.h"  // JS::BigInt
 #include "wasm/WasmBuiltins.h"
 
@@ -81,16 +84,15 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   static MemOperand toMemOperand(const Address& a) {
     return MemOperand(toARMRegister(a.base, 64), a.offset);
   }
-  void doBaseIndex(const vixl::CPURegister& rt, const BaseIndex& addr,
-                   vixl::LoadStoreOp op) {
+  CodeOffset doBaseIndex(const vixl::CPURegister& rt, const BaseIndex& addr,
+                         vixl::LoadStoreOp op) {
     const ARMRegister base = toARMRegister(addr.base, 64);
     const ARMRegister index = ARMRegister(addr.index, 64);
     const unsigned scale = addr.scale;
 
     if (!addr.offset &&
         (!scale || scale == static_cast<unsigned>(CalcLSDataSize(op)))) {
-      LoadStoreMacro(rt, MemOperand(base, index, vixl::LSL, scale), op);
-      return;
+      return LoadStoreMacro(rt, MemOperand(base, index, vixl::LSL, scale), op);
     }
 
     vixl::UseScratchRegisterScope temps(this);
@@ -100,7 +102,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     MOZ_ASSERT(!scratch64.Is(index));
 
     Add(scratch64, base, Operand(index, vixl::LSL, scale));
-    LoadStoreMacro(rt, MemOperand(scratch64, addr.offset), op);
+    return LoadStoreMacro(rt, MemOperand(scratch64, addr.offset), op);
   }
 #if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
   void sandboxCodePointer(Register reg) {
@@ -301,7 +303,16 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   // Update sp with the value of the current active stack pointer, if necessary.
   void syncStackPtr() {
     if (!GetStackPointer64().Is(vixl::sp)) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+      And(SandboxOffsetReg64, GetStackPointer64(), Operand(SANDBOX_MASK));
+      Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+      Mov(vixl::x28, vixl::x28);
+      Mov(vixl::x28, vixl::x28);
       Mov(vixl::sp, GetStackPointer64());
+#else
+      Mov(vixl::sp, GetStackPointer64());
+#endif
     }
   }
   void initPseudoStackPtr() {
@@ -858,8 +869,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   void loadPrivate(const Address& src, Register dest);
 
-  void store8(Register src, const Address& address) {
-    Strb(ARMRegister(src, 32), toMemOperand(address));
+  CodeOffset store8(Register src, const Address& address) {
+    return Strb(ARMRegister(src, 32), toMemOperand(address));
   }
   void store8(Imm32 imm, const Address& address) {
     vixl::UseScratchRegisterScope temps(this);
@@ -880,8 +891,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     doBaseIndex(scratch32, address, vixl::STRB_w);
   }
 
-  void store16(Register src, const Address& address) {
-    Strh(ARMRegister(src, 32), toMemOperand(address));
+  CodeOffset store16(Register src, const Address& address) {
+    return Strh(ARMRegister(src, 32), toMemOperand(address));
   }
   void store16(Imm32 imm, const Address& address) {
     vixl::UseScratchRegisterScope temps(this);
@@ -927,8 +938,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     movePtr(imm, scratch);
     storePtr(scratch, address);
   }
-  void storePtr(Register src, const Address& address) {
-    Str(ARMRegister(src, 64), toMemOperand(address));
+  CodeOffset storePtr(Register src, const Address& address) {
+    return Str(ARMRegister(src, 64), toMemOperand(address));
   }
 
   void storePtr(ImmWord imm, const BaseIndex& address) {
@@ -971,8 +982,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Mov(scratch32, uint64_t(imm.value));
     Str(scratch32, toMemOperand(address));
   }
-  void store32(Register r, const Address& address) {
-    Str(ARMRegister(r, 32), toMemOperand(address));
+  CodeOffset store32(Register r, const Address& address) {
+    return Str(ARMRegister(r, 32), toMemOperand(address));
   }
   void store32(Imm32 imm, const BaseIndex& address) {
     vixl::UseScratchRegisterScope temps(this);
@@ -991,7 +1002,9 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     store32(src, dest);
   }
 
-  void store64(Register64 src, Address address) { storePtr(src.reg, address); }
+  CodeOffset store64(Register64 src, Address address) {
+    return storePtr(src.reg, address);
+  }
 
   void store64(Register64 src, const BaseIndex& address) {
     storePtr(src.reg, address);

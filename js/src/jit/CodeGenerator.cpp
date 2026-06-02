@@ -8630,13 +8630,14 @@ void CodeGenerator::visitWasmCallIndirectAdjunctSafepoint(
 
 template <typename InstructionWithMaybeTrapSite>
 void EmitSignalNullCheckTrapSite(MacroAssembler& masm,
-                                 InstructionWithMaybeTrapSite* ins) {
+                                 InstructionWithMaybeTrapSite* ins,
+                                 CodeOffset fco) {
   if (!ins->maybeTrap()) {
     return;
   }
   wasm::BytecodeOffset trapOffset(ins->maybeTrap()->offset);
   masm.append(wasm::Trap::NullPointerDereference,
-              wasm::TrapSite(masm.currentOffset(), trapOffset));
+              wasm::TrapSite(fco.offset(), trapOffset));
 }
 
 void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {
@@ -8646,7 +8647,7 @@ void CodeGenerator::visitWasmLoadSlot(LWasmLoadSlot* ins) {
   Address addr(container, ins->offset());
   AnyRegister dst = ToAnyRegister(ins->output());
 
-  EmitSignalNullCheckTrapSite(masm, ins);
+  EmitSignalNullCheckTrapSite(masm, ins, CodeOffset(masm.currentOffset()));
   switch (type) {
     case MIRType::Int32:
       switch (wideningOp) {
@@ -8703,28 +8704,28 @@ void CodeGenerator::visitWasmStoreSlot(LWasmStoreSlot* ins) {
     MOZ_RELEASE_ASSERT(narrowingOp == MNarrowingOp::None);
   }
 
-  EmitSignalNullCheckTrapSite(masm, ins);
+  CodeOffset fco;
   switch (type) {
     case MIRType::Int32:
       switch (narrowingOp) {
         case MNarrowingOp::None:
-          masm.store32(src.gpr(), addr);
+          fco = masm.store32(src.gpr(), addr);
           break;
         case MNarrowingOp::To16:
-          masm.store16(src.gpr(), addr);
+          fco = masm.store16(src.gpr(), addr);
           break;
         case MNarrowingOp::To8:
-          masm.store8(src.gpr(), addr);
+          fco = masm.store8(src.gpr(), addr);
           break;
         default:
           MOZ_CRASH();
       }
       break;
     case MIRType::Float32:
-      masm.storeFloat32(src.fpu(), addr);
+      fco = masm.storeFloat32(src.fpu(), addr);
       break;
     case MIRType::Double:
-      masm.storeDouble(src.fpu(), addr);
+      fco = masm.storeDouble(src.fpu(), addr);
       break;
     case MIRType::Pointer:
       // This could be correct, but it would be a new usage, so check carefully.
@@ -8733,12 +8734,13 @@ void CodeGenerator::visitWasmStoreSlot(LWasmStoreSlot* ins) {
       MOZ_CRASH("Bad type in visitWasmStoreSlot. Use LWasmStoreRef.");
 #ifdef ENABLE_WASM_SIMD
     case MIRType::Simd128:
-      masm.storeUnalignedSimd128(src.fpu(), addr);
+      fco = masm.storeUnalignedSimd128(src.fpu(), addr);
       break;
 #endif
     default:
       MOZ_CRASH("unexpected type in StorePrimitiveValue");
   }
+  EmitSignalNullCheckTrapSite(masm, ins, fco);
 }
 
 void CodeGenerator::visitWasmLoadTableElement(LWasmLoadTableElement* ins) {
@@ -8777,8 +8779,8 @@ void CodeGenerator::visitWasmStoreRef(LWasmStoreRef* ins) {
     masm.bind(&skipPreBarrier);
   }
 
-  EmitSignalNullCheckTrapSite(masm, ins);
-  masm.storePtr(value, Address(valueBase, offset));
+  CodeOffset fco = masm.storePtr(value, Address(valueBase, offset));
+  EmitSignalNullCheckTrapSite(masm, ins, fco);
   // The postbarrier is handled separately.
 }
 
@@ -8858,7 +8860,7 @@ void CodeGenerator::visitWasmLoadSlotI64(LWasmLoadSlotI64* ins) {
   Register container = ToRegister(ins->containerRef());
   Address addr(container, ins->offset());
   Register64 output = ToOutRegister64(ins);
-  EmitSignalNullCheckTrapSite(masm, ins);
+  EmitSignalNullCheckTrapSite(masm, ins, CodeOffset(masm.currentOffset()));
   masm.load64(addr, output);
 }
 
@@ -8866,8 +8868,8 @@ void CodeGenerator::visitWasmStoreSlotI64(LWasmStoreSlotI64* ins) {
   Register container = ToRegister(ins->containerRef());
   Address addr(container, ins->offset());
   Register64 value = ToRegister64(ins->value());
-  EmitSignalNullCheckTrapSite(masm, ins);
-  masm.store64(value, addr);
+  CodeOffset fco = masm.store64(value, addr);
+  EmitSignalNullCheckTrapSite(masm, ins, fco);
 }
 
 void CodeGenerator::visitArrayBufferByteLength(LArrayBufferByteLength* lir) {

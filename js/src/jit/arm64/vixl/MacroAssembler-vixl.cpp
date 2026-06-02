@@ -25,6 +25,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "jit/arm64/vixl/MacroAssembler-vixl.h"
+#ifdef JS_SANDBOX_HEAP
+#include "jit/Sandbox.h"
+#endif
 
 #include <ctype.h>
 
@@ -1172,18 +1175,37 @@ void MacroAssembler::AddSubWithCarryMacro(const Register& rd,
   }
 }
 
-
-#define DEFINE_FUNCTION(FN, REGTYPE, REG, OP)                         \
-void MacroAssembler::FN(const REGTYPE REG, const MemOperand& addr) {  \
-  LoadStoreMacro(REG, addr, OP);                                      \
-}
+#define DEFINE_FUNCTION(FN, REGTYPE, REG, OP)                      \
+  js::jit::CodeOffset MacroAssembler::FN(const REGTYPE REG,        \
+                                         const MemOperand& addr) { \
+    return LoadStoreMacro(REG, addr, OP);                          \
+  }
 LS_MACRO_LIST(DEFINE_FUNCTION)
 #undef DEFINE_FUNCTION
 
+#ifdef JS_SANDBOX_HEAP
+static bool IsStoreOp(LoadStoreOp op) {
+  switch (op) {
+    case STRB_w:
+    case STRH_w:
+    case STR_w:
+    case STR_x:
+    case STR_b:
+    case STR_h:
+    case STR_s:
+    case STR_d:
+    case STR_q:
+      return true;
+    default:
+      return false;
+  }
+}
+#endif
 
-void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
-                                    const MemOperand& addr,
-                                    LoadStoreOp op) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
+                                                   const MemOperand& addr,
+                                                   LoadStoreOp op) {
   // Worst case is ldr/str pre/post index:
   //  * 1 instruction for ldr/str
   //  * up to 4 instructions to materialise the constant
@@ -1196,6 +1218,260 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
   // Check if an immediate offset fits in the immediate field of the
   // appropriate instruction. If not, emit two instructions to perform
   // the operation.
+  js::jit::CodeOffset co;
+  if (addr.IsImmediateOffset() && !IsImmLSScaled(offset, access_size) &&
+      !IsImmLSUnscaled(offset)) {
+    // Immediate offset that can't be encoded using unsigned or unscaled
+    // addressing modes.
+    VIXL_ASSERT(addr.regoffset().Is(NoReg));
+    int64_t offset = addr.offset();
+    Mov(js::jit::SandboxTemporaryReg64, offset);
+    MemOperand sandboxedAddr(addr.base(), js::jit::SandboxTemporaryReg64);
+    if (IsStoreOp(op)) {
+      Add(js::jit::SandboxTemporaryReg64, addr.base(),
+          js::jit::SandboxTemporaryReg64);
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Label ok;
+      Cmp(js::jit::SandboxTemporaryReg64, js::jit::SandboxAddressReg64);
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    }
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, sandboxedAddr, op);
+    }
+  } else if (addr.IsPostIndex() && !IsImmLSUnscaled(offset)) {
+    // Post-index beyond unscaled addressing range.
+    MemOperand sandboxedAddr(addr.base());
+    if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Cmp(addr.base(), xzr);
+      B(Condition::Equal, &ok);
+      Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Cmp(js::jit::SandboxTemporaryReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    }
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, sandboxedAddr, op);
+    }
+    if (addr.base().code() == js::jit::sp.code()) {
+      Add(js::jit::SandboxTemporaryReg64, addr.base(), Operand(offset));
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+      Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else {
+      Add(addr.base(), addr.base(), Operand(offset));
+    }
+  } else if (addr.IsPreIndex() && !IsImmLSUnscaled(offset)) {
+    // Pre-index beyond unscaled addressing range.
+    MemOperand sandboxedAddr(addr.base());
+    if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
+      Add(addr.base(), addr.base(), Operand(offset));
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Cmp(js::jit::SandboxTemporaryReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else if (addr.base().code() == js::jit::sp.code()) {
+      Add(js::jit::SandboxTemporaryReg64, addr.base(), Operand(offset));
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+      Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else {
+      Add(addr.base(), addr.base(), Operand(offset));
+    }
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, sandboxedAddr, op);
+    }
+  } else {
+    // Encodable in one load/store instruction.
+    MemOperand sandboxedAddr = addr;
+    if (addr.IsEquivalentToPlainRegister() && IsStoreOp(op) &&
+        addr.base().code() != js::jit::sp.code()) {
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Cmp(addr.base(), xzr);
+      B(Condition::Equal, &ok);
+      Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Cmp(js::jit::SandboxTemporaryReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else if (addr.IsImmediateOffset() && IsStoreOp(op) &&
+               addr.base().code() != js::jit::sp.code()) {
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+      Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Cmp(addr.base(), xzr);
+      B(Condition::Equal, &ok);
+      Cmp(js::jit::SandboxAddressReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr = MemOperand(js::jit::SandboxAddressReg64, addr.offset());
+    } else if (addr.IsRegisterOffset() && IsStoreOp(op)) {
+      if (addr.shift() != Shift::NO_SHIFT) {
+        Add(js::jit::SandboxTemporaryReg64, addr.base(),
+            Operand(addr.regoffset(), addr.shift(), addr.shift_amount()));
+      } else if (addr.extend() != Extend::NO_EXTEND) {
+        Add(js::jit::SandboxTemporaryReg64, addr.base(),
+            Operand(addr.regoffset(), addr.extend(), addr.shift_amount()));
+      } else {
+        Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.regoffset());
+      }
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Label ok;
+      Cmp(js::jit::SandboxTemporaryReg64, js::jit::SandboxAddressReg64);
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else if (addr.IsPreIndex() && IsStoreOp(op) &&
+               addr.base().code() != js::jit::sp.code()) {
+      if (addr.IsImmediatePreIndex()) {
+        Add(addr.base(), addr.base(), addr.offset());
+      } else {
+        Add(addr.base(), addr.base(), addr.regoffset());
+      }
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Cmp(js::jit::SandboxTemporaryReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    } else if (addr.IsPreIndex() && addr.base().code() == js::jit::sp.code() &&
+               !addr.IsImmediatePreIndex()) {
+      Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.regoffset());
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+      Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+      sandboxedAddr = MemOperand(addr.base());
+    } else if (addr.IsPostIndex() && IsStoreOp(op) &&
+               addr.base().code() != js::jit::sp.code()) {
+      And(js::jit::SandboxOffsetReg64, addr.base(),
+          Operand(js::jit::SANDBOX_MASK));
+#ifdef JS_SANDBOX_DEBUG
+      Label ok;
+      Cmp(addr.base(), xzr);
+      B(Condition::Equal, &ok);
+      Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
+          js::jit::SandboxOffsetReg64);
+      Cmp(js::jit::SandboxTemporaryReg64, addr.base());
+      B(Condition::Equal, &ok);
+      Brk(0xf000);
+      bind(&ok);
+#endif
+      sandboxedAddr =
+          MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+      {
+        js::jit::AutoForbidPoolsAndNops afp(this, 1);
+        co = js::jit::CodeOffset(currentOffset());
+        LoadStore(rt, sandboxedAddr, op);
+      }
+
+      if (addr.IsImmediatePostIndex()) {
+        Add(addr.base(), addr.base(), addr.offset());
+      } else {
+        Add(addr.base(), addr.base(), addr.regoffset());
+      }
+
+      return co;
+    } else if (addr.IsPostIndex() && addr.base().code() == js::jit::sp.code() &&
+               !addr.IsImmediatePostIndex()) {
+      sandboxedAddr =
+          MemOperand(addr.base());
+      {
+        js::jit::AutoForbidPoolsAndNops afp(this, 1);
+        co = js::jit::CodeOffset(currentOffset());
+        LoadStore(rt, sandboxedAddr, op);
+      }
+      Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.regoffset());
+      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+          Operand(js::jit::SANDBOX_MASK));
+      Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+
+      return co;
+    }
+
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, sandboxedAddr, op);
+    }
+  }
+
+  return co;
+}
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
+                                                   const MemOperand& addr,
+                                                   LoadStoreOp op) {
+  // Worst case is ldr/str pre/post index:
+  //  * 1 instruction for ldr/str
+  //  * up to 4 instructions to materialise the constant
+  //  * 1 instruction to update the base
+  MacroEmissionCheckScope guard(this);
+
+  int64_t offset = addr.offset();
+  unsigned access_size = CalcLSDataSize(op);
+
+  // Check if an immediate offset fits in the immediate field of the
+  // appropriate instruction. If not, emit two instructions to perform
+  // the operation.
+  js::jit::CodeOffset co;
   if (addr.IsImmediateOffset() && !IsImmLSScaled(offset, access_size) &&
       !IsImmLSUnscaled(offset)) {
     // Immediate offset that can't be encoded using unsigned or unscaled
@@ -1205,21 +1481,102 @@ void MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     VIXL_ASSERT(!temp.Is(rt));
     VIXL_ASSERT(!temp.Is(addr.base()) && !temp.Is(addr.regoffset()));
     Mov(temp, addr.offset());
-    LoadStore(rt, MemOperand(addr.base(), temp), op);
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base(), temp), op);
+    }
   } else if (addr.IsPostIndex() && !IsImmLSUnscaled(offset)) {
     // Post-index beyond unscaled addressing range.
-    LoadStore(rt, MemOperand(addr.base()), op);
+    if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
+      mov(addr.base(), addr.base());
+    }
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
+    Add(addr.base(), addr.base(), Operand(offset));
+  } else if (addr.IsPreIndex() && !IsImmLSUnscaled(offset)) {
+    // Pre-index beyond unscaled addressing range.
+    if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
+      mov(addr.base(), addr.base());
+    }
+    Add(addr.base(), addr.base(), Operand(offset));
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
+  } else {
+    if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
+      mov(addr.base(), addr.base());
+    }
+    // Encodable in one load/store instruction.
+    js::jit::AutoForbidPoolsAndNops afp(this, 1);
+    co = js::jit::CodeOffset(currentOffset());
+    LoadStore(rt, addr, op);
+  }
+
+  return co;
+}
+#else
+js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
+                                                   const MemOperand& addr,
+                                                   LoadStoreOp op) {
+  // Worst case is ldr/str pre/post index:
+  //  * 1 instruction for ldr/str
+  //  * up to 4 instructions to materialise the constant
+  //  * 1 instruction to update the base
+  MacroEmissionCheckScope guard(this);
+
+  int64_t offset = addr.offset();
+  unsigned access_size = CalcLSDataSize(op);
+
+  // Check if an immediate offset fits in the immediate field of the
+  // appropriate instruction. If not, emit two instructions to perform
+  // the operation.
+  js::jit::CodeOffset co;
+  if (addr.IsImmediateOffset() && !IsImmLSScaled(offset, access_size) &&
+      !IsImmLSUnscaled(offset)) {
+    // Immediate offset that can't be encoded using unsigned or unscaled
+    // addressing modes.
+    UseScratchRegisterScope temps(this);
+    Register temp = temps.AcquireSameSizeAs(addr.base());
+    VIXL_ASSERT(!temp.Is(rt));
+    VIXL_ASSERT(!temp.Is(addr.base()) && !temp.Is(addr.regoffset()));
+    Mov(temp, addr.offset());
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base(), temp), op);
+    }
+  } else if (addr.IsPostIndex() && !IsImmLSUnscaled(offset)) {
+    // Post-index beyond unscaled addressing range.
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
     Add(addr.base(), addr.base(), Operand(offset));
   } else if (addr.IsPreIndex() && !IsImmLSUnscaled(offset)) {
     // Pre-index beyond unscaled addressing range.
     Add(addr.base(), addr.base(), Operand(offset));
-    LoadStore(rt, MemOperand(addr.base()), op);
+    {
+      js::jit::AutoForbidPoolsAndNops afp(this, 1);
+      co = js::jit::CodeOffset(currentOffset());
+      LoadStore(rt, MemOperand(addr.base()), op);
+    }
   } else {
     // Encodable in one load/store instruction.
+    js::jit::AutoForbidPoolsAndNops afp(this, 1);
+    co = js::jit::CodeOffset(currentOffset());
     LoadStore(rt, addr, op);
   }
-}
 
+  return co;
+}
+#endif
 
 #define DEFINE_FUNCTION(FN, REGTYPE, REG, REG2, OP)  \
 void MacroAssembler::FN(const REGTYPE REG,           \
@@ -1229,6 +1586,21 @@ void MacroAssembler::FN(const REGTYPE REG,           \
 }
 LSPAIR_MACRO_LIST(DEFINE_FUNCTION)
 #undef DEFINE_FUNCTION
+
+#ifdef JS_SANDBOX_HEAP
+static bool IsStorePairOp(LoadStorePairOp op) {
+  switch (op) {
+    case STP_w:
+    case STP_x:
+    case STP_s:
+    case STP_d:
+    case STP_q:
+      return true;
+    default:
+      return false;
+  }
+}
+#endif
 
 void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
                                         const CPURegister& rt2,
@@ -1244,6 +1616,73 @@ void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
 
   int64_t offset = addr.offset();
   unsigned access_size = CalcLSPairDataSize(op);
+
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (addr.IsEquivalentToPlainRegister() && IsStorePairOp(op) &&
+      addr.base().code() != js::jit::sp.code()) {
+    And(js::jit::SandboxOffsetReg64, addr.base(),
+        Operand(js::jit::SANDBOX_MASK));
+    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+        js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
+    return;
+  } else if (IsImmLSPair(offset, access_size) && addr.IsImmediateOffset() &&
+             IsStorePairOp(op) && addr.base().code() != js::jit::sp.code()) {
+    And(js::jit::SandboxOffsetReg64, addr.base(),
+        Operand(js::jit::SANDBOX_MASK));
+    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+        js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64, offset),
+                  op);
+    return;
+  } else if (!IsImmLSPair(offset, access_size) && addr.IsImmediateOffset() &&
+             IsStorePairOp(op)) {
+    Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.offset());
+    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+        Operand(js::jit::SANDBOX_MASK));
+    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+        js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
+    return;
+  } else if (addr.IsPostIndex() && IsStorePairOp(op) &&
+             addr.base().code() != js::jit::sp.code()) {
+    And(js::jit::SandboxOffsetReg64, addr.base(),
+        Operand(js::jit::SANDBOX_MASK));
+    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+        js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
+    Add(addr.base(), addr.base(), offset);
+    return;
+  } else if (!IsImmLSPair(offset, access_size) && addr.IsPostIndex() &&
+             addr.base().code() == js::jit::sp.code()) {
+    LoadStorePair(rt, rt2, MemOperand(addr.base()), op);
+    Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.offset());
+    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+        Operand(js::jit::SANDBOX_MASK));
+    Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+  } else if (addr.IsPreIndex() && IsStorePairOp(op) &&
+             addr.base().code() != js::jit::sp.code()) {
+    Add(addr.base(), addr.base(), addr.offset());
+    And(js::jit::SandboxOffsetReg64, addr.base(),
+        Operand(js::jit::SANDBOX_MASK));
+    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+        js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
+    return;
+  } else if (!IsImmLSPair(offset, access_size) && addr.IsPreIndex() &&
+             addr.base().code() == js::jit::sp.code()) {
+    Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.offset());
+    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+        Operand(js::jit::SANDBOX_MASK));
+    Add(addr.base(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+    LoadStorePair(rt, rt2, MemOperand(addr.base()), op);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (IsStorePairOp(op) && addr.base().code() != js::jit::sp.code()) {
+    mov(addr.base(), addr.base());
+  }
+#endif
 
   // Check if the offset fits in the immediate field of the appropriate
   // instruction. If not, emit two instructions to perform the operation.
@@ -1267,7 +1706,6 @@ void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
     }
   }
 }
-
 
 void MacroAssembler::Prfm(PrefetchOperation op, const MemOperand& addr) {
   MacroEmissionCheckScope guard(this);
@@ -1309,7 +1747,7 @@ void MacroAssembler::PushStackPointer() {
   Register scratch = temps.AcquireX();
 
   Mov(scratch, GetStackPointer64());
-  str(scratch, MemOperand(GetStackPointer64(), -8, PreIndex));
+  Str(scratch, MemOperand(GetStackPointer64(), -8, PreIndex));
 }
 
 
@@ -1443,8 +1881,13 @@ void MacroAssembler::PushHelper(int count, int size,
                                 const CPURegister& src3) {
   // Ensure that we don't unintentionally modify scratch or debug registers.
   // Worst case for size is 2 stp.
+#ifdef JS_SANDBOX_HEAP
+  InstructionAccurateScope scope(this, 8,
+                                 InstructionAccurateScope::kMaximumSize);
+#else
   InstructionAccurateScope scope(this, 2,
                                  InstructionAccurateScope::kMaximumSize);
+#endif
 
   VIXL_ASSERT(AreSameSizeAndType(src0, src1, src2, src3));
   VIXL_ASSERT(size == src0.SizeInBytes());
@@ -1463,23 +1906,23 @@ void MacroAssembler::PushHelper(int count, int size,
   switch (count) {
     case 1:
       VIXL_ASSERT(src1.IsNone() && src2.IsNone() && src3.IsNone());
-      str(src0, MemOperand(GetStackPointer64(), -1 * size, PreIndex));
+      Str(src0, MemOperand(GetStackPointer64(), -1 * size, PreIndex));
       break;
     case 2:
       VIXL_ASSERT(src2.IsNone() && src3.IsNone());
-      stp(src1, src0, MemOperand(GetStackPointer64(), -2 * size, PreIndex));
+      Stp(src1, src0, MemOperand(GetStackPointer64(), -2 * size, PreIndex));
       break;
     case 3:
       VIXL_ASSERT(src3.IsNone());
-      stp(src2, src1, MemOperand(GetStackPointer64(), -3 * size, PreIndex));
-      str(src0, MemOperand(GetStackPointer64(), 2 * size));
+      Stp(src2, src1, MemOperand(GetStackPointer64(), -3 * size, PreIndex));
+      Str(src0, MemOperand(GetStackPointer64(), 2 * size));
       break;
     case 4:
       // Skip over 4 * size, then fill in the gap. This allows four W registers
       // to be pushed using sp, whilst maintaining 16-byte alignment for sp at
       // all times.
-      stp(src3, src2, MemOperand(GetStackPointer64(), -4 * size, PreIndex));
-      stp(src1, src0, MemOperand(GetStackPointer64(), 2 * size));
+      Stp(src3, src2, MemOperand(GetStackPointer64(), -4 * size, PreIndex));
+      Stp(src1, src0, MemOperand(GetStackPointer64(), 2 * size));
       break;
     default:
       VIXL_UNREACHABLE();
@@ -1494,8 +1937,13 @@ void MacroAssembler::PopHelper(int count, int size,
                                const CPURegister& dst3) {
   // Ensure that we don't unintentionally modify scratch or debug registers.
   // Worst case for size is 2 ldp.
+#ifdef JS_SANDBOX_HEAP
+  InstructionAccurateScope scope(this, 8,
+                                 InstructionAccurateScope::kMaximumSize);
+#else
   InstructionAccurateScope scope(this, 2,
                                  InstructionAccurateScope::kMaximumSize);
+#endif
 
   VIXL_ASSERT(AreSameSizeAndType(dst0, dst1, dst2, dst3));
   VIXL_ASSERT(size == dst0.SizeInBytes());
@@ -1505,24 +1953,24 @@ void MacroAssembler::PopHelper(int count, int size,
   switch (count) {
     case 1:
       VIXL_ASSERT(dst1.IsNone() && dst2.IsNone() && dst3.IsNone());
-      ldr(dst0, MemOperand(GetStackPointer64(), 1 * size, PostIndex));
+      Ldr(dst0, MemOperand(GetStackPointer64(), 1 * size, PostIndex));
       break;
     case 2:
       VIXL_ASSERT(dst2.IsNone() && dst3.IsNone());
-      ldp(dst0, dst1, MemOperand(GetStackPointer64(), 2 * size, PostIndex));
+      Ldp(dst0, dst1, MemOperand(GetStackPointer64(), 2 * size, PostIndex));
       break;
     case 3:
       VIXL_ASSERT(dst3.IsNone());
-      ldr(dst2, MemOperand(GetStackPointer64(), 2 * size));
-      ldp(dst0, dst1, MemOperand(GetStackPointer64(), 3 * size, PostIndex));
+      Ldr(dst2, MemOperand(GetStackPointer64(), 2 * size));
+      Ldp(dst0, dst1, MemOperand(GetStackPointer64(), 3 * size, PostIndex));
       break;
     case 4:
       // Load the higher addresses first, then load the lower addresses and skip
       // the whole block in the second instruction. This allows four W registers
       // to be popped using sp, whilst maintaining 16-byte alignment for sp at
       // all times.
-      ldp(dst2, dst3, MemOperand(GetStackPointer64(), 2 * size));
-      ldp(dst0, dst1, MemOperand(GetStackPointer64(), 4 * size, PostIndex));
+      Ldp(dst2, dst3, MemOperand(GetStackPointer64(), 2 * size));
+      Ldp(dst0, dst1, MemOperand(GetStackPointer64(), 4 * size, PostIndex));
       break;
     default:
       VIXL_UNREACHABLE();
@@ -1625,17 +2073,17 @@ void MacroAssembler::PushCalleeSavedRegisters() {
 
   MemOperand tos(sp, -2 * static_cast<int>(kXRegSizeInBytes), PreIndex);
 
-  stp(x29, x30, tos);
-  stp(x27, x28, tos);
-  stp(x25, x26, tos);
-  stp(x23, x24, tos);
-  stp(x21, x22, tos);
-  stp(x19, x20, tos);
+  Stp(x29, x30, tos);
+  Stp(x27, x28, tos);
+  Stp(x25, x26, tos);
+  Stp(x23, x24, tos);
+  Stp(x21, x22, tos);
+  Stp(x19, x20, tos);
 
-  stp(d14, d15, tos);
-  stp(d12, d13, tos);
-  stp(d10, d11, tos);
-  stp(d8, d9, tos);
+  Stp(d14, d15, tos);
+  Stp(d12, d13, tos);
+  Stp(d10, d11, tos);
+  Stp(d8, d9, tos);
 }
 
 
@@ -1650,17 +2098,17 @@ void MacroAssembler::PopCalleeSavedRegisters() {
 
   MemOperand tos(sp, 2 * kXRegSizeInBytes, PostIndex);
 
-  ldp(d8, d9, tos);
-  ldp(d10, d11, tos);
-  ldp(d12, d13, tos);
-  ldp(d14, d15, tos);
+  Ldp(d8, d9, tos);
+  Ldp(d10, d11, tos);
+  Ldp(d12, d13, tos);
+  Ldp(d14, d15, tos);
 
-  ldp(x19, x20, tos);
-  ldp(x21, x22, tos);
-  ldp(x23, x24, tos);
-  ldp(x25, x26, tos);
-  ldp(x27, x28, tos);
-  ldp(x29, x30, tos);
+  Ldp(x19, x20, tos);
+  Ldp(x21, x22, tos);
+  Ldp(x23, x24, tos);
+  Ldp(x25, x26, tos);
+  Ldp(x27, x28, tos);
+  Ldp(x29, x30, tos);
 }
 
 void MacroAssembler::LoadCPURegList(CPURegList registers,

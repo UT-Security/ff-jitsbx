@@ -445,6 +445,17 @@ MemOperand::MemOperand(Register base, const Operand& offset, AddrMode addrmode)
   }
 }
 
+bool MemOperand::IsEquivalentToPlainRegister() const {
+  if (regoffset_.Is(NoReg)) {
+    // Immediate offset, pre-index or post-index.
+    return GetOffset() == 0;
+  } else if (GetRegisterOffset().IsZero()) {
+    // Zero register offset, pre-index or post-index.
+    // We can ignore shift and extend options because they all result in zero.
+    return true;
+  }
+  return false;
+}
 
 bool MemOperand::IsImmediateOffset() const {
   return (addrmode_ == Offset) && regoffset_.Is(NoReg);
@@ -465,6 +476,13 @@ bool MemOperand::IsPostIndex() const {
   return addrmode_ == PostIndex;
 }
 
+bool MemOperand::IsImmediatePreIndex() const {
+  return IsPreIndex() && regoffset_.Is(NoReg);
+}
+
+bool MemOperand::IsImmediatePostIndex() const {
+  return IsPostIndex() && regoffset_.Is(NoReg);
+}
 
 void MemOperand::AddOffset(int64_t offset) {
   VIXL_ASSERT(IsImmediateOffset());

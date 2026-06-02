@@ -895,14 +895,14 @@ void MacroAssembler::canonicalizeDoubleIfDeterministic(FloatRegister reg) {
 // ========================================================================
 // Memory access primitives.
 template <class T>
-void MacroAssembler::storeDouble(FloatRegister src, const T& dest) {
+CodeOffset MacroAssembler::storeDouble(FloatRegister src, const T& dest) {
   canonicalizeDoubleIfDeterministic(src);
-  storeUncanonicalizedDouble(src, dest);
+  return storeUncanonicalizedDouble(src, dest);
 }
 
-template void MacroAssembler::storeDouble(FloatRegister src,
+template CodeOffset MacroAssembler::storeDouble(FloatRegister src,
                                           const Address& dest);
-template void MacroAssembler::storeDouble(FloatRegister src,
+template CodeOffset MacroAssembler::storeDouble(FloatRegister src,
                                           const BaseIndex& dest);
 
 template <class T>
@@ -911,14 +911,14 @@ void MacroAssembler::boxDouble(FloatRegister src, const T& dest) {
 }
 
 template <class T>
-void MacroAssembler::storeFloat32(FloatRegister src, const T& dest) {
+CodeOffset MacroAssembler::storeFloat32(FloatRegister src, const T& dest) {
   canonicalizeFloatIfDeterministic(src);
-  storeUncanonicalizedFloat32(src, dest);
+  return storeUncanonicalizedFloat32(src, dest);
 }
 
-template void MacroAssembler::storeFloat32(FloatRegister src,
+template CodeOffset MacroAssembler::storeFloat32(FloatRegister src,
                                            const Address& dest);
-template void MacroAssembler::storeFloat32(FloatRegister src,
+template CodeOffset MacroAssembler::storeFloat32(FloatRegister src,
                                            const BaseIndex& dest);
 
 template <typename T>

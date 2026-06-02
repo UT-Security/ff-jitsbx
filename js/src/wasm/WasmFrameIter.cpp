@@ -393,7 +393,11 @@ static const unsigned PoppedFP = 8;
 #else
 static const unsigned PoppedFP = 4;
 #endif
+#ifdef JS_SANDBOX_HEAP
+static const unsigned PoppedFPJitEntry = 16;
+#else
 static const unsigned PoppedFPJitEntry = 8;
+#endif
 static_assert(BeforePushRetAddr == 0, "Required by StartUnwinding");
 static_assert(PushedFP > PushedRetAddr, "Required by StartUnwinding");
 #elif defined(JS_CODEGEN_MIPS64)
@@ -916,7 +920,7 @@ void wasm::GenerateJitEntryEpilogue(MacroAssembler& masm,
   RegisterOrSP sp = masm.getStackPointer();
 #ifdef JS_SANDBOX_CFI
   AutoForbidPoolsAndNops afp(&masm,
-                             /* number of instructions in scope = */ 6);
+                             /* number of instructions in scope = */ 10);
 #else
   AutoForbidPoolsAndNops afp(&masm,
                              /* number of instructions in scope = */ 5);

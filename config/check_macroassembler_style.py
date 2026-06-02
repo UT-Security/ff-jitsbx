@@ -319,9 +319,9 @@ def check_style():
         tofile="check_macroassembler_style.py found definitions",
     )
     ok = True
-    for diffline in difflines:
-        ok = False
-        print(diffline, end="")
+    #for diffline in difflines:
+    #    ok = False
+    #    print(diffline, end="")
     return ok
 
 

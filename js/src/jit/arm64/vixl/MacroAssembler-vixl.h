@@ -315,13 +315,13 @@ class MacroAssembler : public js::jit::Assembler {
 
   // Load/store macros.
 #define DECLARE_FUNCTION(FN, REGTYPE, REG, OP) \
-  void FN(const REGTYPE REG, const MemOperand& addr);
+  js::jit::CodeOffset FN(const REGTYPE REG, const MemOperand& addr);
   LS_MACRO_LIST(DECLARE_FUNCTION)
 #undef DECLARE_FUNCTION
 
-  void LoadStoreMacro(const CPURegister& rt,
-                      const MemOperand& addr,
-                      LoadStoreOp op);
+  js::jit::CodeOffset LoadStoreMacro(const CPURegister& rt,
+                                     const MemOperand& addr,
+                                     LoadStoreOp op);
 
 #define DECLARE_FUNCTION(FN, REGTYPE, REG, REG2, OP) \
   void FN(const REGTYPE REG, const REGTYPE REG2, const MemOperand& addr);
@@ -944,31 +944,38 @@ class MacroAssembler : public js::jit::Assembler {
     isb();
   }
   void Ldar(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldar(rt, src);
   }
   void Ldarb(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldarb(rt, src);
   }
   void Ldarh(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldarh(rt, src);
   }
   void Ldaxp(const Register& rt, const Register& rt2, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rt.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     ldaxp(rt, rt2, src);
   }
   void Ldaxr(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldaxr(rt, src);
   }
   void Ldaxrb(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldaxrb(rt, src);
   }
   void Ldaxrh(const Register& rt, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldaxrh(rt, src);
   }
@@ -1081,6 +1088,7 @@ class MacroAssembler : public js::jit::Assembler {
   void Ldnp(const CPURegister& rt,
             const CPURegister& rt2,
             const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ldnp(rt, rt2, src);
   }
@@ -1124,19 +1132,23 @@ class MacroAssembler : public js::jit::Assembler {
     ldrsw(rt, imm);
   }
   void Ldxp(const Register& rt, const Register& rt2, const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rt.Aliases(rt2));
     SingleEmissionCheckScope guard(this);
     ldxp(rt, rt2, src);
   }
   void Ldxr(const Register& rt, const MemOperand& src) {
+    //TODO
     SingleEmissionCheckScope guard(this);
     ldxr(rt, src);
   }
   void Ldxrb(const Register& rt, const MemOperand& src) {
+    //TODO
     SingleEmissionCheckScope guard(this);
     ldxrb(rt, src);
   }
   void Ldxrh(const Register& rt, const MemOperand& src) {
+    //TODO
     SingleEmissionCheckScope guard(this);
     ldxrh(rt, src);
   }
@@ -1359,14 +1371,17 @@ class MacroAssembler : public js::jit::Assembler {
     smulh(xd, xn, xm);
   }
   void Stlr(const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     stlr(rt, dst);
   }
   void Stlrb(const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     stlrb(rt, dst);
   }
   void Stlrh(const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     stlrh(rt, dst);
   }
@@ -1374,6 +1389,7 @@ class MacroAssembler : public js::jit::Assembler {
              const Register& rt,
              const Register& rt2,
              const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     VIXL_ASSERT(!rs.Aliases(rt2));
@@ -1381,18 +1397,21 @@ class MacroAssembler : public js::jit::Assembler {
     stlxp(rs, rt, rt2, dst);
   }
   void Stlxr(const Register& rs, const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stlxr(rs, rt, dst);
   }
   void Stlxrb(const Register& rs, const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stlxrb(rs, rt, dst);
   }
   void Stlxrh(const Register& rs, const Register& rt, const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
@@ -1401,6 +1420,7 @@ class MacroAssembler : public js::jit::Assembler {
   void Stnp(const CPURegister& rt,
             const CPURegister& rt2,
             const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     stnp(rt, rt2, dst);
   }
@@ -1408,6 +1428,7 @@ class MacroAssembler : public js::jit::Assembler {
             const Register& rt,
             const Register& rt2,
             const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     VIXL_ASSERT(!rs.Aliases(rt2));
@@ -1415,18 +1436,21 @@ class MacroAssembler : public js::jit::Assembler {
     stxp(rs, rt, rt2, dst);
   }
   void Stxr(const Register& rs, const Register& rt, const MemOperand& dst) {
+    //TODO
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stxr(rs, rt, dst);
   }
   void Stxrb(const Register& rs, const Register& rt, const MemOperand& dst) {
+    //TODO
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
     stxrb(rs, rt, dst);
   }
   void Stxrh(const Register& rs, const Register& rt, const MemOperand& dst) {
+    //TODO
     VIXL_ASSERT(!rs.Aliases(dst.base()));
     VIXL_ASSERT(!rs.Aliases(rt));
     SingleEmissionCheckScope guard(this);
@@ -2019,12 +2043,14 @@ class MacroAssembler : public js::jit::Assembler {
   }
   void Ld1(const VRegister& vt,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1(vt, src);
   }
   void Ld1(const VRegister& vt,
            const VRegister& vt2,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, src);
   }
@@ -2032,6 +2058,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, vt3, src);
   }
@@ -2040,23 +2067,27 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1(vt, vt2, vt3, vt4, src);
   }
   void Ld1(const VRegister& vt,
            int lane,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1(vt, lane, src);
   }
   void Ld1r(const VRegister& vt,
             const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld1r(vt, src);
   }
   void Ld2(const VRegister& vt,
            const VRegister& vt2,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld2(vt, vt2, src);
   }
@@ -2064,12 +2095,14 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            int lane,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld2(vt, vt2, lane, src);
   }
   void Ld2r(const VRegister& vt,
             const VRegister& vt2,
             const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld2r(vt, vt2, src);
   }
@@ -2077,6 +2110,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld3(vt, vt2, vt3, src);
   }
@@ -2085,6 +2119,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            int lane,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld3(vt, vt2, vt3, lane, src);
   }
@@ -2092,6 +2127,7 @@ class MacroAssembler : public js::jit::Assembler {
             const VRegister& vt2,
             const VRegister& vt3,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld3r(vt, vt2, vt3, src);
   }
@@ -2100,6 +2136,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld4(vt, vt2, vt3, vt4, src);
   }
@@ -2109,6 +2146,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt4,
            int lane,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld4(vt, vt2, vt3, vt4, lane, src);
   }
@@ -2117,6 +2155,7 @@ class MacroAssembler : public js::jit::Assembler {
             const VRegister& vt3,
             const VRegister& vt4,
            const MemOperand& src) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     ld4r(vt, vt2, vt3, vt4, src);
   }
@@ -2189,12 +2228,14 @@ class MacroAssembler : public js::jit::Assembler {
   }
   void St1(const VRegister& vt,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st1(vt, dst);
   }
   void St1(const VRegister& vt,
            const VRegister& vt2,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, dst);
   }
@@ -2202,6 +2243,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, vt3, dst);
   }
@@ -2210,18 +2252,21 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st1(vt, vt2, vt3, vt4, dst);
   }
   void St1(const VRegister& vt,
            int lane,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st1(vt, lane, dst);
   }
   void St2(const VRegister& vt,
            const VRegister& vt2,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st2(vt, vt2, dst);
   }
@@ -2229,6 +2274,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            const VRegister& vt3,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st3(vt, vt2, vt3, dst);
   }
@@ -2237,6 +2283,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            const VRegister& vt4,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st4(vt, vt2, vt3, vt4, dst);
   }
@@ -2244,6 +2291,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt2,
            int lane,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st2(vt, vt2, lane, dst);
   }
@@ -2252,6 +2300,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt3,
            int lane,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st3(vt, vt2, vt3, lane, dst);
   }
@@ -2261,6 +2310,7 @@ class MacroAssembler : public js::jit::Assembler {
            const VRegister& vt4,
            int lane,
            const MemOperand& dst) {
+    MOZ_ASSERT(false, "Unused");
     SingleEmissionCheckScope guard(this);
     st4(vt, vt2, vt3, vt4, lane, dst);
   }

@@ -2185,22 +2185,22 @@ void MacroAssembler::spectreBoundsCheckPtr(Register index,
 
 // ========================================================================
 // Memory access primitives.
-void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const Address& dest) {
-  Str(ARMFPRegister(src, 64), toMemOperand(dest));
+  return Str(ARMFPRegister(src, 64), toMemOperand(dest));
 }
-void MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedDouble(FloatRegister src,
                                                 const BaseIndex& dest) {
-  doBaseIndex(ARMFPRegister(src, 64), dest, vixl::STR_d);
+  return doBaseIndex(ARMFPRegister(src, 64), dest, vixl::STR_d);
 }
 
-void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const Address& addr) {
-  Str(ARMFPRegister(src, 32), toMemOperand(addr));
+  return Str(ARMFPRegister(src, 32), toMemOperand(addr));
 }
-void MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
+CodeOffset MacroAssembler::storeUncanonicalizedFloat32(FloatRegister src,
                                                  const BaseIndex& addr) {
-  doBaseIndex(ARMFPRegister(src, 32), addr, vixl::STR_s);
+  return doBaseIndex(ARMFPRegister(src, 32), addr, vixl::STR_s);
 }
 
 void MacroAssembler::memoryBarrier(MemoryBarrierBits barrier) {
@@ -3354,14 +3354,14 @@ void MacroAssembler::loadUnalignedSimd128(const BaseIndex& address,
 
 // Store
 
-void MacroAssembler::storeUnalignedSimd128(FloatRegister src,
+CodeOffset MacroAssembler::storeUnalignedSimd128(FloatRegister src,
                                            const Address& dest) {
-  Str(ARMFPRegister(src, 128), toMemOperand(dest));
+  return Str(ARMFPRegister(src, 128), toMemOperand(dest));
 }
 
-void MacroAssembler::storeUnalignedSimd128(FloatRegister src,
+CodeOffset MacroAssembler::storeUnalignedSimd128(FloatRegister src,
                                            const BaseIndex& dest) {
-  doBaseIndex(ARMFPRegister(src, 128), dest, vixl::STR_q);
+  return doBaseIndex(ARMFPRegister(src, 128), dest, vixl::STR_q);
 }
 
 // Floating point negation
@@ -3900,6 +3900,21 @@ void MacroAssembler::maxFloat64x2Relaxed(FloatRegister lhs, FloatRegister rhs,
 // ===============================================================
 
 void MacroAssemblerCompat::addToStackPtr(Register src) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Add(SandboxTemporaryReg64, vixl::sp, ARMRegister(src, 64));
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Mov(vixl::x28, vixl::x28);
+    Mov(vixl::x28, vixl::x28);
+    Add(vixl::sp, vixl::sp, ARMRegister(src, 64));
+    return;
+  }
+#endif
   Add(GetStackPointer64(), GetStackPointer64(), ARMRegister(src, 64));
   // Given that required invariant SP <= PSP, this is probably pointless,
   // since it gives PSP a larger value.
@@ -3907,6 +3922,21 @@ void MacroAssemblerCompat::addToStackPtr(Register src) {
 }
 
 void MacroAssemblerCompat::addToStackPtr(Imm32 imm) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Add(SandboxTemporaryReg64, vixl::sp, Operand(imm.value));
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Mov(vixl::x28, vixl::x28);
+    Mov(vixl::x28, vixl::x28);
+    Add(vixl::sp, vixl::sp, Operand(imm.value));
+    return;
+  }
+#endif
   Add(GetStackPointer64(), GetStackPointer64(), Operand(imm.value));
   // As above, probably pointless.
   syncStackPtr();
@@ -3916,6 +3946,21 @@ void MacroAssemblerCompat::addToStackPtr(const Address& src) {
   vixl::UseScratchRegisterScope temps(this);
   const ARMRegister scratch = temps.AcquireX();
   Ldr(scratch, toMemOperand(src));
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Add(SandboxTemporaryReg64, vixl::sp, scratch);
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Mov(vixl::x28, vixl::x28);
+    Mov(vixl::x28, vixl::x28);
+    Add(vixl::sp, vixl::sp, scratch);
+    return;
+  }
+#endif
   Add(GetStackPointer64(), GetStackPointer64(), scratch);
   // As above, probably pointless.
   syncStackPtr();
@@ -3926,11 +3971,41 @@ void MacroAssemblerCompat::addStackPtrTo(Register dest) {
 }
 
 void MacroAssemblerCompat::subFromStackPtr(Register src) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Sub(SandboxTemporaryReg64, vixl::sp, ARMRegister(src, 64));
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Mov(vixl::x28, vixl::x28);
+    Mov(vixl::x28, vixl::x28);
+    Sub(vixl::sp, vixl::sp, ARMRegister(src, 64));
+    return;
+  }
+#endif
   Sub(GetStackPointer64(), GetStackPointer64(), ARMRegister(src, 64));
   syncStackPtr();
 }
 
 void MacroAssemblerCompat::subFromStackPtr(Imm32 imm) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Sub(SandboxTemporaryReg64, vixl::sp, Operand(imm.value));
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#elif defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_NOOP)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    Mov(vixl::x28, vixl::x28);
+    Mov(vixl::x28, vixl::x28);
+    Sub(vixl::sp, vixl::sp, Operand(imm.value));
+    return;
+  }
+#endif
   Sub(GetStackPointer64(), GetStackPointer64(), Operand(imm.value));
   syncStackPtr();
 }
@@ -3944,7 +4019,13 @@ void MacroAssemblerCompat::andToStackPtr(Imm32 imm) {
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch = temps.AcquireX();
     Mov(scratch, sp);
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    And(SandboxTemporaryReg64, scratch, Operand(imm.value));
+    And(SandboxOffsetReg64, SandboxTemporaryReg64, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+#else
     And(sp, scratch, Operand(imm.value));
+#endif
     // syncStackPtr() not needed since our SP is the real SP.
   } else {
     And(GetStackPointer64(), GetStackPointer64(), Operand(imm.value));
@@ -3953,6 +4034,13 @@ void MacroAssemblerCompat::andToStackPtr(Imm32 imm) {
 }
 
 void MacroAssemblerCompat::moveToStackPtr(Register src) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (GetStackPointer64().Is(vixl::sp)) {
+    And(SandboxOffsetReg64, ARMRegister(src, 64), Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+    return;
+  }
+#endif
   Mov(GetStackPointer64(), ARMRegister(src, 64));
   syncStackPtr();
 }
@@ -3966,7 +4054,12 @@ void MacroAssemblerCompat::loadStackPtr(const Address& src) {
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch = temps.AcquireX();
     Ldr(scratch, toMemOperand(src));
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    And(SandboxOffsetReg64, scratch, Operand(SANDBOX_MASK));
+    Add(vixl::sp, SandboxBaseReg64, SandboxOffsetReg64);
+#else
     Mov(sp, scratch);
+#endif
     // syncStackPtr() not needed since our SP is the real SP.
   } else {
     Ldr(GetStackPointer64(), toMemOperand(src));

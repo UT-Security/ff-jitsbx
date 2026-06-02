@@ -648,39 +648,31 @@ void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
   asMasm().memoryBarrierBefore(access.sync());
 
   {
-    // Reg+Reg addressing is directly encodable in one Store instruction, hence
-    // the AutoForbidPoolsAndNops will ensure that the access metadata is
-    // emitted at the address of the Store.  The AutoForbidPoolsAndNops will
-    // assert if we emit more than one instruction.
-
-    AutoForbidPoolsAndNops afp(this,
-                               /* max number of instructions in scope = */ 1);
-
-    append(access, asMasm().currentOffset());
+    CodeOffset co;
     switch (access.type()) {
       case Scalar::Int8:
       case Scalar::Uint8:
-        Strb(SelectGPReg(valany, val64), dstAddr);
+        co = Strb(SelectGPReg(valany, val64), dstAddr);
         break;
       case Scalar::Int16:
       case Scalar::Uint16:
-        Strh(SelectGPReg(valany, val64), dstAddr);
+        co = Strh(SelectGPReg(valany, val64), dstAddr);
         break;
       case Scalar::Int32:
       case Scalar::Uint32:
-        Str(SelectGPReg(valany, val64), dstAddr);
+        co = Str(SelectGPReg(valany, val64), dstAddr);
         break;
       case Scalar::Int64:
-        Str(SelectGPReg(valany, val64), dstAddr);
+        co = Str(SelectGPReg(valany, val64), dstAddr);
         break;
       case Scalar::Float32:
-        Str(SelectFPReg(valany, val64, 32), dstAddr);
+        co = Str(SelectFPReg(valany, val64, 32), dstAddr);
         break;
       case Scalar::Float64:
-        Str(SelectFPReg(valany, val64, 64), dstAddr);
+        co = Str(SelectFPReg(valany, val64, 64), dstAddr);
         break;
       case Scalar::Simd128:
-        Str(SelectFPReg(valany, val64, 128), dstAddr);
+        co = Str(SelectFPReg(valany, val64, 128), dstAddr);
         break;
       case Scalar::Uint8Clamped:
       case Scalar::BigInt64:
@@ -688,6 +680,7 @@ void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
       case Scalar::MaxTypedArrayViewType:
         MOZ_CRASH("unexpected array type");
     }
+    append(access, co.offset());
   }
 
   asMasm().memoryBarrierAfter(access.sync());
@@ -1633,7 +1626,7 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 // Jit Frames.
 
 uint32_t MacroAssembler::pushFakeReturnAddress(Register scratch) {
-  enterNoPool(3);
+  enterNoPool(8);
   Label fakeCallsite;
 
   Adr(ARMRegister(scratch, 64), &fakeCallsite);
@@ -2181,12 +2174,30 @@ void MacroAssembler::convertIntPtrToDouble(Register src, FloatRegister dest) {
 static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
                                           const Address& address,
                                           Register scratch) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  if (address.offset == 0) {
+    masm.And(js::jit::SandboxOffsetReg64, X(masm, address.base),
+             Operand(js::jit::SANDBOX_MASK));
+    masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+             js::jit::SandboxOffsetReg64);
+    return MemOperand(js::jit::SandboxAddressReg64, 0);
+  }
+
+  masm.Add(js::jit::SandboxTemporaryReg64, X(masm, address.base),
+           address.offset);
+  masm.And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+           Operand(js::jit::SANDBOX_MASK));
+  masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+           js::jit::SandboxOffsetReg64);
+  return MemOperand(js::jit::SandboxAddressReg64, 0);
+#else
   if (address.offset == 0) {
     return MemOperand(X(masm, address.base), 0);
   }
 
   masm.Add(X(scratch), X(masm, address.base), address.offset);
   return MemOperand(X(scratch), 0);
+#endif
 }
 
 static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
@@ -2197,7 +2208,15 @@ static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
   if (address.offset) {
     masm.Add(X(scratch), X(scratch), address.offset);
   }
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  masm.And(js::jit::SandboxOffsetReg64, X(scratch),
+           Operand(js::jit::SANDBOX_MASK));
+  masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+           js::jit::SandboxOffsetReg64);
+  return MemOperand(js::jit::SandboxAddressReg64, 0);
+#else
   return MemOperand(X(scratch), 0);
+#endif
 }
 
 // This sign extends to targetWidth and leaves any higher bits zero.
