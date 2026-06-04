@@ -68,7 +68,7 @@ bool JSJitFrameIter::checkInvalidation(IonScript** ionScriptOut) const {
 #ifdef JS_SANDBOX
   vixl::Instruction* instr =
       reinterpret_cast<vixl::Instruction*>((uint32_t*)returnAddr - 1);
-  int32_t invalidationDataOffset = instr->ImmException();
+  int32_t invalidationDataOffset = instr->ImmUncondBranch();
 #else
   int32_t invalidationDataOffset = ((int32_t*)returnAddr)[-1];
 #endif

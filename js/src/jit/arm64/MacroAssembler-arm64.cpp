@@ -1333,11 +1333,19 @@ void MacroAssembler::call(ImmPtr imm) {
   // This sync has been observed (and is expected) to be necessary.
   // eg testcase: asm.js/testTimeout5.js
   syncStackPtr();
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  uintptr_t addr = (uintptr_t)imm.value;
+  movz(SandboxTemporaryReg64, (addr & 0xFFFF), 0);
+  movk(SandboxTemporaryReg64, ((addr >> 16) & 0xFFFF), 16);
+  Blr(ARMRegister(sandboxCodePointer(SandboxTemporaryReg, SandboxAddressReg),
+                  64));
+#else
   vixl::UseScratchRegisterScope temps(this);
   MOZ_ASSERT(temps.IsAvailable(ScratchReg64));  // ip0
   temps.Exclude(ScratchReg64);
   movePtr(imm, ScratchReg64.asUnsized());
   Blr(ScratchReg64);
+#endif
 }
 
 void MacroAssembler::call(ImmWord imm) { call(ImmPtr((void*)imm.value)); }
@@ -1372,14 +1380,21 @@ void MacroAssembler::call(const Address& addr) {
 }
 
 void MacroAssembler::call(JitCode* c) {
-  vixl::UseScratchRegisterScope temps(this);
-  const ARMRegister scratch64 = temps.AcquireX();
   // This sync has been observed (and is expected) to be necessary.
   // eg testcase: arrays/new-array-undefined-undefined-more-args-2.js
   syncStackPtr();
+#if defined(JS_SANDBOX_CFI)
+  BufferOffset loc =
+      bl(-1,
+         LabelDoc());  // The call target will be patched by executableCopy().
+  addPendingJump(loc, ImmPtr(c->raw()), RelocationKind::JITCODE);
+#else
+  vixl::UseScratchRegisterScope temps(this);
+  const ARMRegister scratch64 = temps.AcquireX();
   BufferOffset off = immPool64(scratch64, uint64_t(c->raw()));
   addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE);
   blr(scratch64);
+#endif
 }
 
 CodeOffset MacroAssembler::callWithPatch() {
@@ -1410,6 +1425,29 @@ CodeOffset MacroAssembler::farJumpWithPatch() {
   const ARMRegister scratch = temps.AcquireX();
   const ARMRegister scratch2 = temps.AcquireX();
 
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  align(8);  // At most one nop
+  AutoForbidPoolsAndNops afp(this,
+                             /* max number of instructions in scope = */ 6);
+  mozilla::DebugOnly<uint32_t> before = currentOffset();
+
+  Label branch;
+  adr(scratch2, &branch);
+  // the movz and movk together allow patching in a signed 32-bit offset
+  // which is sufficient for any target within JIT code.
+  movz(scratch, 0, 0);
+  movk(scratch, 0, 16);
+  add(scratch2, scratch2, scratch);
+  add(SandboxAddressReg64, SandboxBaseReg64,
+      Operand(ARMRegister(scratch2.asUnsized(), 32), vixl::Extend::UXTW));
+  CodeOffset offs(currentOffset());
+  bind(&branch);
+  br(SandboxAddressReg64);
+
+  mozilla::DebugOnly<uint32_t> after = currentOffset();
+
+  MOZ_ASSERT_IF(!oom(), after - before == 24);
+#else
   AutoForbidPoolsAndNops afp(this,
                              /* max number of instructions in scope = */ 7);
 
@@ -1430,11 +1468,29 @@ CodeOffset MacroAssembler::farJumpWithPatch() {
   mozilla::DebugOnly<uint32_t> after = currentOffset();
 
   MOZ_ASSERT(after - before == 24 || after - before == 28);
-
+#endif
   return offs;
 }
 
 void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  Instruction* inst1 = getInstructionAt(BufferOffset(farJump.offset() - 16));
+  Instruction* inst2 = getInstructionAt(BufferOffset(farJump.offset() - 12));
+
+  int64_t distance = (int64_t)targetOffset - (int64_t)farJump.offset();
+
+  MOZ_ASSERT((int32_t)distance == distance);
+  MOZ_RELEASE_ASSERT(mozilla::Abs(distance) <=
+                     (intptr_t)jit::MaxCodeBytesPerProcess);
+
+  MOZ_ASSERT(inst1->IsMovz());
+  inst1->SetInstructionBits(inst1->InstructionBits() |
+                            ImmMoveWide(distance & 0xFFFF));
+
+  MOZ_ASSERT(inst2->IsMovk());
+  inst2->SetInstructionBits(inst2->InstructionBits() |
+                            ImmMoveWide((distance >> 16) & 0xFFFF));
+#else
   Instruction* inst1 = getInstructionAt(BufferOffset(farJump.offset() + 4));
   Instruction* inst2 = getInstructionAt(BufferOffset(farJump.offset() + 8));
 
@@ -1445,6 +1501,7 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
 
   inst1->SetInstructionBits((uint32_t)distance);
   inst2->SetInstructionBits((uint32_t)(distance >> 32));
+#endif
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {

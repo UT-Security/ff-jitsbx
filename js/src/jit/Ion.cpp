@@ -2401,9 +2401,7 @@ static void InvalidateActivation(JS::GCContext* gcx,
     ptrdiff_t delta = ionScript->invalidateEpilogueDataOffset() -
                       (frame.resumePCinCurrentFrame() - ionCode->raw());
 #ifdef JS_SANDBOX
-    MOZ_ASSERT(delta % 4 == 0);
-    MOZ_ASSERT(delta >= INT16_MIN && delta <= INT16_MAX);
-    Assembler::PatchWrite_Udf16(dataLabelToMunge, (uint16_t)delta);
+    Assembler::PatchWrite_Imm26(dataLabelToMunge, Imm32(delta));
 #else
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));
 #endif

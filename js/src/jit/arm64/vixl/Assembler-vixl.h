@@ -1044,7 +1044,7 @@ class Assembler : public MozBaseAssembler {
   void bl(Label* label);
 
   // Branch with link to PC offset.
-  void bl(int imm26, const LabelDoc& doc);
+  BufferOffset bl(int imm26, const LabelDoc& doc);
   static void bl(Instruction* at, int imm26);
 
   // Compare and branch to label if zero.

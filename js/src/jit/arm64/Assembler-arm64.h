@@ -358,13 +358,13 @@ static constexpr ARMRegister SandboxOffsetReg64 = {Registers::x24, 64};
 
 static constexpr Register SandboxTemporaryReg{Registers::x26};
 static constexpr ARMRegister SandboxTemporaryReg64 = {Registers::x26, 64};
+static constexpr ARMRegister SandboxTemporaryReg32 = {Registers::x26, 32};
 
 static constexpr Register SandboxBaseReg{Registers::x27};
 static constexpr ARMRegister SandboxBaseReg64 = {Registers::x27, 64};
 
 static constexpr Register SandboxAddressReg{Registers::x28};
 static constexpr ARMRegister SandboxAddressReg64 = {Registers::x28, 64};
-static constexpr ARMRegister SandboxAddressReg32 = {Registers::x28, 32};
 #endif
 
 static constexpr Register IntArgReg0{Registers::x0};
@@ -612,13 +612,13 @@ class Assembler : public vixl::Assembler {
     *(raw - 1) = imm.value;
   }
 #ifdef JS_SANDBOX
-  static void PatchWrite_Udf16(CodeLocationLabel label, uint16_t imm) {
+  static void PatchWrite_Imm26(CodeLocationLabel label, Imm32 imm) {
     // Raw is going to be the return address.
     uint32_t* raw = (uint32_t*)label.raw();
     // Overwrite the 4 bytes before the return address, which will end up being
     // the call instruction.
-    Instruction* udf = reinterpret_cast<Instruction*>(raw - 1);
-    Emit(udf, vixl::HLT | ImmException(imm));
+    Instruction* branch = reinterpret_cast<Instruction*>(raw - 1);
+    b(branch, imm.value);
   }
 #endif
 
@@ -654,6 +654,17 @@ class Assembler : public vixl::Assembler {
   // A Jump table entry is 2 instructions, with 8 bytes of raw data
   static const size_t SizeOfJumpTableEntry = 16;
 
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  struct JumpTableEntry {
+    uint32_t movz;
+    uint32_t movk;
+    uint32_t add;
+    uint32_t br;
+
+    Instruction* getMovz() { return reinterpret_cast<Instruction*>(&movz); }
+    Instruction* getMovk() { return reinterpret_cast<Instruction*>(&movk); }
+  };
+#else
   struct JumpTableEntry {
     uint32_t ldr;
     uint32_t br;
@@ -664,6 +675,7 @@ class Assembler : public vixl::Assembler {
 
   // Offset of the patchable target for the given entry.
   static const size_t OffsetOfJumpTableEntryPointer = 8;
+#endif
 
  public:
   void writeCodePointer(CodeLabel* label) {

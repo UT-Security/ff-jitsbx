@@ -2138,6 +2138,32 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       MOZ_ASSERT(temps.IsAvailable(ScratchReg2_64));
       temps.Exclude(ScratchReg2_64);
 
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+      loadOffset = nextOffset();
+
+      uint64_t rawTarget = uint64_t(target->raw());
+      uint16_t offsetLo = rawTarget & 0xFFFF;
+      uint16_t offsetHi = (rawTarget >> 16) & 0xFFFF;
+
+      if (enabled) {
+        movz(ScratchReg2_64, offsetLo, 0);
+        movk(ScratchReg2_64, offsetHi, 16);
+        AutoForbidPoolsAndNops afp(
+            this,
+            /* max number of instructions in scope = */ 2);
+        add(SandboxAddressReg64, SandboxBaseReg64,
+            Operand(ARMRegister(ScratchReg2, 32), vixl::Extend::UXTW));
+        blr(SandboxAddressReg64);
+      } else {
+        movz(xzr, offsetLo, 0);
+        movk(xzr, offsetHi, 16);
+        AutoForbidPoolsAndNops afp(
+            this,
+            /* max number of instructions in scope = */ 2);
+        nop();
+        nop();
+      }
+#else
       loadOffset = immPool64(ScratchReg2_64, uint64_t(target->raw()));
 
       if (enabled) {
@@ -2145,6 +2171,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       } else {
         nop();
       }
+#endif
     }
 
     addPendingJump(loadOffset, ImmPtr(target->raw()), RelocationKind::JITCODE);

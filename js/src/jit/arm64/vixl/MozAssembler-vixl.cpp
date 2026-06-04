@@ -242,8 +242,8 @@ void Assembler::blr(Instruction* at, const Register& xn) {
 }
 
 
-void Assembler::bl(int imm26, const LabelDoc& doc) {
-  EmitBranch(BL | ImmUncondBranch(imm26), doc);
+BufferOffset Assembler::bl(int imm26, const LabelDoc& doc) {
+  return EmitBranch(BL | ImmUncondBranch(imm26), doc);
 }
 
 
@@ -255,7 +255,7 @@ void Assembler::bl(Instruction* at, int imm26) {
 void Assembler::bl(Label* label) {
   // Encode the relative offset from the inserted branch to the label.
   LabelDoc doc = refLabel(label);
-  return bl(LinkAndGetInstructionOffsetTo(nextInstrOffset(), UncondBranchRangeType, label), doc);
+  bl(LinkAndGetInstructionOffsetTo(nextInstrOffset(), UncondBranchRangeType, label), doc);
 }
 
 

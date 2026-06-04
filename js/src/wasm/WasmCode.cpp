@@ -489,6 +489,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
   TempAllocator alloc(&lifo);
   JitContext jitContext;
   WasmMacroAssembler masm(alloc);
+  AutoCreatedBy acb(masm, "LazyStubTier::createManyEntryStubs");
 
   if (funcExportIndices.length() == 1) {
     PadCodeForSingleStub(masm);

@@ -174,6 +174,13 @@ BufferOffset Assembler::emitExtendedJumpTable() {
     //   clobbered by ldr and br as they are Assembler primitives, not
     //   MacroAssembler functions.
 
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+    movz(SandboxTemporaryReg64, 0, 0);
+    movk(SandboxTemporaryReg64, 0, 16);
+    add(SandboxAddressReg64, SandboxBaseReg64,
+        Operand(SandboxTemporaryReg32, vixl::Extend::UXTW));
+    br(SandboxAddressReg64);
+#else
     ldr(ScratchReg64, ptrdiff_t(8 / vixl::kInstructionSize));
     br(ScratchReg64);
 
@@ -183,6 +190,7 @@ BufferOffset Assembler::emitExtendedJumpTable() {
 
     brk(0x0);
     brk(0x0);
+#endif
 
     DebugOnly<size_t> postOffset = size_t(armbuffer_.nextOffset().getOffset());
 
@@ -215,8 +223,24 @@ void Assembler::executableCopy(uint8_t* buffer) {
         branch->SetImmPCOffsetTarget(target);
       } else {
         JumpTableEntry* entry = &extendedJumpTable[i];
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+        Instruction* movz = entry->getMovz();
+        MOZ_ASSERT(movz->IsMovz());
+        Instruction* movk = entry->getMovk();
+        MOZ_ASSERT(movk->IsMovk());
+
+        uintptr_t targetAddr = reinterpret_cast<uintptr_t>(rp.target);
+        movz->SetInstructionBits(movz->InstructionBits() |
+                                 ImmMoveWide(targetAddr & 0xFFFF));
+        movk->SetInstructionBits(movk->InstructionBits() |
+                                 ImmMoveWide((targetAddr >> 16) & 0xFFFF));
+
+        MOZ_ASSERT(branch->IsTargetReachable(movz));
+        branch->SetImmPCOffsetTarget(movz);
+#else
         branch->SetImmPCOffsetTarget(entry->getLdr());
         entry->data = target;
+#endif
       }
     } else {
       // Currently a two-instruction call, it should be possible to optimize
@@ -401,6 +425,92 @@ void Assembler::ToggleToCmp(CodeLocationLabel inst_) {
 
 void Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled) {
   const Instruction* first = reinterpret_cast<Instruction*>(inst_.raw());
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  Instruction* movz;
+  Instruction* movk;
+  Instruction* add;
+  Instruction* call;
+
+  // There might be a constant pool at the very first instruction.
+  first = first->skipPool();
+
+  while (!first->IsMovz()) {
+    first = first->InstructionAtOffset(vixl::kInstructionSize)->skipPool();
+  }
+
+  MOZ_ASSERT(first->IsMovz());
+  movz = const_cast<Instruction*>(first);
+
+  // The movk instruction follows the movz, but there may be an injected
+  // constant pool.
+  movk = const_cast<Instruction*>(
+      movz->InstructionAtOffset(vixl::kInstructionSize)->skipPool());
+
+  // The add instruction follows the movk, but there may be an injected
+
+
+  // constant pool.
+  add = const_cast<Instruction*>(
+      movk->InstructionAtOffset(vixl::kInstructionSize)->skipPool());
+
+  // The call instruction follows the add, and there cannot be an injected
+  // constant pool.
+  call = const_cast<Instruction*>(
+      add->InstructionAtOffset(vixl::kInstructionSize));
+
+  if (call->IsBLR() == enabled) {
+    return;
+  }
+
+  if (call->IsBLR()) {
+    // If the call instruction is blr(), then we have:
+    //   movz x17, [4-byte sandbox code offset low 16-bits], 0
+    //   movk x17, [4-byte sandbox code offset hight 16-bits], 16
+    //   add x28, x27, w17, uxtw
+    //   blr x28
+    MOZ_ASSERT(movz->IsMovz() && movk->IsMovk());
+    // We want to transform this to:
+    //   movz xzr, [4-byte sandbox code offset low 16-bits], 0
+    //   movk xzr, [4-byte sandbox code offset high 16-bits], 16
+    //   nop
+    //   nop
+    Emit(movz, SF(xzr) | vixl::MoveWideImmediateFixed | vixl::MOVZ | Rd(xzr) |
+                   ImmMoveWide(movz->ImmMoveWide()) |
+                   ShiftMoveWide(movz->ShiftMoveWide()));
+    Emit(movk, SF(xzr) | vixl::MoveWideImmediateFixed | vixl::MOVK | Rd(xzr) |
+                   ImmMoveWide(movk->ImmMoveWide()) |
+                   ShiftMoveWide(movk->ShiftMoveWide()));
+    nop(add);
+    nop(call);
+  } else {
+    // We have:
+    //   movz xzr, [4-byte sandbox code offset low 16-bits], 0
+    //   movk xzr, [4-byte sandbox code offset high 16-bits], 16
+    //   nop
+    //   nop
+    MOZ_ASSERT(movz->IsMovz() && movk->IsMovk());
+    MOZ_ASSERT(add->IsNOP() && call->IsNOP());
+    // Transform this to:
+    //   movz x17, [4-byte sandbox code offset low 16-bits], 0
+    //   movk x17, [4-byte sandbox code offset high 16-bits], 16
+    //   add x28, x27, w17, uxtw
+    //   blr x28
+
+    // TODO(MOHABI): we probably should create vixl helpers for these but I'm
+    // not sure what files are okay to modify.
+    Emit(movz, SF(ScratchReg2_64) | vixl::MoveWideImmediateFixed | vixl::MOVZ |
+                   Rd(ScratchReg2_64) | ImmMoveWide(movz->ImmMoveWide()) |
+                   ShiftMoveWide(movz->ShiftMoveWide()));
+    Emit(movk, SF(ScratchReg2_64) | vixl::MoveWideImmediateFixed | vixl::MOVK |
+                   Rd(ScratchReg2_64) | ImmMoveWide(movk->ImmMoveWide()) |
+                   ShiftMoveWide(movk->ShiftMoveWide()));
+    Emit(add, SF(SandboxAddressReg64) | vixl::AddSubExtendedFixed | vixl::ADD |
+                  Flags(vixl::LeaveFlags) | Rm(ARMRegister(ScratchReg2, 32)) |
+                  ExtendMode(vixl::UXTW) | ImmExtendShift(0) |
+                  Rd(SandboxAddressReg64) | RnSP(SandboxBaseReg64));
+    blr(call, SandboxAddressReg64);
+  }
+#else
   Instruction* load;
   Instruction* call;
 
@@ -448,6 +558,7 @@ void Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled) {
     ldr(load, ScratchReg2_64, int32_t(offset));
     blr(call, ScratchReg2_64);
   }
+#endif
 }
 
 // Patches loads generated by MacroAssemblerCompat::mov(CodeLabel*, Register).
@@ -527,9 +638,21 @@ static JitCode* CodeFromJump(JitCode* code, uint8_t* jump) {
     MOZ_ASSERT(target + Assembler::SizeOfJumpTableEntry <=
                code->raw() + code->instructionsSize());
 
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+    Assembler::JumpTableEntry* extendedJumpTable =
+        reinterpret_cast<Assembler::JumpTableEntry*>(target);
+    Instruction* movz = extendedJumpTable->getMovz();
+    Instruction* movk = extendedJumpTable->getMovk();
+
+    uint32_t offset = movz->ImmMoveWide() | (movk->ImmMoveWide() << 16);
+    uintptr_t base;
+    asm volatile("mov %0, x27" : "=r"(base));
+    target = reinterpret_cast<uint8_t*>(base + offset);
+#else
     uint8_t** patchablePtr =
         (uint8_t**)(target + Assembler::OffsetOfJumpTableEntryPointer);
     target = *patchablePtr;
+#endif
   }
 
   return JitCode::FromExecutable(target);

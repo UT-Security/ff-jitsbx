@@ -300,7 +300,13 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   ARMRegister v(switchValue, 64);
   masm.Adr(s, theTable);
   masm.Add(s, s, Operand(v, vixl::LSL, 2));
+#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  masm.Add(SandboxAddressReg64, SandboxBaseReg64,
+        Operand(ARMRegister(scratch, 32), vixl::Extend::UXTW));
+  masm.Br(SandboxAddressReg64);
+#else
   masm.Br(s);
+#endif
 #  else
   AutoForbidPoolsAndNops afp(&masm,
                              /* number of instructions in scope = */ 4);
