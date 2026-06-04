@@ -611,6 +611,17 @@ class Assembler : public vixl::Assembler {
     // the call instruction.
     *(raw - 1) = imm.value;
   }
+#ifdef JS_SANDBOX
+  static void PatchWrite_Udf16(CodeLocationLabel label, uint16_t imm) {
+    // Raw is going to be the return address.
+    uint32_t* raw = (uint32_t*)label.raw();
+    // Overwrite the 4 bytes before the return address, which will end up being
+    // the call instruction.
+    Instruction* udf = reinterpret_cast<Instruction*>(raw - 1);
+    Emit(udf, vixl::HLT | ImmException(imm));
+  }
+#endif
+
   static uint32_t AlignDoubleArg(uint32_t offset) {
     MOZ_CRASH("AlignDoubleArg()");
   }
