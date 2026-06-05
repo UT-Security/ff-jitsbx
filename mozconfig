@@ -1,24 +1,35 @@
-LFI_TOOLCHAIN_PATH=""
-CC=$LFI_TOOLCHAIN_PATH/bin/clang
-CXX=$LFI_TOOLCHAIN_PATH/bin/clang++
-RUSTC=$(rustup which rustc)
-CARGO=$(which cargo)
+TOOLCHAIN_BUILD_PATH=
+
+CC=$TOOLCHAIN_BUILD_PATH/lfi-clang/x86_64-lfi-linux-musl-clang
+CXX=$TOOLCHAIN_BUILD_PATH/lfi-clang/x86_64-lfi-linux-musl-clang++
+RUSTC=$TOOLCHAIN_BUILD_PATH/lfi-rust/bin/rustc
+
 HOST_CC=clang
 HOST_CXX=clang++
 
+# Build only the JS shell
 ac_add_options --enable-project=js
-ac_add_options --disable-jemalloc
-ac_add_options --without-system-zlib
-ac_add_options --without-intl-api
-# ac_add_options --enable-optimize
-ac_add_options --disable-optimize
-ac_add_options --enable-debug
-ac_add_options --enable-jitspew
+ac_add_options --enable-js-shell
+
 ac_add_options --enable-js-sandbox
-ac_add_options --enable-js-sandbox-heap
 ac_add_options --enable-js-sandbox-bundle
 ac_add_options --enable-js-sandbox-cfi
+ac_add_options --enable-js-sandbox-cfi-masks
+ac_add_options --enable-js-sandbox-heap
+
+ac_add_options --enable-js-sandbox-use-call
+
+ac_add_options --js-sandbox-type=lfi
+ac_add_options --enable-js-sandbox-lfi-jit-memory
+
+ac_add_options --disable-debug
+ac_add_options --enable-optimize
+
+ac_add_options --without-system-zlib
 ac_add_options --disable-clang-plugin
-ac_add_options --disable-shared-memory
 ac_add_options --without-sysroot
 ac_add_options --target=x86_64-lfi-linux-musl
+
+# Use a dedicated objdir for SpiderMonkey debug builds to avoid
+# conflicting with Firefox build with default configuration.
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-mohabi-lfi-bundles-release-js-@CONFIG_GUESS@

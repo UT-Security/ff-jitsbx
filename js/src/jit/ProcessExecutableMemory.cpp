@@ -43,11 +43,11 @@
 #endif
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
 #  include <syscall.h>
-#define SYS_jitcode_mmap 441
-#define SYS_jitcode_munmap 444
+#define SYS_jitcode_mmap     1025
+#define SYS_jitcode_munmap   1026
+#define SYS_jitcode_commit   1031
+#define SYS_jitcode_decommit 1032
 
-#define SYS_jitcode_commit 445
-#define SYS_jitcode_decommit 446
 
 static void* sys_jitcode_mmap(void* start, size_t exec_length, size_t data_length) {
   return (void*)syscall(SYS_jitcode_mmap, start, exec_length, data_length);

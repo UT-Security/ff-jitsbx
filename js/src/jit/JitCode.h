@@ -23,10 +23,10 @@
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
 #  include <syscall.h>
 #  include <unistd.h>
-#define SYS_jitcode_create 442
-#define SYS_jitcode_delete 443
-#define SYS_jitcode_create2 447
-#define SYS_jitcode_modify 448
+#define SYS_jitcode_create   1027
+#define SYS_jitcode_create2  1028
+#define SYS_jitcode_modify   1029
+#define SYS_jitcode_delete   1030
 
 static int sys_jitcode_create(void* addrp, void* bufp, size_t length) {
   return syscall(SYS_jitcode_create, addrp, bufp, length);

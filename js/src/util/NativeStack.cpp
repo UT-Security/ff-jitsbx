@@ -199,7 +199,7 @@ void* js::GetNativeStackBaseImpl() {
     
     //WARNING(JS_SANDBOX): Hardcoding expected main thread stack size.
     stackSize = 3 * 1024 * 1024;
-    size_t guard_size = (size_t)2 * 1024 * 1024 * 1024;
+    size_t guard_size = (size_t)4 * 1024 * 1024 * 1024;
 
     uint64_t base;
     uint64_t mask;
