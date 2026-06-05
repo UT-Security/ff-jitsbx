@@ -2399,7 +2399,7 @@ bool WasmInstanceObject::getExportedFunction(
   const CodeRange& codeRange = codeTier.metadata().codeRange(funcExport);
 
   fun->setExtendedSlot(FunctionExtended::WASM_FUNC_UNCHECKED_ENTRY_SLOT,
-                       PrivateValue(codeTier.segment().base() +
+                       PrivateValue(codeTier.segment().execBase() +
                                     codeRange.funcUncheckedCallEntry()));
 
   if (!instanceObj->exports().putNew(funcIndex, fun)) {

@@ -27,14 +27,8 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
 
   // Query the MacroAssembler to know if data should be allocated separately,
   // and size the sections accordingly.
-  size_t execNeeded, dataNeeded;
-  if (masm.useDataSection()) {
-    execNeeded = masm.execSize();
-    dataNeeded = masm.dataSize();
-  } else {
-    execNeeded = masm.bytesNeeded();
-    dataNeeded = 0;
-  }
+  size_t execNeeded = masm.execSize();
+  size_t dataNeeded = masm.dataSize();
 
   // ExecutableAllocator requires execNeeded to be aligned.
   execNeeded += JitCodeHeaderSize;

@@ -179,7 +179,7 @@ void DebugState::toggleBreakpointTrap(JSRuntime* rt, Instance* instance,
 
   const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
   const CodeRange* codeRange =
-      code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
+      code_->lookupFuncRange(codeSegment.execBase() + debugTrapOffset);
   MOZ_ASSERT(codeRange);
 
   uint32_t funcIndex = codeRange->funcIndex();
@@ -297,7 +297,7 @@ void DebugState::disableDebuggingForFunction(Instance* instance,
 }
 
 void DebugState::enableDebugTrap(Instance* instance) {
-  instance->setDebugTrapHandler(code_->segment(Tier::Debug).base() +
+  instance->setDebugTrapHandler(code_->segment(Tier::Debug).execBase() +
                                 metadata(Tier::Debug).debugTrapOffset);
 }
 
@@ -341,7 +341,7 @@ void DebugState::adjustEnterAndLeaveFrameTrapsState(JSContext* cx,
           size_t debugTrapOffset = callSite->returnAddressOffset();
           const ModuleSegment& codeSegment = code_->segment(Tier::Debug);
           const CodeRange* codeRange =
-              code_->lookupFuncRange(codeSegment.base() + debugTrapOffset);
+              code_->lookupFuncRange(codeSegment.execBase() + debugTrapOffset);
           MOZ_ASSERT(codeRange);
           mustLeaveEnabled = codeRange->funcIndex() == funcIdx;
         }

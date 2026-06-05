@@ -162,7 +162,7 @@ class Module : public JS::WasmModule {
   const ExportVector& exports() const { return exports_; }
   const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
-  uint32_t codeLength(Tier t) const { return code_->segment(t).length(); }
+  uint32_t codeLength(Tier t) const { return code_->segment(t).execLength(); }
 
   // Instantiate this module with the given imports:
 

@@ -80,7 +80,7 @@ class ProcessCodeSegmentMap {
       if (cs->containsCodePC(pc)) {
         return 0;
       }
-      if (pc < cs->base()) {
+      if (pc < cs->execBase()) {
         return -1;
       }
       return 1;
@@ -137,7 +137,7 @@ class ProcessCodeSegmentMap {
     size_t index;
     MOZ_ALWAYS_FALSE(BinarySearchIf(*mutableCodeSegments_, 0,
                                     mutableCodeSegments_->length(),
-                                    CodeSegmentPC(cs->base()), &index));
+                                    CodeSegmentPC(cs->execBase()), &index));
 
     if (!mutableCodeSegments_->insert(mutableCodeSegments_->begin() + index,
                                       cs)) {
@@ -152,7 +152,7 @@ class ProcessCodeSegmentMap {
     size_t otherIndex;
     MOZ_ALWAYS_FALSE(BinarySearchIf(*mutableCodeSegments_, 0,
                                     mutableCodeSegments_->length(),
-                                    CodeSegmentPC(cs->base()), &otherIndex));
+                                    CodeSegmentPC(cs->execBase()), &otherIndex));
     MOZ_ASSERT(index == otherIndex);
 #endif
 
@@ -175,7 +175,7 @@ class ProcessCodeSegmentMap {
     size_t index;
     MOZ_ALWAYS_TRUE(BinarySearchIf(*mutableCodeSegments_, 0,
                                    mutableCodeSegments_->length(),
-                                   CodeSegmentPC(cs->base()), &index));
+                                   CodeSegmentPC(cs->execBase()), &index));
 
     mutableCodeSegments_->erase(mutableCodeSegments_->begin() + index);
 
@@ -189,7 +189,7 @@ class ProcessCodeSegmentMap {
     size_t otherIndex;
     MOZ_ALWAYS_TRUE(BinarySearchIf(*mutableCodeSegments_, 0,
                                    mutableCodeSegments_->length(),
-                                   CodeSegmentPC(cs->base()), &otherIndex));
+                                   CodeSegmentPC(cs->execBase()), &otherIndex));
     MOZ_ASSERT(index == otherIndex);
 #endif
 

@@ -235,7 +235,7 @@ bool Module::finishTier2(const LinkData& linkData2,
   // stubs.  Callers will continue to invoke tier-1 code until, suddenly, they
   // will invoke tier-2 code.  This is benign.
 
-  uint8_t* base = code().segment(Tier::Optimized).base();
+  uint8_t* base = code().segment(Tier::Optimized).execBase();
   for (const CodeRange& cr : metadata(Tier::Optimized).codeRanges) {
     // These are racy writes that we just want to be visible, atomically,
     // eventually.  All hardware we care about will do this right.  But
@@ -361,13 +361,13 @@ bool Module::extractCode(JSContext* cx, Tier tier,
   }
 
   const ModuleSegment& moduleSegment = code_->segment(tier);
-  RootedObject code(cx, JS_NewUint8Array(cx, moduleSegment.length()));
+  RootedObject code(cx, JS_NewUint8Array(cx, moduleSegment.execLength()));
   if (!code) {
     return false;
   }
 
   memcpy(code->as<TypedArrayObject>().dataPointerUnshared(),
-         moduleSegment.base(), moduleSegment.length());
+         moduleSegment.execBase(), moduleSegment.execLength());
 
   RootedValue value(cx, ObjectValue(*code));
   if (!JS_DefineProperty(cx, result, "code", value, JSPROP_ENUMERATE)) {

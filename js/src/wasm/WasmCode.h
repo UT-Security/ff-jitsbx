@@ -140,7 +140,15 @@ struct FreeCode {
   void operator()(uint8_t* codeBytes);
 };
 
+struct FreeData {
+  uint32_t dataLength;
+  FreeData() : dataLength(0) {}
+  explicit FreeData(uint32_t dataLength) : dataLength(dataLength) {}
+  void operator()(uint8_t* dataBytes);
+};
+
 using UniqueCodeBytes = UniquePtr<uint8_t, FreeCode>;
+using UniqueDataBytes = UniquePtr<uint8_t, FreeData>;
 
 class Code;
 class CodeTier;
@@ -158,9 +166,12 @@ class CodeSegment {
  protected:
   enum class Kind { LazyStubs, Module };
 
-  CodeSegment(UniqueCodeBytes bytes, uint32_t length, Kind kind)
-      : bytes_(std::move(bytes)),
-        length_(length),
+  CodeSegment(UniqueCodeBytes execBytes, uint32_t execLength,
+              UniqueDataBytes dataBytes, uint32_t dataLength, Kind kind)
+      : execBytes_(std::move(execBytes)),
+        execLength_(execLength),
+        dataBytes_(std::move(dataBytes)),
+        dataLength_(dataLength),
         kind_(kind),
         codeTier_(nullptr),
         unregisterOnDestroy_(false) {}
@@ -168,8 +179,11 @@ class CodeSegment {
   bool initialize(const CodeTier& codeTier);
 
  private:
-  const UniqueCodeBytes bytes_;
-  const uint32_t length_;
+  const UniqueCodeBytes execBytes_;
+  const uint32_t execLength_;
+  const UniqueDataBytes dataBytes_;
+  const uint32_t dataLength_;
+  
   const Kind kind_;
   const CodeTier* codeTier_;
   bool unregisterOnDestroy_;
@@ -189,14 +203,14 @@ class CodeSegment {
     return (LazyStubSegment*)this;
   }
 
-  uint8_t* base() const { return bytes_.get(); }
-  uint32_t length() const {
-    MOZ_ASSERT(length_ != UINT32_MAX);
-    return length_;
+  uint8_t* execBase() const { return execBytes_.get(); }
+  uint32_t execLength() const {
+    MOZ_ASSERT(execLength_ != UINT32_MAX);
+    return execLength_;
   }
 
   bool containsCodePC(const void* pc) const {
-    return pc >= base() && pc < (base() + length_);
+    return pc >= execBase() && pc < (execBase() + execLength_);
   }
 
   const CodeTier& codeTier() const {
@@ -218,11 +232,13 @@ class ModuleSegment : public CodeSegment {
 
  public:
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
+                UniqueDataBytes dataBytes, uint32_t dataLength,
                 const LinkData& linkData);
 
   static UniqueModuleSegment create(Tier tier, jit::MacroAssembler& masm,
                                     const LinkData& linkData);
-  static UniqueModuleSegment create(Tier tier, const Bytes& unlinkedBytes,
+  static UniqueModuleSegment create(Tier tier, const Bytes& unlinkedCodeBytes,
+                                    const Bytes& unlinkedDataBytes,
                                     const LinkData& linkData);
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,
@@ -243,6 +259,7 @@ class ModuleSegment : public CodeSegment {
 };
 
 extern UniqueCodeBytes AllocateCodeBytes(uint32_t codeLength);
+extern UniqueDataBytes AllocateDataBytes(uint32_t dataLength);
 extern bool StaticallyLink(const ModuleSegment& ms, const LinkData& linkData);
 extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
 
@@ -518,12 +535,14 @@ class LazyStubSegment : public CodeSegment {
   size_t usedBytes_;
 
  public:
-  LazyStubSegment(UniqueCodeBytes bytes, size_t length)
-      : CodeSegment(std::move(bytes), length, CodeSegment::Kind::LazyStubs),
+  LazyStubSegment(UniqueCodeBytes execBytes, size_t execLength,
+                  UniqueDataBytes dataBytes, size_t dataLength)
+      : CodeSegment(std::move(execBytes), execLength, std::move(dataBytes),
+                    dataLength, CodeSegment::Kind::LazyStubs),
         usedBytes_(0) {}
 
   static UniqueLazyStubSegment create(const CodeTier& codeTier,
-                                      size_t codeLength);
+                                      size_t codeLength, size_t dataLength);
 
   static size_t AlignBytesNeeded(size_t bytes) {
     return AlignBytes(bytes, gc::SystemPageSize());

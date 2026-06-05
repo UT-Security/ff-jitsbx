@@ -3374,17 +3374,14 @@ void MacroAssembler::finish() {
     handleFailure();
   }
 
-  bool dataIsExec = !useDataSection_;
-  MacroAssemblerSpecific::finish(dataIsExec);
+  MacroAssemblerSpecific::finish();
 
   MOZ_RELEASE_ASSERT(
       size() <= MaxCodeBytesPerProcess,
       "AssemblerBuffer should ensure we don't exceed MaxCodeBytesPerProcess");
 
-  if (dataIsExec && bytesNeeded() > MaxCodeBytesPerProcess) {
-    setOOM();
-  } else if (!dataIsExec && (execSize() > MaxCodeBytesPerProcess ||
-                             dataSize() > MaxDataBytesPerProcess)) {
+  if (execSize() > MaxCodeBytesPerProcess ||
+      dataSize() > MaxDataBytesPerProcess) {
     setOOM();
   }
 }
@@ -3510,10 +3507,9 @@ void MacroAssembler::alignJitStackBasedOnNArgs(uint32_t argc,
 
 MacroAssembler::MacroAssembler(TempAllocator& alloc,
                                CompileRuntime* maybeRuntime,
-                               CompileRealm* maybeRealm, bool useDataSection)
+                               CompileRealm* maybeRealm)
     : maybeRuntime_(maybeRuntime),
       maybeRealm_(maybeRealm),
-       useDataSection_(useDataSection),
       wasmMaxOffsetGuardLimit_(0),
       framePushed_(0),
 #ifdef DEBUG
@@ -3535,7 +3531,7 @@ IonHeapMacroAssembler::IonHeapMacroAssembler(TempAllocator& alloc,
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
-    : MacroAssembler(alloc, nullptr, nullptr, /* useDataSection */ false) {
+    : MacroAssembler(alloc, nullptr, nullptr) {
 #if defined(JS_CODEGEN_ARM64)
   // Stubs + builtins + the baseline compiler all require the native SP,
   // not the PSP.
@@ -3549,7 +3545,7 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
                                        const wasm::ModuleEnvironment& env,
                                        bool limitedSize)
-    : MacroAssembler(alloc, nullptr, nullptr, /* useDataSection */ false) {
+    : MacroAssembler(alloc, nullptr, nullptr) {
 #if defined(JS_CODEGEN_ARM64)
   // Stubs + builtins + the baseline compiler all require the native SP,
   // not the PSP.

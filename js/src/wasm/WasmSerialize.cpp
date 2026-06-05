@@ -876,21 +876,31 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
   MOZ_TRY(Magic(coder, Marker::ModuleSegment));
 
   // Decode the code bytes length
-  size_t length;
-  MOZ_TRY(CodePod(coder, &length));
+  size_t execLength;
+  MOZ_TRY(CodePod(coder, &execLength));
+
+  //TODO: Decode the data bytes length
+  size_t dataLength = 0;
+  
 
   // Allocate the code bytes
-  UniqueCodeBytes bytes = AllocateCodeBytes(length);
-  if (!bytes) {
+  UniqueCodeBytes codeBytes = AllocateCodeBytes(execLength);
+  if (!codeBytes) {
+    return Err(OutOfMemory());
+  }
+
+  UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
+  if (dataLength && !dataBytes) {
     return Err(OutOfMemory());
   }
 
   // Decode the code bytes
-  MOZ_TRY(coder.readBytes(bytes.get(), length));
+  MOZ_TRY(coder.readBytes(codeBytes.get(), execLength));
 
   // Initialize the ModuleSegment
-  *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(bytes),
-                                        length, linkData);
+  *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(codeBytes),
+                                        execLength, std::move(dataBytes),
+                                        dataLength, linkData);
   if (!*item) {
     return Err(OutOfMemory());
   }
@@ -909,18 +919,18 @@ CoderResult CodeModuleSegment(Coder<mode>& coder,
   MOZ_TRY(Magic(coder, Marker::ModuleSegment));
 
   // Encode the length
-  size_t length = (*item)->length();
-  MOZ_TRY(CodePod(coder, &length));
+  size_t execLength = (*item)->execLength();
+  MOZ_TRY(CodePod(coder, &execLength));
 
   if constexpr (mode == MODE_SIZE) {
     // Just calculate the length of bytes written
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
+    MOZ_TRY(coder.writeBytes((*item)->execBase(), execLength));
   } else {
     // Get the start of where the code bytes will be written
     uint8_t* serializedBase = coder.buffer_;
 
     // Write the code bytes
-    MOZ_TRY(coder.writeBytes((*item)->base(), length));
+    MOZ_TRY(coder.writeBytes((*item)->execBase(), execLength));
 
     // Unlink the code bytes written to the buffer
     StaticallyUnlink(serializedBase, linkData);
@@ -986,7 +996,7 @@ CoderResult CodeCodeTier(Coder<MODE_DECODE>& coder, wasm::UniqueCodeTier* item,
   MOZ_TRY(Magic(coder, Marker::CodeTier));
   MOZ_TRY(CodeModuleSegment(coder, &segment, linkData));
   MOZ_TRY((CodeUniquePtr<MODE_DECODE, MetadataTier>(
-      coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->base())));
+      coder, &metadata, &CodeMetadataTier<MODE_DECODE>, segment->execBase())));
   *item = js::MakeUnique<CodeTier>(std::move(metadata), std::move(segment));
   if (!*item) {
     return Err(OutOfMemory());
@@ -1004,7 +1014,7 @@ CoderResult CodeCodeTier(Coder<mode>& coder,
   MOZ_TRY(CodeModuleSegment(coder, &item->segment_, linkData));
   MOZ_TRY((CodeUniquePtr<mode, MetadataTier>(coder, &item->metadata_,
                                              &CodeMetadataTier<mode>,
-                                             item->segment_->base())));
+                                             item->segment_->execBase())));
   return Ok();
 }
 

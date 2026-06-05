@@ -18,6 +18,7 @@
 
 #include "wasm/WasmCode.h"
 
+#include "WasmCode.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/EnumeratedRange.h"
@@ -69,6 +70,10 @@ static uint32_t RoundupCodeLength(uint32_t codeLength) {
   return RoundUp(codeLength, ExecutableCodePageSize);
 }
 
+static uint32_t RoundupDataLength(uint32_t dataLength) {
+  return RoundUp(dataLength, ReadWriteDataPageSize);
+}
+
 UniqueCodeBytes wasm::AllocateCodeBytes(uint32_t codeLength) {
   if (codeLength > MaxCodeBytesPerProcess) {
     return nullptr;
@@ -106,6 +111,47 @@ UniqueCodeBytes wasm::AllocateCodeBytes(uint32_t codeLength) {
   return UniqueCodeBytes((uint8_t*)p, FreeCode(roundedCodeLength));
 }
 
+UniqueDataBytes wasm::AllocateDataBytes(uint32_t dataLength) {
+  if (dataLength > MaxDataBytesPerProcess) {
+    return nullptr;
+  }
+
+  if (!dataLength) {
+    return UniqueDataBytes(nullptr, FreeData(0));
+  }
+
+  static_assert(MaxDataBytesPerProcess <= INT32_MAX, "rounding won't overflow");
+  uint32_t roundedDataLength = RoundupDataLength(dataLength);
+
+  void* p =
+      AllocateReadWriteMemory(roundedDataLength, ProtectionSetting::Writable,
+                              MemCheckKind::MakeUndefined);
+
+  // If the allocation failed and the embedding gives us a last-ditch attempt
+  // to purge all memory (which, in gecko, does a purging GC/CC/GC), do that
+  // then retry the allocation.
+  if (!p) {
+    if (OnLargeAllocationFailure) {
+      OnLargeAllocationFailure();
+      p = AllocateReadWriteMemory(roundedDataLength,
+                                  ProtectionSetting::Writable,
+                                  MemCheckKind::MakeUndefined);
+    }
+  }
+
+  if (!p) {
+    return nullptr;
+  }
+
+  // Zero the padding.
+  memset(((uint8_t*)p) + dataLength, 0, roundedDataLength - dataLength);
+
+  // We account for the bytes allocated in WasmModuleObject::create, where we
+  // have the necessary JSContext.
+
+  return UniqueDataBytes((uint8_t*)p, FreeData(roundedDataLength));
+}
+
 bool CodeSegment::initialize(const CodeTier& codeTier) {
   MOZ_ASSERT(!initialized());
   codeTier_ = &codeTier;
@@ -131,7 +177,7 @@ const Code& CodeSegment::code() const {
 }
 
 void CodeSegment::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code) const {
-  *code += RoundupCodeLength(length());
+  *code += RoundupCodeLength(execLength());
 }
 
 void FreeCode::operator()(uint8_t* bytes) {
@@ -144,6 +190,21 @@ void FreeCode::operator()(uint8_t* bytes) {
   DeallocateExecutableMemory(bytes, codeLength);
 }
 
+void FreeData::operator()(uint8_t* bytes) {
+  if (!bytes) {
+    MOZ_ASSERT(dataLength == 0);
+    return;
+  }
+
+  MOZ_ASSERT(dataLength);
+  MOZ_ASSERT(dataLength == RoundupDataLength(dataLength));
+
+#ifdef MOZ_VTUNE
+  vtune::UnmarkBytes(bytes, dataLength);
+#endif
+  DeallocateReadWriteMemory(bytes, dataLength);
+}
+
 bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
   for (LinkData::InternalLink link : linkData.internalLinks) {
     CodeLabel label;
@@ -152,7 +213,7 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 #ifdef JS_CODELABEL_LINKMODE
     label.setLinkMode(static_cast<CodeLabel::LinkMode>(link.mode));
 #endif
-    Assembler::Bind(ms.base(), label);
+    Assembler::Bind(ms.execBase(), label);
   }
 
   if (!EnsureBuiltinThunksInitialized()) {
@@ -167,7 +228,7 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 
     void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
-      uint8_t* patchAt = ms.base() + offset;
+      uint8_t* patchAt = ms.execBase() + offset;
       Assembler::PatchDataWithValueCheck(CodeLocationLabel(patchAt),
                                          PatchedImmPtr(target),
                                          PatchedImmPtr((void*)-1));
@@ -225,7 +286,7 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
       continue;
     }
 
-    uintptr_t start = uintptr_t(ms.base() + codeRange.begin());
+    uintptr_t start = uintptr_t(ms.execBase() + codeRange.begin());
     uintptr_t size = codeRange.end() - codeRange.begin();
 
     UTF8Bytes name;
@@ -286,40 +347,60 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
 }
 
 ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
-                             uint32_t codeLength, const LinkData& linkData)
-    : CodeSegment(std::move(codeBytes), codeLength, CodeSegment::Kind::Module),
+                             uint32_t codeLength, UniqueDataBytes dataBytes,
+                             uint32_t dataLength, const LinkData& linkData)
+    : CodeSegment(std::move(codeBytes), codeLength, std::move(dataBytes),
+                  dataLength, CodeSegment::Kind::Module),
       tier_(tier),
-      trapCode_(base() + linkData.trapOffset) {}
+      trapCode_(execBase() + linkData.trapOffset) {}
 
 /* static */
 UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
                                           const LinkData& linkData) {
-  uint32_t codeLength = masm.bytesNeeded();
+  uint32_t codeLength = masm.execSize();
+  uint32_t dataLength = masm.dataSize();
 
   UniqueCodeBytes codeBytes = AllocateCodeBytes(codeLength);
   if (!codeBytes) {
+    return nullptr;
+  }
+
+  UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
+  if (dataLength && !dataBytes) {
     return nullptr;
   }
 
   masm.executableCopy(codeBytes.get());
+  // masm.dataCopy(dataBytes.get());
 
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
+                                       std::move(dataBytes), dataLength,
                                        linkData);
 }
 
 /* static */
-UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedBytes,
+UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedCodeBytes,
+                                          const Bytes& unlinkedDataBytes,
                                           const LinkData& linkData) {
-  uint32_t codeLength = unlinkedBytes.length();
+  uint32_t codeLength = unlinkedCodeBytes.length();
 
   UniqueCodeBytes codeBytes = AllocateCodeBytes(codeLength);
   if (!codeBytes) {
     return nullptr;
   }
 
-  memcpy(codeBytes.get(), unlinkedBytes.begin(), codeLength);
+  uint32_t dataLength = unlinkedDataBytes.length();
+
+  UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
+  if (dataLength && !dataBytes) {
+    return nullptr;
+  }
+
+  memcpy(codeBytes.get(), unlinkedCodeBytes.begin(), codeLength);
+  memcpy(dataBytes.get(), unlinkedDataBytes.begin(), dataLength);
 
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
+                                       std::move(dataBytes), dataLength,
                                        linkData);
 }
 
@@ -335,7 +416,7 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
   // to flush the icaches of all the executing threads.
   // Reprotect the whole region to avoid having separate RW and RX mappings.
   if (!ExecutableAllocator::makeExecutableAndFlushICache(
-          base(), RoundupCodeLength(length()))) {
+          execBase(), RoundupCodeLength(execLength()))) {
     return false;
   }
 
@@ -370,13 +451,19 @@ size_t MetadataTier::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
 }
 
 UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
-                                              size_t length) {
-  UniqueCodeBytes codeBytes = AllocateCodeBytes(length);
+                                              size_t execLength,
+                                              size_t dataLength) {
+  UniqueCodeBytes codeBytes = AllocateCodeBytes(execLength);
   if (!codeBytes) {
     return nullptr;
   }
+  UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
+  if (dataLength && !dataBytes) {
+    return nullptr;
+  }
 
-  auto segment = js::MakeUnique<LazyStubSegment>(std::move(codeBytes), length);
+  auto segment = js::MakeUnique<LazyStubSegment>(
+      std::move(codeBytes), execLength, std::move(dataBytes), dataLength);
   if (!segment || !segment->initialize(codeTier)) {
     return nullptr;
   }
@@ -386,7 +473,7 @@ UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
 
 bool LazyStubSegment::hasSpace(size_t bytes) const {
   MOZ_ASSERT(AlignBytesNeeded(bytes) == bytes);
-  return bytes <= length() && usedBytes_ <= length() - bytes;
+  return bytes <= execLength() && usedBytes_ <= execLength() - bytes;
 }
 
 bool LazyStubSegment::addStubs(const Metadata& metadata, size_t codeLength,
@@ -398,7 +485,7 @@ bool LazyStubSegment::addStubs(const Metadata& metadata, size_t codeLength,
   MOZ_ASSERT(hasSpace(codeLength));
 
   size_t offsetInSegment = usedBytes_;
-  *codePtr = base() + usedBytes_;
+  *codePtr = execBase() + usedBytes_;
   usedBytes_ += codeLength;
 
   *indexFirstInsertedCodeRange = codeRanges_.length();
@@ -439,11 +526,11 @@ bool LazyStubSegment::addStubs(const Metadata& metadata, size_t codeLength,
 const CodeRange* LazyStubSegment::lookupRange(const void* pc) const {
   // Do not search if the search will not find anything.  There can be many
   // segments, each with many entries.
-  if (pc < base() || pc >= base() + length()) {
+  if (pc < execBase() || pc >= execBase() + execLength()) {
     return nullptr;
   }
   return LookupInSorted(codeRanges_,
-                        CodeRange::OffsetInCode((uint8_t*)pc - base()));
+                        CodeRange::OffsetInCode((uint8_t*)pc - execBase()));
 }
 
 void LazyStubSegment::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
@@ -497,7 +584,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   const MetadataTier& metadataTier = codeTier.metadata();
   const FuncExportVector& funcExports = metadataTier.funcExports;
-  uint8_t* moduleSegmentBase = codeTier.segment().base();
+  uint8_t* moduleSegmentBase = codeTier.segment().execBase();
 
   CodeRangeVector codeRanges;
   DebugOnly<uint32_t> numExpectedRanges = 0;
@@ -529,13 +616,15 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
     return false;
   }
 
-  size_t codeLength = LazyStubSegment::AlignBytesNeeded(masm.bytesNeeded());
+  size_t codeLength = LazyStubSegment::AlignBytesNeeded(masm.execSize());
+  size_t dataLength = LazyStubSegment::AlignBytesNeeded(masm.dataSize());
 
   if (!stubSegments_.length() ||
       !stubSegments_[lastStubSegmentIndex_]->hasSpace(codeLength)) {
-    size_t newSegmentSize = std::max(codeLength, ExecutableCodePageSize);
+    size_t newSegmentExecSize = std::max(codeLength, ExecutableCodePageSize);
+    size_t newSegmentDataSize = std::max(dataLength, ReadWriteDataPageSize);
     UniqueLazyStubSegment newSegment =
-        LazyStubSegment::create(codeTier, newSegmentSize);
+        LazyStubSegment::create(codeTier, newSegmentExecSize, newSegmentDataSize);
     if (!newSegment) {
       return false;
     }
@@ -634,7 +723,7 @@ bool LazyStubTier::createOneEntryStub(uint32_t funcExportIndex,
   const CodeRange& cr = codeRanges[codeRanges.length() - 1];
   MOZ_ASSERT(cr.isJitEntry());
 
-  codeTier.code().setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
+  codeTier.code().setJitEntry(cr.funcIndex(), segment->execBase() + cr.begin());
   return true;
 }
 
@@ -666,7 +755,7 @@ void LazyStubTier::setJitEntries(const Maybe<size_t>& stubSegmentIndex,
     if (!cr.isJitEntry()) {
       continue;
     }
-    code.setJitEntry(cr.funcIndex(), segment->base() + cr.begin());
+    code.setJitEntry(cr.funcIndex(), segment->execBase() + cr.begin());
   }
 }
 
@@ -692,7 +781,7 @@ void* LazyStubTier::lookupInterpEntry(uint32_t funcIndex) const {
   }
   const LazyFuncExport& fe = exports_[match];
   const LazyStubSegment& stub = *stubSegments_[fe.lazyStubSegmentIndex];
-  return stub.base() + stub.codeRanges()[fe.funcCodeRangeIndex].begin();
+  return stub.execBase() + stub.codeRanges()[fe.funcCodeRangeIndex].begin();
 }
 
 void LazyStubTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
@@ -812,12 +901,12 @@ void CodeTier::addSizeOfMisc(MallocSizeOf mallocSizeOf, size_t* code,
 }
 
 const CodeRange* CodeTier::lookupRange(const void* pc) const {
-  CodeRange::OffsetInCode target((uint8_t*)pc - segment_->base());
+  CodeRange::OffsetInCode target((uint8_t*)pc - segment_->execBase());
   return LookupInSorted(metadata_->codeRanges, target);
 }
 
 const wasm::TryNote* CodeTier::lookupTryNote(const void* pc) const {
-  size_t target = (uint8_t*)pc - segment_->base();
+  size_t target = (uint8_t*)pc - segment_->execBase();
   const TryNoteVector& tryNotes = metadata_->tryNotes;
 
   // We find the first hit (there may be multiple) to obtain the innermost
@@ -863,7 +952,7 @@ bool JumpTables::init(CompileMode mode, const ModuleSegment& ms,
     return false;
   }
 
-  uint8_t* codeBase = ms.base();
+  uint8_t* codeBase = ms.execBase();
   for (const CodeRange& cr : codeRanges) {
     if (cr.isFunction()) {
       setTieringEntry(cr.funcIndex(), codeBase + cr.funcTierEntry());
@@ -996,7 +1085,7 @@ struct CallSiteRetAddrOffset {
 
 const CallSite* Code::lookupCallSite(void* returnAddress) const {
   for (Tier t : tiers()) {
-    uint32_t target = ((uint8_t*)returnAddress) - segment(t).base();
+    uint32_t target = ((uint8_t*)returnAddress) - segment(t).execBase();
     size_t lowerBound = 0;
     size_t upperBound = metadata(t).callSites.length();
 
@@ -1050,7 +1139,7 @@ struct TrapSitePCOffset {
 
 bool Code::lookupTrap(void* pc, Trap* trapOut, BytecodeOffset* bytecode) const {
   for (Tier t : tiers()) {
-    uint32_t target = ((uint8_t*)pc) - segment(t).base();
+    uint32_t target = ((uint8_t*)pc) - segment(t).execBase();
     const TrapSiteVectorArray& trapSitesArray = metadata(t).trapSites;
     for (Trap trap : MakeEnumeratedRange(Trap::Limit)) {
       const TrapSiteVector& trapSites = trapSitesArray[trap];
@@ -1177,8 +1266,8 @@ void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
 
   for (const CodeRange& range : metadataTier.codeRanges) {
     if (kindSelection & (1 << range.kind())) {
-      MOZ_ASSERT(range.begin() < segment.length());
-      MOZ_ASSERT(range.end() < segment.length());
+      MOZ_ASSERT(range.begin() < segment.execLength());
+      MOZ_ASSERT(range.end() < segment.execLength());
 
       const char* kind;
       char kindbuf[128];
@@ -1222,7 +1311,7 @@ void Code::disassemble(JSContext* cx, Tier tier, int kindSelection,
       }
       printString(buf);
 
-      uint8_t* theCode = segment.base() + range.begin();
+      uint8_t* theCode = segment.execBase() + range.begin();
       jit::Disassemble(theCode, range.end() - range.begin(), printString);
     }
   }

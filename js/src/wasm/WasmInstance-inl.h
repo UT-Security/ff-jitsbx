@@ -16,7 +16,7 @@ namespace wasm {
 
 const CodeTier& Instance::code(Tier t) const { return code_->codeTier(t); }
 
-uint8_t* Instance::codeBase(Tier t) const { return code_->segment(t).base(); }
+uint8_t* Instance::codeBase(Tier t) const { return code_->segment(t).execBase(); }
 
 const MetadataTier& Instance::metadata(Tier t) const {
   return code_->metadata(t);

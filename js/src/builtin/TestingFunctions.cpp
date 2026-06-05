@@ -1680,8 +1680,8 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     const js::wasm::FuncExport& func = meta.lookupFuncExport(funcIndex);
     const js::wasm::CodeRange& codeRange = meta.codeRange(func);
 
-    jit_begin = segment.base() + codeRange.begin();
-    jit_end = segment.base() + codeRange.end();
+    jit_begin = segment.execBase() + codeRange.begin();
+    jit_end = segment.execBase() + codeRange.end();
   } else if (fun->hasJitScript()) {
     JSScript* script = fun->nonLazyScript();
     if (script == nullptr) {

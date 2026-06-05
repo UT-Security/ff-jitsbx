@@ -464,7 +464,7 @@ class Assembler : public vixl::Assembler {
 
   typedef vixl::Condition Condition;
 
-  void finish(bool dataIsExec);
+  void finish();
   bool appendRawCode(const uint8_t* code, size_t numBytes);
   bool reserve(size_t size);
   bool swapBuffer(wasm::Bytes& bytes);

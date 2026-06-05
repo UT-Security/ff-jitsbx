@@ -2680,10 +2680,10 @@ void Instance::disassembleExport(JSContext* cx, uint32_t funcIndex, Tier tier,
   const CodeTier& codeTier = code(tier);
   const ModuleSegment& segment = codeTier.segment();
 
-  MOZ_ASSERT(range.begin() < segment.length());
-  MOZ_ASSERT(range.end() < segment.length());
+  MOZ_ASSERT(range.begin() < segment.execLength());
+  MOZ_ASSERT(range.end() < segment.execLength());
 
-  uint8_t* functionCode = segment.base() + range.begin();
+  uint8_t* functionCode = segment.execBase() + range.begin();
   jit::Disassemble(functionCode, range.end() - range.begin(), printString);
 }
 

@@ -1028,7 +1028,7 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
     return nullptr;
   }
 
-  metadataTier_->stackMaps.offsetBy(uintptr_t(segment->base()));
+  metadataTier_->stackMaps.offsetBy(uintptr_t(segment->execBase()));
 
 #ifdef DEBUG
   // Check that each stackmap is associated with a plausible instruction.

@@ -75,7 +75,7 @@ static const size_t ExecutableCodePageSize = 64 * 1024;
 // Unfortunately the ratio of data pages compared to code pages is 1/10, which
 // implies that data pages have their own data-allocator, which is managed
 // separately.
-static const size_t ReadWriteDataPageSize = 64 * 1024;
+static const size_t ReadWriteDataPageSize = 8 * 1024;
 
 enum class ProtectionSetting {
   Protected,  // Not readable, writable, or executable.

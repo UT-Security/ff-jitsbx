@@ -1146,7 +1146,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
   const CodeSegment* codeSegment = LookupCodeSegment(pc, &codeRange);
   if (codeSegment) {
     code = &codeSegment->code();
-    codeBase = codeSegment->base();
+    codeBase = codeSegment->execBase();
     MOZ_ASSERT(codeRange);
   } else if (!LookupBuiltinThunk(pc, &codeRange, &codeBase)) {
     return false;
