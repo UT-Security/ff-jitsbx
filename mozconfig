@@ -13,6 +13,7 @@ ac_add_options --enable-js-shell
 
 ac_add_options --enable-js-sandbox
 ac_add_options --enable-js-sandbox-bundle
+ac_add_options --enable-js-sandbox-bundle-align-labels
 ac_add_options --enable-js-sandbox-cfi
 ac_add_options --enable-js-sandbox-cfi-masks
 ac_add_options --enable-js-sandbox-heap
@@ -29,6 +30,8 @@ ac_add_options --without-system-zlib
 ac_add_options --disable-clang-plugin
 ac_add_options --without-sysroot
 ac_add_options --target=x86_64-lfi-linux-musl
+
+ac_add_options --disable-tests
 
 # Use a dedicated objdir for SpiderMonkey debug builds to avoid
 # conflicting with Firefox build with default configuration.
