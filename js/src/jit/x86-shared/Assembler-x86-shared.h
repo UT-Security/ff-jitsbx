@@ -6149,7 +6149,8 @@ class AssemblerX86Shared : public AssemblerShared {
     // which has a 32 bits immediate. Thus writting a value requires shifting
     // back to the address of the 32 bits immediate within the instruction.
     uint8_t* ptr = dataLabel.raw();
-    sys_jitcode_modify(ptr - sizeof(int32_t), toWrite.value, sizeof(int32_t), 1);
+    sys_jitcode_modify(ptr - sizeof(int32_t), toWrite.value, sizeof(int32_t),
+                       hltStartLabel.raw() - dataLabel.raw());
   }
 #endif
 
