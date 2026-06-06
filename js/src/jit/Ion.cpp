@@ -592,22 +592,19 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   masm.emitJitCodeHeader(header(), this);
 
   // Copy data and patch the code.
-  MOZ_ASSERT(executable_.desc.rwSize >= masm.jumpRelocationTableBytes() +
-                                            masm.dataRelocationTableBytes() +
-                                            masm.constantsTableBytes());
+  MOZ_ASSERT(executable_.desc.rwSize >= masm.dataSize());
 
-  jumpRelocTableBytes_ = masm.jumpRelocationTableBytes();
-  dataRelocTableBytes_ = masm.dataRelocationTableBytes();
-  constantsTableBytes_ = masm.constantsTableBytes();
+  gcDataBytes_ = masm.gcDataSectionBytes();
+  immDataBytes_ = masm.immDataSectionBytes();
   
-  masm.copyDataRelocationTable(dataRelocTable());
-  masm.copyJumpRelocationTable(jumpRelocTable());
-  masm.copyConstantsTable(raw(), constantsTable());
+  masm.copyGCDataSection(gcDataSection());
+  masm.copyImmDataSection(immDataSection());
 
   // Copy the code.
   insnSize_ = masm.instructionsSize();
   masm.executableCopy(raw());
 
+  masm.processDataLoads(this);
   masm.processCodeLabels(raw());
 }
 
@@ -618,15 +615,8 @@ void JitCode::traceChildren(JSTracer* trc) {
     return;
   }
 
-  if (jumpRelocTableBytes_) {
-    uint8_t* start = jumpRelocTable();
-    CompactBufferReader reader(start, start + jumpRelocTableBytes_);
-    MacroAssembler::TraceJumpRelocations(trc, this, reader);
-  }
-  if (dataRelocTableBytes_) {
-    uint8_t* start = dataRelocTable();
-    CompactBufferReader reader(start, start + dataRelocTableBytes_);
-    MacroAssembler::TraceDataRelocations(trc, this, reader);
+  if (gcDataBytes_) {
+    MacroAssembler::TraceGCDataSection(trc, this);
   }
 }
 

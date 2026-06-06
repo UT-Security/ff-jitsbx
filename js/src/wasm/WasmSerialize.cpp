@@ -879,9 +879,7 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
   size_t execLength;
   MOZ_TRY(CodePod(coder, &execLength));
 
-  //TODO: Decode the data bytes length
-  size_t dataLength = 0;
-  
+  size_t dataLength = linkData.dataSize(); 
 
   // Allocate the code bytes
   UniqueCodeBytes codeBytes = AllocateCodeBytes(execLength);

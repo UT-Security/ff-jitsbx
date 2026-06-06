@@ -6,6 +6,7 @@
 
 #include "jit/arm64/MacroAssembler-arm64.h"
 
+#include "Assembler-arm64.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
 
@@ -121,60 +122,39 @@ const vixl::MacroAssembler& MacroAssemblerCompat::asVIXL() const {
 }
 
 void MacroAssemblerCompat::mov(CodeLabel* label, Register dest) {
-  BufferOffset bo = movePatchablePtr(ImmWord(/* placeholder */ 0), dest);
-  label->patchAt()->bind(bo.getOffset());
+#ifdef JS_SANDBOX_LFI
+  AutoForbidPoolsAndNops afp(this, 3);
+  CodeOffset bo(currentOffset());
+  mov(SandboxBaseReg, dest);
+  movk(ARMRegister(dest, 64), 0, 0);
+  movk(ARMRegister(dest, 64), 0, 16);
+#else
+  AutoForbidPoolsAndNops afp(this, 4);
+  CodeOffset bo(currentOffset());
+  movz(ARMRegister(dest, 64), 0, 0);
+  movk(ARMRegister(dest, 64), 0, 16);
+  movk(ARMRegister(dest, 64), 0, 32);
+  movk(ARMRegister(dest, 64), 0, 48);
+#endif
+
+  label->patchAt()->bind(bo.offset());
   label->setLinkMode(CodeLabel::MoveImmediate);
 }
 
-BufferOffset MacroAssemblerCompat::movePatchablePtr(ImmPtr ptr, Register dest) {
-  const size_t numInst = 1;           // Inserting one load instruction.
-  const unsigned numPoolEntries = 2;  // Every pool entry is 4 bytes.
-  uint8_t* literalAddr = (uint8_t*)(&ptr.value);  // TODO: Should be const.
-
-  // Scratch space for generating the load instruction.
-  //
-  // allocLiteralLoadEntry() will use InsertIndexIntoTag() to store a temporary
-  // index to the corresponding PoolEntry in the instruction itself.
-  //
-  // That index will be fixed up later when finishPool()
-  // walks over all marked loads and calls PatchConstantPoolLoad().
-  uint32_t instructionScratch = 0;
-
-  // Emit the instruction mask in the scratch space.
-  // The offset doesn't matter: it will be fixed up later.
-  vixl::Assembler::ldr((Instruction*)&instructionScratch, ARMRegister(dest, 64),
-                       0);
-
-  // Add the entry to the pool, fix up the LDR imm19 offset,
-  // and add the completed instruction to the buffer.
-  return allocLiteralLoadEntry(numInst, numPoolEntries,
-                               (uint8_t*)&instructionScratch, literalAddr);
+CodeOffset MacroAssemblerCompat::movePatchablePtr(ImmPtr ptr, Register dest) {
+  AutoForbidPoolsAndNops afp(this, 2);
+  CodeOffset off(currentOffset());
+  adrp(ARMRegister(dest, 64), 0, LabelDoc());
+  ldr(ARMRegister(dest, 64), MemOperand(ARMRegister(dest, 64), 0));
+  return off;
 }
 
-BufferOffset MacroAssemblerCompat::movePatchablePtr(ImmWord ptr,
-                                                    Register dest) {
-  const size_t numInst = 1;           // Inserting one load instruction.
-  const unsigned numPoolEntries = 2;  // Every pool entry is 4 bytes.
-  uint8_t* literalAddr = (uint8_t*)(&ptr.value);
-
-  // Scratch space for generating the load instruction.
-  //
-  // allocLiteralLoadEntry() will use InsertIndexIntoTag() to store a temporary
-  // index to the corresponding PoolEntry in the instruction itself.
-  //
-  // That index will be fixed up later when finishPool()
-  // walks over all marked loads and calls PatchConstantPoolLoad().
-  uint32_t instructionScratch = 0;
-
-  // Emit the instruction mask in the scratch space.
-  // The offset doesn't matter: it will be fixed up later.
-  vixl::Assembler::ldr((Instruction*)&instructionScratch, ARMRegister(dest, 64),
-                       0);
-
-  // Add the entry to the pool, fix up the LDR imm19 offset,
-  // and add the completed instruction to the buffer.
-  return allocLiteralLoadEntry(numInst, numPoolEntries,
-                               (uint8_t*)&instructionScratch, literalAddr);
+CodeOffset MacroAssemblerCompat::movePatchablePtr(ImmWord ptr, Register dest) {
+  AutoForbidPoolsAndNops afp(this, 2);
+  CodeOffset off(currentOffset());
+  adrp(ARMRegister(dest, 64), 0, LabelDoc());
+  ldr(ARMRegister(dest, 64), MemOperand(ARMRegister(dest, 64), 0));
+  return off;
 }
 
 void MacroAssemblerCompat::loadPrivate(const Address& src, Register dest) {
@@ -1387,12 +1367,12 @@ void MacroAssembler::call(JitCode* c) {
   BufferOffset loc =
       bl(-1,
          LabelDoc());  // The call target will be patched by executableCopy().
-  addPendingJump(loc, ImmPtr(c->raw()), RelocationKind::JITCODE);
+  addPendingJump(loc, ImmPtr(c->raw()), RelocationKind::JITCODE, c);
 #else
   vixl::UseScratchRegisterScope temps(this);
   const ARMRegister scratch64 = temps.AcquireX();
   BufferOffset off = immPool64(scratch64, uint64_t(c->raw()));
-  addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE);
+  addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE, c);
   blr(scratch64);
 #endif
 }
@@ -1743,9 +1723,9 @@ void MacroAssembler::moveValue(const Value& src, const ValueOperand& dest) {
     return;
   }
 
-  BufferOffset load =
+  CodeOffset load =
       movePatchablePtr(ImmPtr(src.bitsAsPunboxPointer()), dest.valueReg());
-  writeDataRelocation(src, load);
+  writeDataSection(src, load);
 }
 
 // ===============================================================

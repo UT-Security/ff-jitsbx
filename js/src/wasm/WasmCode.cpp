@@ -50,6 +50,10 @@ using mozilla::BinarySearchIf;
 using mozilla::MakeEnumeratedRange;
 using mozilla::PodAssign;
 
+size_t LinkData::dataSize() const {
+  return SymbolicLinkArray::kSize * sizeof(uintptr_t);
+}
+
 size_t LinkData::SymbolicLinkArray::sizeOfExcludingThis(
     MallocSizeOf mallocSizeOf) const {
   size_t size = 0;
@@ -220,19 +224,23 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
     return false;
   }
 
+  uint8_t* dataPtr = ms.dataBase();
   for (auto imm : MakeEnumeratedRange(SymbolicAddress::Limit)) {
+    *reinterpret_cast<void**>(dataPtr) = (void*)-1;
     const Uint32Vector& offsets = linkData.symbolicLinks[imm];
     if (offsets.empty()) {
+      dataPtr += sizeof(void*);
       continue;
     }
 
     void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
       uint8_t* patchAt = ms.execBase() + offset;
-      Assembler::PatchDataWithValueCheck(CodeLocationLabel(patchAt),
-                                         PatchedImmPtr(target),
-                                         PatchedImmPtr((void*)-1));
+      Assembler::UpdateLoad64Address(CodeLocationLabel(patchAt),
+                                     reinterpret_cast<uint64_t*>(dataPtr));
     }
+    *reinterpret_cast<void**>(dataPtr) = target;
+    dataPtr += sizeof(void*);
   }
 
   return true;
@@ -255,12 +263,9 @@ void wasm::StaticallyUnlink(uint8_t* base, const LinkData& linkData) {
       continue;
     }
 
-    void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
       uint8_t* patchAt = base + offset;
-      Assembler::PatchDataWithValueCheck(CodeLocationLabel(patchAt),
-                                         PatchedImmPtr((void*)-1),
-                                         PatchedImmPtr(target));
+      Assembler::ClearLoad64Address(CodeLocationLabel(patchAt));
     }
   }
 }
@@ -358,7 +363,10 @@ ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
 UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
                                           const LinkData& linkData) {
   uint32_t codeLength = masm.execSize();
-  uint32_t dataLength = masm.dataSize();
+  
+  MOZ_ASSERT(masm.dataSize() == 0);
+  uint32_t dataLength = linkData.dataSize();
+  
 
   UniqueCodeBytes codeBytes = AllocateCodeBytes(codeLength);
   if (!codeBytes) {
@@ -371,7 +379,6 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
   }
 
   masm.executableCopy(codeBytes.get());
-  // masm.dataCopy(dataBytes.get());
 
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        std::move(dataBytes), dataLength,
@@ -380,7 +387,6 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
 
 /* static */
 UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedCodeBytes,
-                                          const Bytes& unlinkedDataBytes,
                                           const LinkData& linkData) {
   uint32_t codeLength = unlinkedCodeBytes.length();
 
@@ -389,7 +395,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedCodeBy
     return nullptr;
   }
 
-  uint32_t dataLength = unlinkedDataBytes.length();
+  uint32_t dataLength = linkData.dataSize();
 
   UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
   if (dataLength && !dataBytes) {
@@ -397,7 +403,7 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedCodeBy
   }
 
   memcpy(codeBytes.get(), unlinkedCodeBytes.begin(), codeLength);
-  memcpy(dataBytes.get(), unlinkedDataBytes.begin(), dataLength);
+  //memcpy(dataBytes.get(), unlinkedDataBytes.begin(), dataLength);
 
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        std::move(dataBytes), dataLength,
@@ -646,7 +652,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   masm.executableCopy(codePtr);
   PatchDebugSymbolicAccesses(codePtr, masm);
-  memset(codePtr + masm.bytesNeeded(), 0, codeLength - masm.bytesNeeded());
+  memset(codePtr + masm.execSize(), 0, codeLength - masm.execSize());
 
   for (const CodeLabel& label : masm.codeLabels()) {
     Assembler::Bind(codePtr, label);

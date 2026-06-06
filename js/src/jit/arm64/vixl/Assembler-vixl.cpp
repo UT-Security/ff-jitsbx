@@ -1316,6 +1316,13 @@ void Assembler::ldr(const CPURegister& rt, const MemOperand& src,
   LoadStore(rt, src, LoadOpFor(rt), option);
 }
 
+void Assembler::ldr(Instruction* at, const CPURegister& rt, const MemOperand& src,
+                    LoadStoreScalingOption option) {
+  VIXL_ASSERT(option != RequireUnscaledOffset);
+  VIXL_ASSERT(option != PreferUnscaledOffset);
+  LoadStore(at, rt, src, LoadOpFor(rt), option);
+}
+
 
 void Assembler::str(const CPURegister& rt, const MemOperand& dst,
                     LoadStoreScalingOption option) {
@@ -4446,6 +4453,50 @@ void Assembler::MoveWide(const Register& rd,
        Rd(rd) | ImmMoveWide(imm) | ShiftMoveWide(shift));
 }
 
+void Assembler::MoveWide(Instruction* at, const Register& rd,
+                         uint64_t imm,
+                         int shift,
+                         MoveWideImmediateOp mov_op) {
+  // Ignore the top 32 bits of an immediate if we're moving to a W register.
+  if (rd.Is32Bits()) {
+    // Check that the top 32 bits are zero (a positive 32-bit number) or top
+    // 33 bits are one (a negative 32-bit number, sign extended to 64 bits).
+    VIXL_ASSERT(((imm >> kWRegSize) == 0) ||
+                ((imm >> (kWRegSize - 1)) == 0x1ffffffff));
+    imm &= kWRegMask;
+  }
+
+  if (shift >= 0) {
+    // Explicit shift specified.
+    VIXL_ASSERT((shift == 0) || (shift == 16) ||
+                (shift == 32) || (shift == 48));
+    VIXL_ASSERT(rd.Is64Bits() || (shift == 0) || (shift == 16));
+    shift /= 16;
+  } else {
+    // Calculate a new immediate and shift combination to encode the immediate
+    // argument.
+    shift = 0;
+    if ((imm & 0xffffffffffff0000) == 0) {
+      // Nothing to do.
+    } else if ((imm & 0xffffffff0000ffff) == 0) {
+      imm >>= 16;
+      shift = 1;
+    } else if ((imm & 0xffff0000ffffffff) == 0) {
+      VIXL_ASSERT(rd.Is64Bits());
+      imm >>= 32;
+      shift = 2;
+    } else if ((imm & 0x0000ffffffffffff) == 0) {
+      VIXL_ASSERT(rd.Is64Bits());
+      imm >>= 48;
+      shift = 3;
+    }
+  }
+
+  VIXL_ASSERT(IsUint16(imm));
+
+  Emit(at, SF(rd) | MoveWideImmediateFixed | mov_op |
+       Rd(rd) | ImmMoveWide(imm) | ShiftMoveWide(shift));
+}
 
 void Assembler::AddSub(const Register& rd,
                        const Register& rn,
@@ -4753,6 +4804,13 @@ void Assembler::LoadStore(const CPURegister& rt,
   Emit(op | Rt(rt) | LoadStoreMemOperand(addr, CalcLSDataSize(op), option));
 }
 
+void Assembler::LoadStore(Instruction* at,
+                          const CPURegister& rt,
+                          const MemOperand& addr,
+                          LoadStoreOp op,
+                          LoadStoreScalingOption option) {
+  Emit(at, op | Rt(rt) | LoadStoreMemOperand(addr, CalcLSDataSize(op), option));
+}
 
 void Assembler::Prefetch(PrefetchOperation op,
                          const MemOperand& addr,

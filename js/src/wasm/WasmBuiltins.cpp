@@ -1820,7 +1820,7 @@ bool wasm::EnsureBuiltinThunksInitialized() {
     return false;
   }
 
-  size_t allocSize = AlignBytes(masm.bytesNeeded(), ExecutableCodePageSize);
+  size_t allocSize = AlignBytes(masm.execSize(), ExecutableCodePageSize);
 
   thunks->codeSize = allocSize;
   thunks->codeBase = (uint8_t*)AllocateExecutableMemory(
@@ -1830,8 +1830,8 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   }
 
   masm.executableCopy(thunks->codeBase);
-  memset(thunks->codeBase + masm.bytesNeeded(), 0,
-         allocSize - masm.bytesNeeded());
+  memset(thunks->codeBase + masm.execSize(), 0,
+         allocSize - masm.execSize());
 
   masm.processCodeLabels(thunks->codeBase);
   PatchDebugSymbolicAccesses(thunks->codeBase, masm);

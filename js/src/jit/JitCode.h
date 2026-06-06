@@ -52,9 +52,8 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
  protected:
   Executable executable_;
   uint32_t insnSize_;    // Instruction stream size.
-  uint32_t jumpRelocTableBytes_;  // Size of the jump relocation table.
-  uint32_t dataRelocTableBytes_;  // Size of the data relocation table.
-  uint32_t constantsTableBytes_;   // Size of constants table.
+  uint32_t gcDataBytes_;  // Size of the GC data.
+  uint32_t immDataBytes_;  // Size of the immediate data.
   uint8_t headerSize_ : 5;        // Number of bytes allocated before codeStart.
   bool invalidated_ : 1;     // Whether the code object has been invalidated.
                              // This is necessary to prevent GC tracing.
@@ -66,9 +65,8 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
       : TenuredCellWithNonGCPointer((uint8_t*)exec.xStart + headerSize),
         executable_(std::move(exec)),
         insnSize_(0),
-        jumpRelocTableBytes_(0),
-        dataRelocTableBytes_(0),
-        constantsTableBytes_(0),
+        gcDataBytes_(0),
+        immDataBytes_(0),
         headerSize_(headerSize),
         invalidated_(false),
         hasBytecodeMap_(false) {
@@ -78,16 +76,14 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   uint32_t dataOffset() const {
       return 0;
   }
-  uint32_t jumpRelocTableOffset() const { return dataOffset(); }
-  uint32_t dataRelocTableOffset() const {
-    return jumpRelocTableOffset() + jumpRelocTableBytes_;
-  }
-  uint32_t constantsTableOffset() const {
-    return dataRelocTableOffset() + dataRelocTableBytes_;
+  uint32_t gcDataOffset() const { return dataOffset(); }
+  
+  uint32_t immDataOffset() const {
+    return gcDataOffset() + gcDataBytes_;
   }
 
   uint32_t dataSize() const {
-    return constantsTableOffset() + constantsTableBytes_;
+    return immDataOffset() + immDataBytes_;
   }
 
  public:
@@ -97,9 +93,13 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
     }
     return rawEnd();
   }
-  uint8_t* jumpRelocTable() const { return &dataRaw()[jumpRelocTableOffset()]; }
-  uint8_t* dataRelocTable() const { return &dataRaw()[dataRelocTableOffset()]; }
-  uint8_t* constantsTable() const { return &dataRaw()[constantsTableOffset()]; }
+
+  size_t gcDataEntries() const {
+    return gcDataBytes_ / sizeof(gc::Cell*); 
+  }
+
+  uint8_t* gcDataSection() const { return &dataRaw()[gcDataOffset()]; }
+  uint8_t* immDataSection() const { return &dataRaw()[immDataOffset()]; }
   uint8_t* dataRawEnd() const { return dataRaw() + dataSize(); }
 
  public:

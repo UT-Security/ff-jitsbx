@@ -416,9 +416,9 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     vixl::UseScratchRegisterScope temps(this);
     const Register scratch = temps.AcquireX().asUnsized();
     if (val.isGCThing()) {
-      BufferOffset load =
+      CodeOffset load =
           movePatchablePtr(ImmPtr(val.bitsAsPunboxPointer()), scratch);
-      writeDataRelocation(val, load);
+      writeDataSection(val, load);
       push(scratch);
     } else {
       moveValue(val, scratch);
@@ -470,9 +470,9 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
   void moveValue(const Value& val, Register dest) {
     if (val.isGCThing()) {
-      BufferOffset load =
+      CodeOffset load =
           movePatchablePtr(ImmPtr(val.bitsAsPunboxPointer()), dest);
-      writeDataRelocation(val, load);
+      writeDataSection(val, load);
     } else {
       movePtr(ImmWord(val.asRawBits()), dest);
     }
@@ -800,12 +800,12 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Mov(ARMRegister(dest, 64), int64_t(imm.value));
   }
   void movePtr(wasm::SymbolicAddress imm, Register dest) {
-    BufferOffset off = movePatchablePtr(ImmWord(0xffffffffffffffffULL), dest);
-    append(wasm::SymbolicAccess(CodeOffset(off.getOffset()), imm));
+    CodeOffset off = movePatchablePtr(ImmWord(0xffffffffffffffffULL), dest);
+    append(wasm::SymbolicAccess(off, imm));
   }
   void movePtr(ImmGCPtr imm, Register dest) {
-    BufferOffset load = movePatchablePtr(ImmPtr(imm.value), dest);
-    writeDataRelocation(imm, load);
+    CodeOffset load = movePatchablePtr(ImmPtr(imm.value), dest);
+    writeDataSection(imm, load);
   }
 
   void mov(ImmWord imm, Register dest) { movePtr(imm, dest); }
@@ -824,8 +824,8 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   // Move a pointer using a literal pool, so that the pointer
   // may be easily patched or traced.
   // Returns the BufferOffset of the load instruction emitted.
-  BufferOffset movePatchablePtr(ImmWord ptr, Register dest);
-  BufferOffset movePatchablePtr(ImmPtr ptr, Register dest);
+  CodeOffset movePatchablePtr(ImmWord ptr, Register dest);
+  CodeOffset movePatchablePtr(ImmPtr ptr, Register dest);
 
   void loadPtr(wasm::SymbolicAddress address, Register dest) {
     vixl::UseScratchRegisterScope temps(this);
@@ -1398,7 +1398,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     BufferOffset loc =
         b(-1,
           LabelDoc());  // The jump target will be patched by executableCopy().
-    addPendingJump(loc, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    addPendingJump(loc, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
   }
 
   void compareDouble(DoubleCondition cond, FloatRegister lhs,
@@ -2049,29 +2049,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     return ret;
   }
 
-  // load: offset to the load instruction obtained by movePatchablePtr().
-  void writeDataRelocation(ImmGCPtr ptr, BufferOffset load) {
-    // Raw GC pointer relocations and Value relocations both end up in
-    // Assembler::TraceDataRelocations.
-    if (ptr.value) {
-      if (gc::IsInsideNursery(ptr.value)) {
-        embedsNurseryPointers_ = true;
-      }
-      dataRelocations_.writeUnsigned(load.getOffset());
-    }
-  }
-  void writeDataRelocation(const Value& val, BufferOffset load) {
-    // Raw GC pointer relocations and Value relocations both end up in
-    // Assembler::TraceDataRelocations.
-    if (val.isGCThing()) {
-      gc::Cell* cell = val.toGCThing();
-      if (cell && gc::IsInsideNursery(cell)) {
-        embedsNurseryPointers_ = true;
-      }
-      dataRelocations_.writeUnsigned(load.getOffset());
-    }
-  }
-
   void computeEffectiveAddress(const Address& address, Register dest) {
     Add(ARMRegister(dest, 64), toARMRegister(address.base, 64),
         Operand(address.offset));
@@ -2174,7 +2151,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 #endif
     }
 
-    addPendingJump(loadOffset, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    addPendingJump(loadOffset, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
     CodeOffset ret(offset.getOffset());
     return ret;
   }

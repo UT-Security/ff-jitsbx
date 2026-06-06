@@ -64,6 +64,13 @@ patterns = [
         "dest",
     ),
     (
+        "__memmove_(avx|evex)_unaligned_erms",
+        1,
+        "js::jit::BufferSlice<.*>::putBytes",
+        "source",
+        "&instructions[length()]",
+    ),
+    (
         "__memcpy_sse2_unaligned",
         1,
         "js::jit::AssemblerBufferWithConstantPools",
@@ -85,6 +92,13 @@ patterns = [
         "js::jit::X86Encoding::SetPointer",
         "0",
         "0",
+    ),
+    (
+        "__memmove_(avx|evex)_unaligned_erms",
+        1,
+        "js::jit::AssemblerBufferWithConstantPools<.*>::executableCopy",
+        "&cur->instructions[0]",
+        "dest",
     ),
     (
         "<unnamed>",

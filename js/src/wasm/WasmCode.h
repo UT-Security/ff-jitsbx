@@ -125,6 +125,8 @@ struct LinkData : LinkDataCacheablePod {
   SymbolicLinkArray symbolicLinks;
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+
+  size_t dataSize() const;
 };
 
 WASM_DECLARE_CACHEABLE_POD(LinkData::InternalLink);
@@ -213,6 +215,12 @@ class CodeSegment {
     return pc >= execBase() && pc < (execBase() + execLength_);
   }
 
+  uint8_t* dataBase() const { return dataBytes_.get(); }
+  uint32_t dataLength() const {
+    MOZ_ASSERT(dataLength_ != UINT32_MAX);
+    return dataLength_;
+  }
+
   const CodeTier& codeTier() const {
     MOZ_ASSERT(initialized());
     return *codeTier_;
@@ -238,7 +246,6 @@ class ModuleSegment : public CodeSegment {
   static UniqueModuleSegment create(Tier tier, jit::MacroAssembler& masm,
                                     const LinkData& linkData);
   static UniqueModuleSegment create(Tier tier, const Bytes& unlinkedCodeBytes,
-                                    const Bytes& unlinkedDataBytes,
                                     const LinkData& linkData);
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,

@@ -454,6 +454,9 @@ class Instruction {
     return RawbitsToDouble(Literal64());
   }
 
+  Instruction* NextInstruction() {
+    return this + kInstructionSize;
+  }
   const Instruction* NextInstruction() const {
     return this + kInstructionSize;
   }

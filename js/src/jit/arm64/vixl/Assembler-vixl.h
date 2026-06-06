@@ -1578,6 +1578,10 @@ class Assembler : public MozBaseAssembler {
   // Load integer or FP register.
   void ldr(const CPURegister& rt, const MemOperand& src,
            LoadStoreScalingOption option = PreferScaledOffset);
+  static void ldr(Instruction* at,
+                  const CPURegister& rt,
+                  const MemOperand& src,
+                  LoadStoreScalingOption option = PreferScaledOffset);
 
   // Store integer or FP register.
   void str(const CPURegister& rt, const MemOperand& dst,
@@ -2397,6 +2401,10 @@ class Assembler : public MozBaseAssembler {
   void movk(const Register& rd, uint64_t imm, int shift = -1) {
     MoveWide(rd, imm, shift, MOVK);
   }
+  
+  static void movk(Instruction* at, const Register& rd, uint64_t imm, int shift = -1) {
+    MoveWide(at, rd, imm, shift, MOVK);
+  }
 
   // Move inverted immediate.
   void movn(const Register& rd, uint64_t imm, int shift = -1) {
@@ -2406,6 +2414,10 @@ class Assembler : public MozBaseAssembler {
   // Move immediate.
   void movz(const Register& rd, uint64_t imm, int shift = -1) {
     MoveWide(rd, imm, shift, MOVZ);
+  }
+  
+  static void movz(Instruction* at, const Register& rd, uint64_t imm, int shift = -1) {
+    MoveWide(at, rd, imm, shift, MOVZ);
   }
 
   // Misc instructions.
@@ -4699,6 +4711,11 @@ class Assembler : public MozBaseAssembler {
                  const MemOperand& addr,
                  LoadStoreOp op,
                  LoadStoreScalingOption option = PreferScaledOffset);
+  static void LoadStore(Instruction* at,
+                   const CPURegister& rt,
+                   const MemOperand& addr,
+                   LoadStoreOp op,
+                   LoadStoreScalingOption option = PreferScaledOffset);
 
   void LoadStorePair(const CPURegister& rt,
                      const CPURegister& rt2,
@@ -4812,6 +4829,10 @@ class Assembler : public MozBaseAssembler {
 
   // Instruction helpers.
   void MoveWide(const Register& rd,
+                uint64_t imm,
+                int shift,
+                MoveWideImmediateOp mov_op);
+  static void MoveWide(Instruction* at, const Register& rd,
                 uint64_t imm,
                 int shift,
                 MoveWideImmediateOp mov_op);
@@ -4949,7 +4970,7 @@ class Assembler : public MozBaseAssembler {
 
   // Encode the specified MemOperand for the specified access size and scaling
   // preference.
-  Instr LoadStoreMemOperand(const MemOperand& addr,
+  static Instr LoadStoreMemOperand(const MemOperand& addr,
                             unsigned access_size,
                             LoadStoreScalingOption option);
 
