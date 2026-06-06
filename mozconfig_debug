@@ -1,0 +1,16 @@
+ac_add_options --enable-application=browser
+
+####### Debug #######
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_debug
+ac_add_options --enable-debug
+ac_add_options --disable-optimize
+
+export CC="$topsrcdir/default-build-toolchain/clang/bin/clang"
+export CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++"
+ac_add_options --with-libclang-path=@TOPSRCDIR@/default-build-toolchain/clang/lib/
+
+export WASM_CC="$topsrcdir/default-build-toolchain/clang/bin/clang --target=wasm32-wasi"
+export WASM_CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++ --target=wasm32-wasi"
+export WASI_SYSROOT="$topsrcdir/default-build-toolchain/sysroot-wasm32-wasi"
+
+ac_add_options --with-wasm-sandboxed-libraries=graphite
