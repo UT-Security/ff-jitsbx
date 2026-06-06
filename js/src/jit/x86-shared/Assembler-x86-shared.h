@@ -1711,8 +1711,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
 #ifdef JS_SANDBOX_CET
-  void readShadowStack(Register reg) { masm.rdssp(reg.encoding()); }
+  void readShadowStack(Register reg) {
+    AutoBundleInstructionScope bundle(*this);
+    masm.rdssp(reg.encoding());
+  }
   void writeShadowStack(Register src, const Operand& dest) {
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.wrss(dest.disp(), dest.base(), src.encoding());
@@ -1721,7 +1725,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unimplemented operand kind");
     }
   }
-  void incShadowStack(Register reg) { masm.incssp(reg.encoding()); }
+  void incShadowStack(Register reg) {
+    AutoBundleInstructionScope bundle(*this);
+    masm.incssp(reg.encoding());
+  }
 #endif
   void breakpoint() {
     AutoBundleInstructionScope bundle(*this);

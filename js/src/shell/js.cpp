@@ -11048,7 +11048,7 @@ static bool SetGCParameterFromArg(JSContext* cx, char* arg) {
 
 int main(int argc, char** argv) {
 #ifdef JS_SANDBOX_CET
-  ENABLE_SHSTK();
+  // ENABLE_SHSTK();
 #endif
 
   PreInit();
@@ -11267,7 +11267,7 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef JS_SANDBOX_CET
-  DISABLE_SHSTK();
+  // DISABLE_SHSTK();
 #endif
 
   return result;
