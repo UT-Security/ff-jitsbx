@@ -18,6 +18,11 @@ if CONFIG["MOZ_USING_WASM_SANDBOXING"]:
         "wasm2c_sandbox_compiler",
     ]
 
+    if CONFIG["WASM_USE_LFI"]:
+        DIRS += [
+            "rlbox_lfi_sandbox",
+        ]
+
 if not CONFIG["MOZ_SYSTEM_JPEG"]:
     external_dirs += ["media/libjpeg"]
 

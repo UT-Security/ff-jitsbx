@@ -223,4 +223,5 @@ tools/esmify/package-lock.json
 docs/mots/index.rst
 
 default-build-toolchain
+lfi-toolchain
 done-*

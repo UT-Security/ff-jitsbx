@@ -2397,6 +2397,24 @@ def has_remote(toolkit):
 set_config("MOZ_HAS_REMOTE", has_remote)
 set_define("MOZ_HAS_REMOTE", has_remote)
 
+# LFI configs
+# ==============================================================
+
+option(
+    "--enable-wasm-use-lfi",
+    env="ENABLE_WASM_USE_LFI",
+    help="Enable wasm sandboxing with lfi",
+    default=False,
+)
+
+@depends("--enable-wasm-use-lfi")
+def requires_wasm_use_lfi(value):
+    if value:
+        return True
+
+set_config("WASM_USE_LFI", requires_wasm_use_lfi)
+set_define("WASM_USE_LFI", requires_wasm_use_lfi)
+
 # RLBox Library Sandboxing wasm support
 # ==============================================================
 
