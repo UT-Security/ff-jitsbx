@@ -27,4 +27,6 @@
 // rlbox
 #define RLBOX_WASM2C_MODULE_NAME rlbox
 
+#define RLBOX_LFI_NO_VERIFY
+
 #endif

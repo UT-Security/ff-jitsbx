@@ -12,11 +12,19 @@
 #include "mozilla/rlbox/rlbox_config.h"
 
 #ifdef MOZ_WASM_SANDBOXING_GRAPHITE
+
+#ifdef WASM_USE_LFI
+#  include "mozilla/rlbox/rlbox_lfi_sandbox.hpp"
+extern uint8_t rlbox_lfi_start[];
+extern uint8_t rlbox_lfi_end[];
+#else
 // Include the generated header file so that we are able to resolve the symbols
 // in the wasm binary
 #  include "rlbox.wasm.h"
 #  define RLBOX_USE_STATIC_CALLS() rlbox_wasm2c_sandbox_lookup_symbol
 #  include "mozilla/rlbox/rlbox_wasm2c_sandbox.hpp"
+#endif
+
 #else
 #  define RLBOX_USE_STATIC_CALLS() rlbox_noop_sandbox_lookup_symbol
 #  include "mozilla/rlbox/rlbox_noop_sandbox.hpp"

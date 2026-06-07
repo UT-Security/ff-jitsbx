@@ -9,7 +9,13 @@
 #include "mozilla/rlbox/rlbox_types.hpp"
 
 #ifdef MOZ_WASM_SANDBOXING_GRAPHITE
+
+#ifdef WASM_USE_LFI
+RLBOX_DEFINE_BASE_TYPES_FOR(gr, lfi)
+#else
 RLBOX_DEFINE_BASE_TYPES_FOR(gr, wasm2c)
+#endif
+
 #else
 RLBOX_DEFINE_BASE_TYPES_FOR(gr, noop)
 #endif

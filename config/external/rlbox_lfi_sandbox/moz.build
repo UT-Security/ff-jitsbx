@@ -4,12 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+EXPORTS.mozilla.rlbox += [
+    "/../rlbox_lfi_sandbox/include/lfi_sepstack_invoker.hpp",
+    "/../rlbox_lfi_sandbox/include/rlbox_lfi_sandbox.hpp",
+]
+
 EXPORTS += [
     "/../lfi-runtime/core/include/lfi_arch.h",
     "/../lfi-runtime/core/include/lfi_core.h",
     "/../lfi-runtime/linux/include/lfi_linux.h",
-    "/../rlbox_lfi_sandbox/include/lfi_sepstack_invoker.hpp",
-    "/../rlbox_lfi_sandbox/include/rlbox_lfi_sandbox.hpp",
 ]
 
 SOURCES += [ "lfi-test.c" ]

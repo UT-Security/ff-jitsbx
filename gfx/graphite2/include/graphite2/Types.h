@@ -67,10 +67,10 @@ enum gr_encform {
   #define _gr2_static_flag
 #endif
 
-#if defined GRAPHITE2_STATIC
+#if defined(GRAPHITE2_STATIC) && !defined(__LFI__)
   #define GR2_API             _gr2_tag_fn(_gr2_static_flag)
   #define GR2_DEPRECATED_API  _gr2_tag_fn(_gr2_deprecated_flag _gr2_and _gr2_static_flag)
-#elif defined GRAPHITE2_EXPORTING
+#elif defined(GRAPHITE2_EXPORTING) || defined(__LFI__)
   #define GR2_API             _gr2_tag_fn(_gr2_export_flag)
   #define GR2_DEPRECATED_API  _gr2_tag_fn(_gr2_deprecated_flag _gr2_and _gr2_export_flag)
 #else

@@ -1,3 +1,5 @@
+#ifndef __LFI__
+
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
@@ -5,3 +7,5 @@ int main(int argc, char *argv[]) {
     (void) argv;
     abort();
 }
+
+#endif

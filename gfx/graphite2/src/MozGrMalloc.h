@@ -6,6 +6,9 @@
 #ifndef MOZ_GR_MALLOC_H
 #define MOZ_GR_MALLOC_H
 
+#ifndef __LFI__
+
+
 // Override malloc() and friends to call moz_xmalloc() etc, so that we get
 // predictable, safe OOM crashes rather than relying on the code to handle
 // allocation failures reliably.
@@ -38,6 +41,8 @@ extern "C" inline void* realloc(void *ptr, size_t size)
 {
     return moz_xrealloc(ptr, size);
 }
+
+#endif // !defined __LFI__
 
 #endif // defined(XP_LINUX)
 

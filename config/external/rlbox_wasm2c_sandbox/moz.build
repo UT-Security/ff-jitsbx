@@ -19,6 +19,9 @@ SOURCES += [
     "rlbox_wasm2c_thread_locals.cpp",
 ]
 
+if CONFIG["WASM_USE_LFI"]:
+    SOURCES["rlbox_wasm2c_thread_locals.cpp"].flags += [ "-std=c++20" ]
+
 LOCAL_INCLUDES += ["/third_party/wasm2c/wasm2c/"]
 
 FINAL_LIBRARY = "xul"

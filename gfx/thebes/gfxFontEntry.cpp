@@ -662,7 +662,12 @@ struct gfxFontEntry::GrSandboxData {
       grGetGlyphAdvanceCallback;
 
   GrSandboxData() {
+
+#ifdef WASM_USE_LFI
+    sandbox.create_sandbox(rlbox_lfi_start, rlbox_lfi_end);
+#else
     sandbox.create_sandbox();
+#endif
     grGetTableCallback =
         sandbox.register_callback(gfxFontEntryCallbacks::GrGetTable);
     grReleaseTableCallback =

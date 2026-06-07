@@ -195,6 +195,13 @@ SOURCES += [
     "PrintTargetThebes.cpp",
 ]
 
+# Move some unified sources to sources as we need to potentially compile this with C++ 20 for lfi
+SOURCES += [
+    "gfxFont.cpp",
+    "gfxFontEntry.cpp",
+    "gfxGraphiteShaper.cpp",
+]
+
 UNIFIED_SOURCES += [
     "CJKCompatSVS.cpp",
     "COLRFonts.cpp",
@@ -202,8 +209,6 @@ UNIFIED_SOURCES += [
     "gfxBaseSharedMemorySurface.cpp",
     "gfxBlur.cpp",
     "gfxContext.cpp",
-    "gfxFont.cpp",
-    "gfxFontEntry.cpp",
     "gfxFontFeatures.cpp",
     "gfxFontInfoLoader.cpp",
     "gfxFontMissingGlyphs.cpp",
@@ -211,7 +216,6 @@ UNIFIED_SOURCES += [
     "gfxFontSrcURI.cpp",
     "gfxGlyphExtents.cpp",
     "gfxGradientCache.cpp",
-    "gfxGraphiteShaper.cpp",
     "gfxHarfBuzzShaper.cpp",
     "gfxImageSurface.cpp",
     "gfxMathTable.cpp",
@@ -295,5 +299,10 @@ LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
 DEFINES["GRAPHITE2_STATIC"] = True
 
 CXXFLAGS += ["-Werror=switch"]
+
+if CONFIG["WASM_USE_LFI"]:
+    SOURCES["gfxFont.cpp"].flags += [ "-std=c++20" ]
+    SOURCES["gfxFontEntry.cpp"].flags += [ "-std=c++20" ]
+    SOURCES["gfxGraphiteShaper.cpp"].flags += [ "-std=c++20" ]
 
 include("/tools/fuzzing/libfuzzer-config.mozbuild")

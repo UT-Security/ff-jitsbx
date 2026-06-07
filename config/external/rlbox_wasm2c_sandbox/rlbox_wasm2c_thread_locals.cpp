@@ -22,6 +22,11 @@
 // MingW bug is fixed.
 RLBOX_WASM2C_SANDBOX_STATIC_VARIABLES();
 
+#ifdef WASM_USE_LFI
+#  include "mozilla/rlbox/rlbox_lfi_sandbox.hpp"
+RLBOX_LFI_SANDBOX_STATIC_VARIABLES();
+#endif
+
 extern "C" {
 
 // Any error encountered by the wasm2c runtime or wasm sandboxed library code
