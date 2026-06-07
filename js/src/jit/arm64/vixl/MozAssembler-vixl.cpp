@@ -469,6 +469,7 @@ BufferOffset Assembler::DataProcShiftedRegister(const Register& rd, const Regist
 
 
 void MozBaseAssembler::InsertIndexIntoTag(uint8_t* load, uint32_t index) {
+  MOZ_ASSERT(false, "Unexpected constant pool usage");
   // Store the js::jit::PoolEntry index into the instruction.
   // finishPool() will walk over all literal load instructions
   // and use PatchConstantPoolLoad() to patch to the final relative offset.

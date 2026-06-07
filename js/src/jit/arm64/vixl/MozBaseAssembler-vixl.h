@@ -141,6 +141,7 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
 				     const LiteralDoc& doc = LiteralDoc(),
 				     ARMBuffer::PoolEntry* pe = nullptr)
   {
+    MOZ_ASSERT(false, "Unexpected constant pool usage");
     MOZ_ASSERT(inst);
     MOZ_ASSERT(numInst == 1);	/* If not, then fix disassembly */
     BufferOffset offset = armbuffer_.allocEntry(numInst, numPoolEntries, inst,
@@ -209,6 +210,7 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
 
   void spewLiteralLoad(BufferOffset offs,
                        const vixl::Instruction* instr, const LiteralDoc& doc) {
+    MOZ_ASSERT(false, "Unexpected constant pool usage");
     if (spew_.isDisabled() || !instr)
       return;
 
