@@ -48,7 +48,10 @@ if [ ! -d ../rlbox_lfi_sandbox ]; then
     git clone --recursive git@github.com:UT-Security/rlbox_lfi_sandbox.git ../rlbox_lfi_sandbox
 fi
 
-pushd . && cd ../rlbox_lfi_sandbox && git pull --rebase --autostash && popd
+pushd .
+cd ../rlbox_lfi_sandbox
+git pull --rebase --autostash
+popd
 
 ######################################
 
@@ -56,24 +59,38 @@ if [ ! -d ../lfi-runtime ]; then
     git clone --recursive git@github.com:lfi-project/lfi-runtime.git ../lfi-runtime
 fi
 
-pushd . && cd ../lfi-runtime
+pushd .
+cd ../lfi-runtime
 git pull --rebase --autostash
-meson setup ./build_debug --buildtype debug && ninja -C ./build_debug
-meson setup ./build_release --buildtype release && ninja -C ./build_release
+
+meson setup --reconfigure ./build_debug --buildtype debug \
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions"
+ninja -C ./build_debug
+
+meson setup --reconfigure ./build_release --buildtype debug \
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions"
+ninja -C ./build_release
+
 popd
 
 ######################################
 
 if [ ! -f ./done-bootstrap ]; then
     rustup override set 1.76.0;
+
+    # Don't use the bootstrap as the firefox sysroot is too restricted. Just use the system compiler
     # Bootstrap will fail
-    MOZCONFIG=./mozconfig_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
+    # MOZCONFIG=./mozconfig_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
+
+    sudo apt install libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev
+
     touch ./done-bootstrap
 fi
 
 ######################################
 
-export MOZBUILD_STATE_PATH="$(realpath .)/default-build-toolchain/"
+# Use the system compiler and libc++ as the Firefox one is too old
+# export MOZBUILD_STATE_PATH="$(realpath .)/default-build-toolchain/"
 
 MOZCONFIG=./mozconfig_debug ./mach build
 

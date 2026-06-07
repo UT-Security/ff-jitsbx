@@ -15,13 +15,13 @@ EXPORTS += [
 SOURCES += [ "lfi-test.c" ]
 
 if CONFIG["MOZ_DEBUG"]:
-    LDFLAGS += [
+    OS_LIBS += [
         "-Wl,--whole-archive",
         "$(topsrcdir)/../lfi-runtime/build_debug/liblfi.a",
         "-Wl,--no-whole-archive"
     ]
 else:
-    LDFLAGS += [
+    OS_LIBS += [
         "-Wl,--whole-archive",
         "$(topsrcdir)/../lfi-runtime/build_release/liblfi.a",
         "-Wl,--no-whole-archive"

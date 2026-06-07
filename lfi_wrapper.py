@@ -7,6 +7,7 @@ import re
 
 FLAG = "--forward-to-lfi-compiler"
 this_dir = os.path.dirname(os.path.realpath(__file__))
+default_clang_dir = os.path.join(this_dir, "default-build-toolchain/clang/bin/clang")
 lfi_toolchain_dir = os.path.join(this_dir, "lfi-toolchain")
 
 def replace_wasm_extensions(args):
@@ -70,7 +71,11 @@ def main():
             # Do additional work on the linker step
             pass
 
-    result = subprocess.run([*original_args])
+    if original_args[0] == "--version":
+        # Special case ... this sometimes happens
+        result = subprocess.run([default_clang_dir] + [*original_args])
+    else:
+        result = subprocess.run([*original_args])
 
     if result.returncode != 0:
         print("Regular compile failed for args: " + str(original_args))
