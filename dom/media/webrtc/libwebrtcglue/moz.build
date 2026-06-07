@@ -32,4 +32,8 @@ UNIFIED_SOURCES += [
     "WebrtcVideoCodecFactory.cpp",
 ]
 
+CXXFLAGS += [
+    "-Wno-c++11-narrowing-const-reference",
+]
+
 FINAL_LIBRARY = "xul"
