@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# set -o xtrace
+
+# source ./mozconfig_common
+# FFBuildDir=$BROWSER_BUILD_PATH
+
+FFBuildDir=$(realpath ./)
+
+if [ -z "$1" ]; then
+	echo "Missing output_folder. Expected argument $0 output_folder [graphite_perf_test, <other tests...>]";
+	exit 1;
+fi
+
+if [[ -f "$1" ]]; then
+	echo "$1 already exists";
+	exit 1;
+fi
+
+if [ -z "$2" ]; then
+	echo "Missing testname. Expected argument $0 output_folder [graphite_perf_test, <other tests...>]";
+	exit 1;
+fi
+
+if [ -z "$3" ]; then
+	echo "Missing Firefox versions from (stock wasm lfi). Specify space separated e.g. 'stock lfi'";
+	exit 1;
+fi
+
+FFVersions=($3)
+
+OUTPUTPATH=$(cd "$(dirname "$1")"; pwd)/$(basename "$1")
+mkdir -p ${OUTPUTPATH}
+cd "$(dirname "$0")"
+
+for (( i = 0; i < ${#FFVersions[@]}; i++ )); do
+	if [[ ! -d "$FFBuildDir/obj_firefox_latest_${FFVersions[$i]}_release" ]]; then
+		echo "Not all firefox versions found: $FFBuildDir/obj_firefox_latest_${FFVersions[$i]}_release";
+		exit 1;
+	fi
+done
+
+echo "Starting. Make sure to isolate cpus 2 then disable scaling."
+sleep 3
+
+# param: outputDir/prefix
+# param: mozconfig
+# param: testname
+function runTest(){
+	FINISHED=0
+	for (( l = 0; l < 3; l++ )); do
+		pkill -f WebContent
+		pkill firefox
+		rm -f ./testing/mozharness/build/local.json
+
+		# for (( k = 0; k < 5; k++ )); do
+		sudo systemctl stop benchmark.slice # extra check to stop any other programs
+		MOZCONFIG=$2 systemd-run --slice=benchmark.slice --scope -u benchmarkunit ./mach talos-test --activeTests "$3" 2>&1 | tee "$1_terminal_output.txt"
+		# done
+		retVal=${PIPESTATUS[0]}
+		if [ $retVal -eq 0 ]; then
+			FINISHED=1
+			break;
+		else
+			echo "Failed to run test benchmark for $1. Retrying..." | tee -a "$1_terminal_output.txt"
+			mv "$1_terminal_output.txt" "$1_terminal_output.run_$l.txt"
+			sleep 30
+		fi
+	done
+	if [ $FINISHED -eq 0 ]; then
+		echo "Failed to run test benchmark for $1." | tee -a "$1_terminal_output.txt"
+		exit 1
+	fi
+	sleep 10
+	mv ./testing/mozharness/build/local.json "$1_rlbox_test_page_render.json"
+}
+
+SAVEDDIR=$PWD
+
+for (( j = 0; j < ${#FFVersions[@]}; j++ )); do
+	runTest "${OUTPUTPATH}/${FFVersions[$j]}" "mozconfig_${FFVersions[$j]}_release" $2
+	cd $SAVEDDIR
+done
+
+for (( j = 0; j < ${#FFVersions[@]}; j++ )); do
+	./testsExtractFromLogs.py "${OUTPUTPATH}/${FFVersions[$j]}_terminal_output.txt" 2>&1 >> "${OUTPUTPATH}/${FFVersions[$j]}_terminal_analysis.json"
+done
+
+./testsAnalyzeExtractedLogs.py "${OUTPUTPATH}/"
+
+echo "-----------------------------------"
+echo "Results are saved in ${OUTPUTPATH}/"
+echo "-----------------------------------"
+cat "${OUTPUTPATH}/compare_stock_terminal_analysis.json.dat"

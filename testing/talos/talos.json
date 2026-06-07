@@ -77,6 +77,9 @@
     "svgr": {
       "tests": ["tsvgx", "tsvgr_opacity", "tscrollx", "tsvg_static", "tart"]
     },
+    "lfi": {
+        "tests": ["graphite_perf_test", "graphite_perf_test_mini"]
+    },
     "perf-reftest": {
       "tests": ["perf_reftest"]
     },

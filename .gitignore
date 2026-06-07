@@ -225,3 +225,4 @@ docs/mots/index.rst
 default-build-toolchain
 lfi-toolchain
 done-*
+*.develop
