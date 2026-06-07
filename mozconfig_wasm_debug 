@@ -1,7 +1,6 @@
 ac_add_options --enable-application=browser
 
-####### Debug #######
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_debug
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_wasm_debug
 ac_add_options --enable-debug
 ac_add_options --disable-optimize
 

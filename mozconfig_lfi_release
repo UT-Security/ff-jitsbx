@@ -1,8 +1,6 @@
 ac_add_options --enable-application=browser
 
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_lfi_debug
-ac_add_options --enable-debug
-ac_add_options --disable-optimize
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_lfi_release
 
 # export CC="$topsrcdir/default-build-toolchain/clang/bin/clang"
 # export CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++"

@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 set -o pipefail
+set -o xtrace
 
 function download_toolchain() {
     mkdir -p ./default-build-toolchain
@@ -80,7 +81,7 @@ if [ ! -f ./done-bootstrap ]; then
 
     # Don't use the bootstrap as the firefox sysroot is too restricted. Just use the system compiler
     # Bootstrap will fail
-    # MOZCONFIG=./mozconfig_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
+    # MOZCONFIG=./mozconfig_stock_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
 
     sudo apt install libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev
 
@@ -92,6 +93,8 @@ fi
 # Use the system compiler and libc++ as the Firefox one is too old
 # export MOZBUILD_STATE_PATH="$(realpath .)/default-build-toolchain/"
 
-MOZCONFIG=./mozconfig_debug ./mach build
+MOZCONFIG=./mozconfig_stock_release ./mach build
 
-MOZCONFIG=./mozconfig_lfi_debug ./mach build
+MOZCONFIG=./mozconfig_wasm_release ./mach build
+
+MOZCONFIG=./mozconfig_lfi_release ./mach build
