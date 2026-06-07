@@ -476,10 +476,10 @@ class Assembler : public vixl::Assembler {
   BufferOffset ExtendedJumpTable_;
   void executableCopy(uint8_t* buffer);
 
-  BufferOffset fImmPool(ARMFPRegister dest, uint8_t* value,
+  /*BufferOffset fImmPool(ARMFPRegister dest, uint8_t* value,
                         vixl::LoadLiteralOp op, const LiteralDoc& doc);
   BufferOffset fImmPool64(ARMFPRegister dest, double value);
-  BufferOffset fImmPool32(ARMFPRegister dest, float value);
+  BufferOffset fImmPool32(ARMFPRegister dest, float value);*/
 
   uint32_t currentOffset() const { return nextOffset().getOffset(); }
 
@@ -521,6 +521,16 @@ class Assembler : public vixl::Assembler {
       *reinterpret_cast<uint64_t*>(dataBase) = codeImm64(i).value();
       dataBase += sizeof(uint64_t);
     }
+
+    for (size_t i = 0; i < codeFimm64_.length(); i++) {
+      *reinterpret_cast<double*>(dataBase) = codeFimm64(i).value();
+      dataBase += sizeof(double);
+    }
+
+    for (size_t i = 0; i < codeFimm32_.length(); i++) {
+      *reinterpret_cast<float*>(dataBase) = codeFimm32(i).value();
+      dataBase += sizeof(float);
+    }
   }
 
   size_t gcDataSectionBytes() const {
@@ -530,7 +540,9 @@ class Assembler : public vixl::Assembler {
   }
 
   size_t immDataSectionBytes() const {
-    return codeImm64_.length() * sizeof(uint64_t);
+    return codeImm64_.length() * sizeof(uint64_t) +
+           codeFimm64_.length() * sizeof(double) +
+           codeFimm32_.length() * sizeof(float);
   }
 
   // Size of executable code, in bytes.
@@ -540,10 +552,7 @@ class Assembler : public vixl::Assembler {
     return gcDataSectionBytes() + immDataSectionBytes();
   }
 
-  void processDataLoads(JitCode* code) {
-    uint8_t* rawCode = code->raw();
-    uint8_t* rawData = code->dataRaw();
-
+  void processDataLoads(uint8_t* rawCode, uint8_t* rawData) {
     for (size_t i = 0; i < dataSectionValue_.length(); i++) {
       intptr_t offset = dataSectionValue_[i].first.offset();
       Instruction* inst = (Instruction*)(rawCode + offset);
@@ -566,6 +575,20 @@ class Assembler : public vixl::Assembler {
       UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
       rawData += sizeof(uint64_t);
     }
+
+    for (size_t i = 0; i < codeFimm64_.length(); i++) {
+      intptr_t offset = codeFimm64(i).patchAt().offset();
+      Instruction* inst = (Instruction*)(rawCode + offset);
+      UpdateLoadF64Address(inst, reinterpret_cast<double*>(rawData));
+      rawData += sizeof(double);
+    }
+
+    for (size_t i = 0; i < codeFimm32_.length(); i++) {
+      intptr_t offset = codeFimm32(i).patchAt().offset();
+      Instruction* inst = (Instruction*)(rawCode + offset);
+      UpdateLoadF32Address(inst, reinterpret_cast<float*>(rawData));
+      rawData += sizeof(float);
+    }
   }
 
   void processCodeLabels(uint8_t* rawCode) {
@@ -576,9 +599,18 @@ class Assembler : public vixl::Assembler {
 
   static void ClearLoad64Address(CodeLocationLabel label);
   static void ClearLoad64Address(Instruction* inst0);
-  
   static void UpdateLoad64Address(CodeLocationLabel label, uint64_t* address);
   static void UpdateLoad64Address(Instruction* inst0, uint64_t* address);
+
+  static void ClearLoadF64Address(CodeLocationLabel label);
+  static void ClearLoadF64Address(Instruction* inst0);
+  static void UpdateLoadF64Address(CodeLocationLabel label, double* address);
+  static void UpdateLoadF64Address(Instruction* inst0, double* address);
+
+  static void ClearLoadF32Address(CodeLocationLabel label);
+  static void ClearLoadF32Address(Instruction* inst0);
+  static void UpdateLoadF32Address(CodeLocationLabel, float* address);
+  static void UpdateLoadF32Address(Instruction* inst0, float* address);
 
   static void UpdateLoad64Value(Instruction* inst0, uint64_t value);
 

@@ -120,9 +120,36 @@ struct LinkData : LinkDataCacheablePod {
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
   };
 
+  struct I64Immediate {
+    uint32_t patchAtOffset;
+    int64_t value;
+
+    WASM_CHECK_CACHEABLE_POD(patchAtOffset, value);
+  };
+  using I64ImmediateVector = Vector<I64Immediate, 0, SystemAllocPolicy>;
+
+  struct F64Immediate {
+    uint32_t patchAtOffset;
+    double value;
+
+    WASM_CHECK_CACHEABLE_POD(patchAtOffset, value);
+  };
+  using F64ImmediateVector = Vector<F64Immediate, 0, SystemAllocPolicy>;
+
+  struct F32Immediate {
+    uint32_t patchAtOffset;
+    float value;
+
+    WASM_CHECK_CACHEABLE_POD(patchAtOffset, value);
+  };
+  using F32ImmediateVector = Vector<F32Immediate, 0, SystemAllocPolicy>;
+
   const Tier tier;
   InternalLinkVector internalLinks;
   SymbolicLinkArray symbolicLinks;
+  I64ImmediateVector i64Immediates;
+  F64ImmediateVector f64Immediates;
+  F32ImmediateVector f32Immediates;
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
@@ -130,6 +157,9 @@ struct LinkData : LinkDataCacheablePod {
 };
 
 WASM_DECLARE_CACHEABLE_POD(LinkData::InternalLink);
+WASM_DECLARE_CACHEABLE_POD(LinkData::I64Immediate);
+WASM_DECLARE_CACHEABLE_POD(LinkData::F64Immediate);
+WASM_DECLARE_CACHEABLE_POD(LinkData::F32Immediate);
 
 using UniqueLinkData = UniquePtr<LinkData>;
 

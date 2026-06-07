@@ -57,6 +57,9 @@ bool CompiledCode::swap(MacroAssembler& masm) {
   symbolicAccesses.swap(masm.symbolicAccesses());
   tryNotes.swap(masm.tryNotes());
   codeLabels.swap(masm.codeLabels());
+  codeImm64.swap(masm.codeImm64());
+  codeFimm64.swap(masm.codeFimm64());
+  codeFimm32.swap(masm.codeFimm32());
   return true;
 }
 
@@ -666,6 +669,33 @@ bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
     }
   }
 
+  for (const CodeImm64& imm64 : code.codeImm64) {
+    LinkData::I64Immediate i64;
+    i64.patchAtOffset = offsetInModule + imm64.patchAt().offset();
+    i64.value = imm64.value();
+    if (!linkData_->i64Immediates.append(i64)) {
+      return false;
+    }
+  }
+
+  for (const CodeFimm64& fimm64 : code.codeFimm64) {
+    LinkData::F64Immediate f64;
+    f64.patchAtOffset = offsetInModule + fimm64.patchAt().offset();
+    f64.value = fimm64.value();
+    if (!linkData_->f64Immediates.append(f64)) {
+      return false;
+    }
+  }
+
+  for (const CodeFimm32& fimm32 : code.codeFimm32) {
+    LinkData::F32Immediate f32;
+    f32.patchAtOffset = offsetInModule + fimm32.patchAt().offset();
+    f32.value = fimm32.value();
+    if (!linkData_->f32Immediates.append(f32)) {
+      return false;
+    }
+  }
+
   for (size_t i = 0; i < code.stackMaps.length(); i++) {
     StackMaps::Maplet maplet = code.stackMaps.move(i);
     maplet.offsetBy(offsetInModule);
@@ -1268,7 +1298,10 @@ size_t CompiledCode::sizeOfExcludingThis(
          callSiteTargets.sizeOfExcludingThis(mallocSizeOf) + trapSitesSize +
          symbolicAccesses.sizeOfExcludingThis(mallocSizeOf) +
          tryNotes.sizeOfExcludingThis(mallocSizeOf) +
-         codeLabels.sizeOfExcludingThis(mallocSizeOf);
+         codeLabels.sizeOfExcludingThis(mallocSizeOf) +
+         codeImm64.sizeOfExcludingThis(mallocSizeOf) +
+         codeFimm64.sizeOfExcludingThis(mallocSizeOf) +
+         codeFimm32.sizeOfExcludingThis(mallocSizeOf);
 }
 
 size_t CompileTask::sizeOfExcludingThis(

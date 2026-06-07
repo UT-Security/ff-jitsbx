@@ -909,7 +909,13 @@ void MacroAssembler::Fmov(VRegister vd, double imm) {
       if (rawbits == 0) {
         fmov(vd, xzr);
       } else {
-        Assembler::fImmPool64(vd, imm);
+        js::jit::AutoForbidPoolsAndNops afp(this, 2);
+        js::jit::CodeOffset off(currentOffset());
+        UseScratchRegisterScope temps(this);
+        js::jit::ARMRegister temp = temps.AcquireX();
+        adrp(temp, 0, LabelDoc());
+        ldr(vd, MemOperand(temp, 0));
+        Assembler::addCodeFimm64(js::jit::CodeFimm64(off, imm));
       }
     } else {
       // TODO: consider NEON support for load literal.
@@ -937,7 +943,13 @@ void MacroAssembler::Fmov(VRegister vd, float imm) {
       if (rawbits == 0) {
         fmov(vd, wzr);
       } else {
-        Assembler::fImmPool32(vd, imm);
+        js::jit::AutoForbidPoolsAndNops afp(this, 2);
+        UseScratchRegisterScope temps(this);
+        js::jit::ARMRegister temp = temps.AcquireX();
+        js::jit::CodeOffset off(currentOffset());
+        adrp(temp, 0, LabelDoc());
+        ldr(vd, MemOperand(temp, 0));
+        Assembler::addCodeFimm32(js::jit::CodeFimm32(off, imm));
       }
     } else {
       // TODO: consider NEON support for load literal.

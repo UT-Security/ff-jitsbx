@@ -71,6 +71,9 @@ struct CompiledCode {
   TrapSiteVectorArray trapSites;
   SymbolicAccessVector symbolicAccesses;
   jit::CodeLabelVector codeLabels;
+  jit::CodeImm64Vector codeImm64;
+  jit::CodeFimm64Vector codeFimm64;
+  jit::CodeFimm32Vector codeFimm32;
   StackMaps stackMaps;
   TryNoteVector tryNotes;
 
@@ -84,6 +87,9 @@ struct CompiledCode {
     trapSites.clear();
     symbolicAccesses.clear();
     codeLabels.clear();
+    codeImm64.clear();
+    codeFimm64.clear();
+    codeFimm32.clear();
     stackMaps.clear();
     tryNotes.clear();
     MOZ_ASSERT(empty());
@@ -92,8 +98,9 @@ struct CompiledCode {
   bool empty() {
     return bytes.empty() && codeRanges.empty() && callSites.empty() &&
            callSiteTargets.empty() && trapSites.empty() &&
-           symbolicAccesses.empty() && codeLabels.empty() && tryNotes.empty() &&
-           stackMaps.empty();
+           symbolicAccesses.empty() && codeLabels.empty() &&
+           codeImm64.empty() && codeFimm64.empty() && codeFimm32.empty() &&
+           tryNotes.empty() && stackMaps.empty();
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;

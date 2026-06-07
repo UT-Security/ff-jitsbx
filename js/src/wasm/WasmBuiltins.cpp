@@ -1707,16 +1707,23 @@ using SymbolicAddressToCodeRangeArray =
 struct BuiltinThunks {
   uint8_t* codeBase;
   size_t codeSize;
+  uint8_t* dataBase;
+  size_t dataSize;
   CodeRangeVector codeRanges;
   TypedNativeToCodeRangeMap typedNativeToCodeRange;
   SymbolicAddressToCodeRangeArray symbolicAddressToCodeRange;
   uint32_t provisionalLazyJitEntryOffset;
 
-  BuiltinThunks() : codeBase(nullptr), codeSize(0) {}
+  BuiltinThunks()
+      : codeBase(nullptr), codeSize(0), dataBase(nullptr), dataSize(0) {}
 
   ~BuiltinThunks() {
     if (codeBase) {
       DeallocateExecutableMemory(codeBase, codeSize);
+    }
+
+    if (dataBase) {
+      DeallocateReadWriteMemory(dataBase, dataSize);
     }
   }
 };
@@ -1820,20 +1827,38 @@ bool wasm::EnsureBuiltinThunksInitialized() {
     return false;
   }
 
-  size_t allocSize = AlignBytes(masm.execSize(), ExecutableCodePageSize);
+  size_t execAllocSize = AlignBytes(masm.execSize(), ExecutableCodePageSize);
 
-  thunks->codeSize = allocSize;
+  thunks->codeSize = execAllocSize;
   thunks->codeBase = (uint8_t*)AllocateExecutableMemory(
-      allocSize, ProtectionSetting::Writable, MemCheckKind::MakeUndefined);
+      execAllocSize, ProtectionSetting::Writable, MemCheckKind::MakeUndefined);
   if (!thunks->codeBase) {
     return false;
   }
 
   masm.executableCopy(thunks->codeBase);
   memset(thunks->codeBase + masm.execSize(), 0,
-         allocSize - masm.execSize());
+         execAllocSize - masm.execSize());
 
+  MOZ_ASSERT(masm.gcDataSectionBytes() == 0);
+
+  size_t dataAllocSize = AlignBytes(masm.dataSize(), ReadWriteDataPageSize);
+
+  if (dataAllocSize > 0) {
+    thunks->dataSize = dataAllocSize;
+    thunks->dataBase = (uint8_t*)AllocateReadWriteMemory(
+        dataAllocSize, ProtectionSetting::Writable,
+        MemCheckKind::MakeUndefined);
+    if (!thunks->dataBase) {
+      return false;
+    }
+
+    masm.copyImmDataSection(thunks->dataBase);
+
+    masm.processDataLoads(thunks->codeBase, thunks->dataBase);
+  }
   masm.processCodeLabels(thunks->codeBase);
+  MOZ_ASSERT(masm.symbolicAccesses().empty());
   PatchDebugSymbolicAccesses(thunks->codeBase, masm);
 
   MOZ_ASSERT(masm.callSites().empty());

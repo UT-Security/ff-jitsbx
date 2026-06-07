@@ -604,7 +604,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   insnSize_ = masm.instructionsSize();
   masm.executableCopy(raw());
 
-  masm.processDataLoads(this);
+  masm.processDataLoads(raw(), dataRaw());
   masm.processCodeLabels(raw());
 }
 

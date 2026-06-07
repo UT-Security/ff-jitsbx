@@ -74,7 +74,7 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   }
 
   uint32_t dataOffset() const {
-      return 0;
+    return reinterpret_cast<uintptr_t>(dataRaw()) % sizeof(void*);
   }
   uint32_t gcDataOffset() const { return dataOffset(); }
   

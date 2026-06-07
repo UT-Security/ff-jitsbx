@@ -865,6 +865,9 @@ CoderResult CodeLinkData(Coder<mode>& coder,
   MOZ_TRY(CodePod(coder, &item->pod()));
   MOZ_TRY(CodePodVector(coder, &item->internalLinks));
   MOZ_TRY(CodeSymbolicLinkArray(coder, &item->symbolicLinks));
+  MOZ_TRY(CodePodVector(coder, &item->i64Immediates));
+  MOZ_TRY(CodePodVector(coder, &item->f64Immediates));
+  MOZ_TRY(CodePodVector(coder, &item->f32Immediates));
   return Ok();
 }
 

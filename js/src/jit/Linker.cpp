@@ -25,6 +25,8 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   static_assert(CodeAlignment >= ExecutableAllocatorAlignment,
                 "Unexpected alignment requirements");
 
+  static const size_t ReadWriteAllocatorAlignment = sizeof(void*);
+
   // Query the MacroAssembler to know if data should be allocated separately,
   // and size the sections accordingly.
   size_t execNeeded = masm.execSize();
@@ -37,7 +39,10 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     return fail(cx);
   }
 
+  dataNeeded += ReadWriteAllocatorAlignment;
+
   execNeeded = AlignBytes(execNeeded, ExecutableAllocatorAlignment);
+  dataNeeded = AlignBytes(dataNeeded, ReadWriteAllocatorAlignment);
 
   JitZone* jitZone = cx->zone()->getJitZone(cx);
   if (!jitZone) {
@@ -60,6 +65,10 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   
   MOZ_ASSERT(codeStart + masm.execSize() <= execStart + execNeeded);
   uint32_t headerSize = codeStart - execStart;
+
+  uint8_t* dataStart = (uint8_t*)AlignBytes((uintptr_t)execStart, ReadWriteAllocatorAlignment);
+  MOZ_ASSERT(dataStart + masm.dataSize() <= dataStart + dataNeeded);
+  
   JitCode* code =
       JitCode::New<NoGC>(cx, std::move(result), headerSize);
   if (!code) {

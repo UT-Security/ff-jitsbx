@@ -51,7 +51,11 @@ using mozilla::MakeEnumeratedRange;
 using mozilla::PodAssign;
 
 size_t LinkData::dataSize() const {
-  return SymbolicLinkArray::kSize * sizeof(uintptr_t);
+  return RoundUp(SymbolicLinkArray::kSize * sizeof(uintptr_t) +
+                     i64Immediates.length() * sizeof(int64_t) +
+                     f64Immediates.length() * sizeof(double) +
+                     f32Immediates.length() * sizeof(float) + sizeof(void*),
+                 sizeof(void*));
 }
 
 size_t LinkData::SymbolicLinkArray::sizeOfExcludingThis(
@@ -243,6 +247,30 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
     dataPtr += sizeof(void*);
   }
 
+  for (LinkData::I64Immediate i64 : linkData.i64Immediates) {
+    uint8_t* patchAt = ms.execBase() + i64.patchAtOffset;
+    Assembler::UpdateLoad64Address(CodeLocationLabel(patchAt),
+                                   reinterpret_cast<uint64_t*>(dataPtr));
+    *reinterpret_cast<int64_t*>(dataPtr) = i64.value;
+    dataPtr += sizeof(int64_t);
+  }
+
+  for (LinkData::F64Immediate f64 : linkData.f64Immediates) {
+    uint8_t* patchAt = ms.execBase() + f64.patchAtOffset;
+    Assembler::UpdateLoadF64Address(CodeLocationLabel(patchAt),
+                                    reinterpret_cast<double*>(dataPtr));
+    *reinterpret_cast<double*>(dataPtr) = f64.value;
+    dataPtr += sizeof(double);
+  }
+
+  for (LinkData::F32Immediate f32 : linkData.f32Immediates) {
+    uint8_t* patchAt = ms.execBase() + f32.patchAtOffset;
+    Assembler::UpdateLoadF32Address(CodeLocationLabel(patchAt),
+                                    reinterpret_cast<float*>(dataPtr));
+    *reinterpret_cast<float*>(dataPtr) = f32.value;
+    dataPtr += sizeof(float);
+  }
+
   return true;
 }
 
@@ -267,6 +295,21 @@ void wasm::StaticallyUnlink(uint8_t* base, const LinkData& linkData) {
       uint8_t* patchAt = base + offset;
       Assembler::ClearLoad64Address(CodeLocationLabel(patchAt));
     }
+  }
+
+  for (LinkData::I64Immediate i64 : linkData.i64Immediates) {
+    uint8_t* patchAt = base + i64.patchAtOffset;
+    Assembler::ClearLoad64Address(CodeLocationLabel(patchAt));
+  }
+
+  for (LinkData::F64Immediate f64 : linkData.f64Immediates) {
+    uint8_t* patchAt = base + f64.patchAtOffset;
+    Assembler::ClearLoadF64Address(CodeLocationLabel(patchAt));
+  }
+
+  for (LinkData::F32Immediate f32 : linkData.f32Immediates) {
+    uint8_t* patchAt = base + f32.patchAtOffset;
+    Assembler::ClearLoadF32Address(CodeLocationLabel(patchAt));
   }
 }
 

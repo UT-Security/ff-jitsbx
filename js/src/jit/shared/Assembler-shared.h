@@ -504,6 +504,42 @@ class CodeImm64 {
 
 typedef Vector<CodeImm64, 0, SystemAllocPolicy> CodeImm64Vector;
 
+class CodeFimm64 {
+  // The destination position, where the absolute reference should get
+  // patched into.
+  CodeOffset patchAt_;
+  // The raw 64-bit immediate.
+  double value_;
+
+ public:
+  CodeFimm64() = default;
+  explicit CodeFimm64(const CodeOffset& patchAt) : patchAt_(patchAt) {}
+  CodeFimm64(const CodeOffset& patchAt, double value)
+      : patchAt_(patchAt), value_(value) {}
+  CodeOffset patchAt() const { return patchAt_; }
+  double value() const { return value_; }
+};
+
+typedef Vector<CodeFimm64, 0, SystemAllocPolicy> CodeFimm64Vector;
+
+class CodeFimm32 {
+  // The destination position, where the absolute reference should get
+  // patched into.
+  CodeOffset patchAt_;
+  // The raw 64-bit immediate.
+  float value_;
+
+ public:
+  CodeFimm32() = default;
+  explicit CodeFimm32(const CodeOffset& patchAt) : patchAt_(patchAt) {}
+  CodeFimm32(const CodeOffset& patchAt, float value)
+      : patchAt_(patchAt), value_(value) {}
+  CodeOffset patchAt() const { return patchAt_; }
+  float value() const { return value_; }
+};
+
+typedef Vector<CodeFimm32, 0, SystemAllocPolicy> CodeFimm32Vector;
+
 }  // namespace jit
 
 namespace wasm {
@@ -629,6 +665,8 @@ class AssemblerShared {
  protected:
   CodeLabelVector codeLabels_;
   CodeImm64Vector codeImm64_;
+  CodeFimm64Vector codeFimm64_;
+  CodeFimm32Vector codeFimm32_;
 
   bool enoughMemory_;
   bool embedsNurseryPointers_;
@@ -668,7 +706,21 @@ class AssemblerShared {
   size_t numCodeImm64() const { return codeImm64_.length(); }
   CodeImm64 codeImm64(size_t i) { return codeImm64_[i]; }
   CodeImm64Vector& codeImm64() { return codeImm64_; }
-  
+
+  void addCodeFimm64(CodeFimm64 fimm64) {
+    propagateOOM(codeFimm64_.append(fimm64));
+  }
+  size_t numCodeFimm64() const { return codeFimm64_.length(); }
+  CodeFimm64 codeFimm64(size_t i) { return codeFimm64_[i]; }
+  CodeFimm64Vector& codeFimm64() { return codeFimm64_; }
+
+  void addCodeFimm32(CodeFimm32 fimm32) {
+    propagateOOM(codeFimm32_.append(fimm32));
+  }
+  size_t numCodeFimm32() const { return codeFimm32_.length(); }
+  CodeFimm32 codeFimm32(size_t i) { return codeFimm32_[i]; }
+  CodeFimm32Vector& codeFimm32() { return codeFimm32_; }
+
   // WebAssembly metadata emitted by masm operations accumulated on the
   // MacroAssembler, and swapped into a wasm::CompiledCode after finish().
 
