@@ -476,11 +476,6 @@ class Assembler : public vixl::Assembler {
   BufferOffset ExtendedJumpTable_;
   void executableCopy(uint8_t* buffer);
 
-  BufferOffset immPool(ARMRegister dest, uint8_t* value, vixl::LoadLiteralOp op,
-                       const LiteralDoc& doc,
-                       ARMBuffer::PoolEntry* pe = nullptr);
-  BufferOffset immPool64(ARMRegister dest, uint64_t value,
-                         ARMBuffer::PoolEntry* pe = nullptr);
   BufferOffset fImmPool(ARMFPRegister dest, uint8_t* value,
                         vixl::LoadLiteralOp op, const LiteralDoc& doc);
   BufferOffset fImmPool64(ARMFPRegister dest, double value);
@@ -521,7 +516,12 @@ class Assembler : public vixl::Assembler {
     }
   }
 
-  void copyImmDataSection(uint8_t* dataBase) {}
+  void copyImmDataSection(uint8_t* dataBase) {
+    for (size_t i = 0; i < codeImm64_.length(); i++) {
+      *reinterpret_cast<uint64_t*>(dataBase) = codeImm64(i).value();
+      dataBase += sizeof(uint64_t);
+    }
+  }
 
   size_t gcDataSectionBytes() const {
     return dataSectionGCPtr_.length() * sizeof(void*) +
@@ -529,7 +529,9 @@ class Assembler : public vixl::Assembler {
            dataSectionJitCode_.length() * sizeof(JitCode*);
   }
 
-  size_t immDataSectionBytes() const { return 0; }
+  size_t immDataSectionBytes() const {
+    return codeImm64_.length() * sizeof(uint64_t);
+  }
 
   // Size of executable code, in bytes.
   size_t execSize() const { return SizeOfCodeGenerated(); }
@@ -542,23 +544,28 @@ class Assembler : public vixl::Assembler {
     uint8_t* rawCode = code->raw();
     uint8_t* rawData = code->dataRaw();
 
-    size_t index = 0;
-
     for (size_t i = 0; i < dataSectionValue_.length(); i++) {
       intptr_t offset = dataSectionValue_[i].first.offset();
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(&rawData[index]));
-      index += sizeof(Value);
+      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      rawData += sizeof(Value);
     }
 
     for (size_t i = 0; i < dataSectionGCPtr_.length(); i++) {
       intptr_t offset = dataSectionGCPtr_[i].first.offset();
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(&rawData[index]));
-      index += sizeof(gc::Cell*);
+      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      rawData += sizeof(gc::Cell*);
     }
 
-    index += dataSectionJitCode_.length() * sizeof(JitCode*);
+    rawData += dataSectionJitCode_.length() * sizeof(JitCode*);
+
+    for (size_t i = 0; i < codeImm64_.length(); i++) {
+      intptr_t offset = codeImm64(i).patchAt().offset();
+      Instruction* inst = (Instruction*)(rawCode + offset);
+      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      rawData += sizeof(uint64_t);
+    }
   }
 
   void processCodeLabels(uint8_t* rawCode) {
@@ -695,9 +702,22 @@ class Assembler : public vixl::Assembler {
     MOZ_CRASH("AlignDoubleArg()");
   }
   static uintptr_t GetPointer(uint8_t* ptr) {
-    Instruction* i = reinterpret_cast<Instruction*>(ptr);
-    uint64_t ret = i->Literal64();
-    return ret;
+    Instruction* inst0 = reinterpret_cast<Instruction*>(ptr);
+    MOZ_ASSERT(inst0->IsADRP());
+
+    Instruction* inst1 = inst0->NextInstruction();
+    MOZ_ASSERT(inst1->IsLoad());
+    MOZ_ASSERT(inst0->Rd() == inst1->Rd());
+
+    uint32_t imm12 = inst1->ImmLSUnsigned();  // raw encoded immediate
+    unsigned scale = inst1->SizeLS();         // log2(access size)
+    int64_t offset = imm12 << scale;
+
+    uint8_t* target =
+        reinterpret_cast<uint8_t*>(inst0->ImmPCOffsetTarget()) + offset;
+
+    uintptr_t* value = reinterpret_cast<uintptr_t*>(target);
+    return *value;
   }
 
   // Toggle a jmp or cmp emitted by toggledJump().

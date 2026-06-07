@@ -250,23 +250,6 @@ void Assembler::executableCopy(uint8_t* buffer) {
   }
 }
 
-BufferOffset Assembler::immPool(ARMRegister dest, uint8_t* value,
-                                vixl::LoadLiteralOp op, const LiteralDoc& doc,
-                                ARMBuffer::PoolEntry* pe) {
-  uint32_t inst = op | Rt(dest);
-  const size_t numInst = 1;
-  const unsigned sizeOfPoolEntryInBytes = 4;
-  const unsigned numPoolEntries = sizeof(value) / sizeOfPoolEntryInBytes;
-  return allocLiteralLoadEntry(numInst, numPoolEntries, (uint8_t*)&inst, value,
-                               doc, pe);
-}
-
-BufferOffset Assembler::immPool64(ARMRegister dest, uint64_t value,
-                                  ARMBuffer::PoolEntry* pe) {
-  return immPool(dest, (uint8_t*)&value, vixl::LDR_x_lit, LiteralDoc(value),
-                 pe);
-}
-
 BufferOffset Assembler::fImmPool(ARMFPRegister dest, uint8_t* value,
                                  vixl::LoadLiteralOp op,
                                  const LiteralDoc& doc) {
@@ -377,10 +360,23 @@ void Assembler::PatchWrite_NearCall(CodeLocationLabel start,
 void Assembler::PatchDataWithValueCheck(CodeLocationLabel label,
                                         PatchedImmPtr newValue,
                                         PatchedImmPtr expected) {
-  Instruction* i = (Instruction*)label.raw();
-  void** pValue = i->LiteralAddress<void**>();
-  MOZ_ASSERT(*pValue == expected.value);
-  *pValue = newValue.value;
+  Instruction* inst0 = reinterpret_cast<Instruction*>(label.raw());
+  MOZ_ASSERT(inst0->IsADRP());
+
+  Instruction* inst1 = inst0->NextInstruction();
+  MOZ_ASSERT(inst1->IsLoad());
+  MOZ_ASSERT(inst0->Rd() == inst1->Rd());
+
+  uint32_t imm12 = inst1->ImmLSUnsigned();  // raw encoded immediate
+  unsigned scale = inst1->SizeLS();         // log2(access size)
+  int64_t offset = imm12 << scale;
+
+  uint8_t* target =
+      reinterpret_cast<uint8_t*>(inst0->ImmPCOffsetTarget()) + offset;
+
+  void** value = reinterpret_cast<void**>(target);
+  MOZ_ASSERT(*value == expected.value);
+  *value = newValue.value;
 }
 
 void Assembler::PatchDataWithValueCheck(CodeLocationLabel label,

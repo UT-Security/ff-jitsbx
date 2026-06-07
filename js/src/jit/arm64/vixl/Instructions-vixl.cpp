@@ -318,6 +318,26 @@ const Instruction* Instruction::ImmPCOffsetTarget() const {
   return base + offset;
 }
 
+Instruction* Instruction::ImmPCOffsetTarget() {
+  Instruction* base = this;
+  ptrdiff_t offset;
+  if (IsPCRelAddressing()) {
+    // ADR and ADRP.
+    offset = ImmPCRel();
+    if (Mask(PCRelAddressingMask) == ADRP) {
+      base = AlignDown(base, kPageSize);
+      offset *= kPageSize;
+    } else {
+      VIXL_ASSERT(Mask(PCRelAddressingMask) == ADR);
+    }
+  } else {
+    // All PC-relative branches.
+    VIXL_ASSERT(BranchType() != UnknownBranchType);
+    // Relative branch offsets are instruction-size-aligned.
+    offset = ImmBranch() << kInstructionSizeLog2;
+  }
+  return base + offset;
+}
 
 int Instruction::ImmBranch() const {
   switch (BranchType()) {

@@ -486,6 +486,24 @@ class CodeLocationLabel {
   uint8_t* raw() const { return raw_; }
 };
 
+class CodeImm64 {
+  // The destination position, where the absolute reference should get
+  // patched into.
+  CodeOffset patchAt_;
+  // The raw 64-bit immediate.
+  uint64_t value_;
+
+ public:
+  CodeImm64() = default;
+  explicit CodeImm64(const CodeOffset& patchAt) : patchAt_(patchAt) {}
+  CodeImm64(const CodeOffset& patchAt, uint64_t value)
+      : patchAt_(patchAt), value_(value) {}
+  CodeOffset patchAt() const { return patchAt_; }
+  uint64_t value() const { return value_; }
+};
+
+typedef Vector<CodeImm64, 0, SystemAllocPolicy> CodeImm64Vector;
+
 }  // namespace jit
 
 namespace wasm {
@@ -610,6 +628,7 @@ class AssemblerShared {
 
  protected:
   CodeLabelVector codeLabels_;
+  CodeImm64Vector codeImm64_;
 
   bool enoughMemory_;
   bool embedsNurseryPointers_;
@@ -643,6 +662,13 @@ class AssemblerShared {
   CodeLabel codeLabel(size_t i) { return codeLabels_[i]; }
   CodeLabelVector& codeLabels() { return codeLabels_; }
 
+  void addCodeImm64(CodeImm64 imm64) {
+    propagateOOM(codeImm64_.append(imm64));
+  }
+  size_t numCodeImm64() const { return codeImm64_.length(); }
+  CodeImm64 codeImm64(size_t i) { return codeImm64_[i]; }
+  CodeImm64Vector& codeImm64() { return codeImm64_; }
+  
   // WebAssembly metadata emitted by masm operations accumulated on the
   // MacroAssembler, and swapped into a wasm::CompiledCode after finish().
 

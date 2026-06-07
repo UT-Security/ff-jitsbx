@@ -395,6 +395,7 @@ class Instruction {
   // Find the target of this instruction. 'this' may be a branch or a
   // PC-relative addressing instruction.
   const Instruction* ImmPCOffsetTarget() const;
+  Instruction* ImmPCOffsetTarget();
 
   // Patch a PC-relative offset to refer to 'target'. 'this' may be a branch or
   // a PC-relative addressing instruction.

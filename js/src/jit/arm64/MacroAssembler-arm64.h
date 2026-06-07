@@ -7,6 +7,7 @@
 #ifndef jit_arm64_MacroAssembler_arm64_h
 #define jit_arm64_MacroAssembler_arm64_h
 
+#include "Assembler-arm64.h"
 #include "jit/arm64/Assembler-arm64.h"
 #include "jit/arm64/vixl/Debugger-vixl.h"
 #include "jit/arm64/vixl/MacroAssembler-vixl.h"
@@ -490,12 +491,20 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   }
 
   CodeOffset movWithPatch(ImmWord imm, Register dest) {
-    BufferOffset off = immPool64(ARMRegister(dest, 64), imm.value);
-    return CodeOffset(off.getOffset());
+    AutoForbidPoolsAndNops afp(this, 2);
+    CodeOffset off(currentOffset());
+    adrp(ARMRegister(dest, 64), 0, LabelDoc());
+    ldr(ARMRegister(dest, 64), MemOperand(ARMRegister(dest, 64), 0));
+    addCodeImm64(CodeImm64(off, imm.value));
+    return off;
   }
   CodeOffset movWithPatch(ImmPtr imm, Register dest) {
-    BufferOffset off = immPool64(ARMRegister(dest, 64), uint64_t(imm.value));
-    return CodeOffset(off.getOffset());
+    AutoForbidPoolsAndNops afp(this, 2);
+    CodeOffset off(currentOffset());
+    adrp(ARMRegister(dest, 64), 0, LabelDoc());
+    ldr(ARMRegister(dest, 64), MemOperand(ARMRegister(dest, 64), 0));
+    addCodeImm64(CodeImm64(off, reinterpret_cast<uint64_t>(imm.value)));
+    return off;
   }
 
   void boxValue(JSValueType type, Register src, Register dest);
@@ -2141,7 +2150,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
         nop();
       }
 #else
-      loadOffset = immPool64(ScratchReg2_64, uint64_t(target->raw()));
+      loadOffset = BufferOffset(
+          movWithPatch(ImmWord(reinterpret_cast<uintptr_t>(target->raw())),
+                       ScratchReg2)
+              .offset());
 
       if (enabled) {
         blr(ScratchReg2_64);
