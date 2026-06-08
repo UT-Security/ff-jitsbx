@@ -35,7 +35,13 @@ fi
 # Run the benchmark
 CURR_TIME=$(date --iso=seconds)
 mkdir -p ../benchmarks
-./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "stock wasm lfi largelfi"
+
+CONFIGS_TO_TEST="stock wasm lfi largelfi"
+if [[ "$(uname -m)" != "x86_64" ]]; then
+  CONFIGS_TO_TEST="stock wasm lfi"
+fi
+
+./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
 
 # restore_cpu2
 sudo systemctl stop benchmark.slice # extra check to stop any other programs

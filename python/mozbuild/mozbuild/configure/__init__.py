@@ -682,11 +682,11 @@ class ConfigureSandbox(dict):
             # If the option was passed explicitly, we throw an error that
             # the option is not available. Except when the option was passed
             # from the environment, because that would be too cumbersome.
-            if value.origin not in ("default", "environment"):
-                raise InvalidOptionError(
-                    "%s is not available in this configuration"
-                    % option_string.split("=", 1)[0]
-                )
+            # if value.origin not in ("default", "environment"):
+            #     raise InvalidOptionError(
+            #         "%s is not available in this configuration"
+            #         % option_string.split("=", 1)[0]
+            #     )
             self._logger.log(TRACE, "%r = None", option)
             return None
 

@@ -3,6 +3,18 @@ set -e
 set -o pipefail
 set -o xtrace
 
+
+PYTHON_MINOR_VER=$(python3 -c "import sys; print(sys.version_info[1])")
+
+if [ "$PYTHON_MINOR_VER" != "11" ]; then
+    echo "Python 3.11 is not the installed version. You need to setup venv with python3.11 first."
+    echo "1. Install python 3.11"
+    echo "2. Run 'python3.11 -m venv ff_build_py && source ff_build_py/bin/activate'"
+    echo "3. Rerun this build script"
+    echo "You can run 'deactivate' to close your venv"
+    exit 1
+fi
+
 function download_toolchain() {
     mkdir -p ./default-build-toolchain
 
@@ -116,13 +128,19 @@ popd
 ######################################
 
 if [ ! -f ./done-bootstrap ]; then
-    rustup override set 1.76.0;
 
     # Don't use the bootstrap as the firefox sysroot is too restricted. Just use the system compiler
     # Bootstrap will fail
     # MOZCONFIG=./mozconfig_stock_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
 
-    sudo apt install libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common
+    sudo apt install -y libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common;
+
+    if [ ! -x "$(command -v rustup)" ] ; then
+        curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.76.0 -y;
+        . "$HOME/.cargo/env"
+    fi
+
+    rustup override set 1.76.0;
 
     touch ./done-bootstrap
 fi
@@ -138,4 +156,6 @@ MOZCONFIG=./mozconfig_wasm_release ./mach build
 
 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
 
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+if [[ "$(uname -m)" == "x86_64" ]]; then
+    LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+fi
