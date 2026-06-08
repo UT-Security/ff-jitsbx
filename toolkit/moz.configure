@@ -2591,7 +2591,10 @@ with only_when(requires_wasm_sandboxing & compile_environment):
     )
     @imports("os")
     def lfi_runtime_dir(lfi_runtime_dir):
-        lfi_runtime_dir = lfi_runtime_dir[0]
+        if len(lfi_runtime_dir) > 0 :
+            lfi_runtime_dir = lfi_runtime_dir[0]
+        else:
+            lfi_runtime_dir = ""
         return lfi_runtime_dir
 
     set_config("LFI_RUNTIME_DIR", lfi_runtime_dir)
