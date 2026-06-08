@@ -423,6 +423,20 @@ set_config("JS_SANDBOX_CFI_BACKWARD_MASKS", js_sandbox_cfi_backward_masks)
 set_define("JS_SANDBOX_CFI_BACKWARD_MASKS", js_sandbox_cfi_backward_masks)
 
 option(
+    "--enable-js-sandbox-4gb-cfi-masks",
+    default=False,
+    help="{Enable|Disable} JS sandbox 4GB CFI Masks.",
+)
+
+@depends("--enable-js-sandbox-4gb-cfi-masks", js_sandbox_cfi, js_sandbox_cfi_masks, js_sandbox_cfi_backward_masks)
+def js_sandbox_4gb_cfi_masks(js_sandbox_4gb_cfi_masks, js_sandbox_cfi, js_sandbox_cfi_masks, js_sandbox_cfi_backward_masks):
+    if js_sandbox_cfi and js_sandbox_4gb_cfi_masks and (js_sandbox_cfi_masks or js_sandbox_cfi_backward_masks):
+        return True
+
+set_config("JS_SANDBOX_4GB_CFI_MASKS", js_sandbox_4gb_cfi_masks)
+set_define("JS_SANDBOX_4GB_CFI_MASKS", js_sandbox_4gb_cfi_masks)
+
+option(
     "--enable-js-sandbox-cet",
     default=False,
     help="{Enable|Disable} CET in JS sandbox.",

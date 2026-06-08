@@ -752,8 +752,12 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
   nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::CallSize(reg));
 #endif
 #ifdef JS_SANDBOX_CFI_MASKS
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), reg);
+#else
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
+#endif
   orq(SandboxBaseReg, reg);
 #endif
 #ifdef JS_SANDBOX_CFI
@@ -785,8 +789,12 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
   nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::JmpSize(reg));
 #endif
 #ifdef JS_SANDBOX_CFI_MASKS
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), reg);
+#else
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
+#endif
   orq(SandboxBaseReg, reg);
 #endif
   Assembler::jmp(Operand(reg));
@@ -863,8 +871,12 @@ void MacroAssembler::call(const Address& addr) {
   movq(Operand(addr), SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI_MASKS
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
 #ifdef JS_SANDBOX_CFI
@@ -883,8 +895,12 @@ void MacroAssembler::call(const Address& addr) {
   movq(Operand(addr), SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI_MASKS
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
   Assembler::jmp(Operand(SandboxScratchReg));
@@ -1070,8 +1086,12 @@ void MacroAssemblerX86Shared::jump(Register reg) {
   bind(&sandboxed);
 #endif
   AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), reg);
+#else
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
+#endif
   orq(SandboxBaseReg, reg);
 #endif
   jmp(Operand(reg));
@@ -1097,8 +1117,12 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
   movq(Operand(addr), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
   AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
   jmp(Operand(SandboxScratchReg));
@@ -1127,8 +1151,12 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
   movq(Operand(addr), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
   AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
   jmp(Operand(SandboxScratchReg));
@@ -1156,8 +1184,12 @@ void MacroAssemblerX86Shared::ret() {
   pop(SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
 #if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
   jmp(Operand(SandboxScratchReg));
@@ -1183,8 +1215,12 @@ void MacroAssemblerX86Shared::retn(Imm32 n) {
   addq(Imm32(n.value - sizeof(void*)), StackPointer);
   AutoBundleGroupScope bundle(*this);
 #if defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  andl(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#else
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+#endif
   orq(SandboxBaseReg, SandboxScratchReg);
 #endif
   jmp(Operand(SandboxScratchReg));

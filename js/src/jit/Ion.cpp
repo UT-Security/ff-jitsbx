@@ -587,6 +587,16 @@ void JitCode::copyFrom(MacroAssembler& masm) {
     0xf4, 0xf4, 0xf4, 0xf4, 0xf4
   };
 #elif defined(JS_SANDBOX_CFI_MASKS) || defined(JS_SANDBOX_CFI_BACKWARD_MASKS)
+  #ifdef JS_SANDBOX_4GB_CFI_MASKS
+  uint8_t headerContent[JitCodeHeaderSize] = {
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
+    0x41, 0x5b,                                                  // pop %r11
+    0x41, 0x83, 0xe3, 0xe0,                                      // and $0xffffffe0, %r11d
+    0x4d, 0x09, 0xf3,                                            // or  %r14, %r11
+    0x41, 0xff, 0xe3,                                            // jmp *%r11
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4                     // hlt pad bundle
+  };
+  #else
   uint8_t headerContent[JitCodeHeaderSize] = {
     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
     0x41, 0x5b,                                                  // pop %r11
@@ -596,6 +606,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
     0x41, 0xff, 0xe3,                                            // jmp *%r11
     0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4                     // hlt pad bundle
   };
+  #endif
 #elif defined(JS_SANDBOX)
   uint8_t headerContent[JitCodeHeaderSize] = {
     0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax

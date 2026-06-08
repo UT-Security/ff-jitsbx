@@ -174,8 +174,12 @@ void Assembler::finish() {
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == OffsetInJumpTableEntry);
 
 #ifdef JS_SANDBOX_CFI_MASKS
+  #ifdef JS_SANDBOX_4GB_CFI_MASKS
+    andl(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
+  #else
     andq(SandboxMaskReg, ScratchReg);
     andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
+  #endif
     orq(SandboxBaseReg, ScratchReg);
 #endif
     jmp(Operand(ScratchReg));
