@@ -2579,6 +2579,23 @@ with only_when(requires_wasm_sandboxing & compile_environment):
 
     set_config("WASM_CXXFLAGS", wasm_cxxflags)
 
+    option(
+        "--with-lfi-runtime-dir",
+        env="LFI_RUNTIME_DIR",
+        nargs=1,
+        help="Path to lfi runtime directory",
+    )
+
+    @depends(
+        "--with-lfi-runtime-dir"
+    )
+    @imports("os")
+    def lfi_runtime_dir(lfi_runtime_dir):
+        lfi_runtime_dir = lfi_runtime_dir[0]
+        return lfi_runtime_dir
+
+    set_config("LFI_RUNTIME_DIR", lfi_runtime_dir)
+
 
 @depends("--with-wasm-sandboxed-libraries")
 def wasm_sandboxing(libraries):

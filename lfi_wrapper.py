@@ -8,7 +8,17 @@ import re
 FLAG = "--forward-to-lfi-compiler"
 this_dir = os.path.dirname(os.path.realpath(__file__))
 default_clang_dir = os.path.join(this_dir, "default-build-toolchain/clang/bin/clang")
-lfi_toolchain_dir = os.path.join(this_dir, "lfi-toolchain")
+# lfi_toolchain_dir = os.path.join(this_dir, "lfi-toolchain")
+
+lfi_toolchain_dir = os.environ.get("LFI_TOOLCHAIN_PATH")
+if lfi_toolchain_dir is None:
+    print("LFI_TOOLCHAIN_PATH env var not specified")
+    exit(1)
+elif not os.path.isdir(lfi_toolchain_dir):
+    print("Specified LFI_TOOLCHAIN_PATH env var does not exist: " + lfi_toolchain_dir)
+    exit(1)
+
+lfi_toolchain_dir = os.path.realpath(lfi_toolchain_dir)
 
 def replace_wasm_extensions(args):
     return [re.sub(r"\.wasm(?=\.|$)", ".lfi", arg) for arg in args]

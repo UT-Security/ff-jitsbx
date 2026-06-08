@@ -10,9 +10,9 @@ EXPORTS.mozilla.rlbox += [
 ]
 
 EXPORTS += [
-    "/../lfi-runtime/core/include/lfi_arch.h",
-    "/../lfi-runtime/core/include/lfi_core.h",
-    "/../lfi-runtime/linux/include/lfi_linux.h",
+    "/" + CONFIG["LFI_RUNTIME_DIR"] + "/core/include/lfi_arch.h",
+    "/" + CONFIG["LFI_RUNTIME_DIR"] + "/core/include/lfi_core.h",
+    "/" + CONFIG["LFI_RUNTIME_DIR"] + "/linux/include/lfi_linux.h",
 ]
 
 SOURCES += [ "lfi-test.c" ]
@@ -20,13 +20,13 @@ SOURCES += [ "lfi-test.c" ]
 if CONFIG["MOZ_DEBUG"]:
     OS_LIBS += [
         "-Wl,--whole-archive",
-        "$(topsrcdir)/../lfi-runtime/build_debug/liblfi.a",
+        "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_debug/liblfi.a",
         "-Wl,--no-whole-archive"
     ]
 else:
     OS_LIBS += [
         "-Wl,--whole-archive",
-        "$(topsrcdir)/../lfi-runtime/build_release/liblfi.a",
+        "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_release/liblfi.a",
         "-Wl,--no-whole-archive"
     ]
 

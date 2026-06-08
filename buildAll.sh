@@ -97,4 +97,5 @@ MOZCONFIG=./mozconfig_stock_release ./mach build
 
 MOZCONFIG=./mozconfig_wasm_release ./mach build
 
-MOZCONFIG=./mozconfig_lfi_release ./mach build
+LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
+
