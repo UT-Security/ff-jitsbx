@@ -1,0 +1,19 @@
+ac_add_options --enable-application=browser
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_largelfi_release
+
+# export CC="$topsrcdir/default-build-toolchain/clang/bin/clang"
+# export CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++"
+ac_add_options --with-libclang-path=@TOPSRCDIR@/default-build-toolchain/clang/lib/
+
+export WASM_CC="$topsrcdir/lfi_wrapper.py $topsrcdir/default-build-toolchain/clang/bin/clang --target=wasm32-wasi"
+export WASM_CXX="$topsrcdir/lfi_wrapper.py $topsrcdir/default-build-toolchain/clang/bin/clang++ --target=wasm32-wasi"
+export WASI_SYSROOT="$topsrcdir/default-build-toolchain/sysroot-wasm32-wasi"
+
+export CBINDGEN="$topsrcdir/default-build-toolchain/cbindgen/cbindgen"
+export NASM="$topsrcdir/default-build-toolchain/nasm/nasm"
+
+ac_add_options --with-wasm-sandboxed-libraries=graphite
+
+ac_add_options --enable-wasm-use-lfi
+ac_add_options --with-lfi-runtime-dir="../largelfi-runtime"

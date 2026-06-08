@@ -31,6 +31,18 @@ function download_lfi_toolchain() {
     fi
 }
 
+function download_largelfi_toolchain() {
+    mkdir -p ./largelfi-toolchain
+
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        scp $USER@rashford.csres.utexas.edu:/var/tmp/largesbx-data/toolchains/x86_64-lfi-large-clang.tar.gz ./x86_64-lfi-large-clang.tar.gz
+        tar -xzf x86_64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=2
+        rm x86_64-lfi-large-clang.tar.gz
+    else
+        echo "!!!!!!!!!Large sandbox toolchain not yet supported on aarch64"
+    fi
+}
+
 if [ ! -f ./done-default-build-toolchain ]; then
     download_toolchain;
     touch ./done-default-build-toolchain
@@ -41,6 +53,13 @@ fi
 if [ ! -f ./done-lfi-toolchain ]; then
     download_lfi_toolchain;
     touch ./done-lfi-toolchain
+fi
+
+######################################
+
+if [ ! -f ./done-largelfi-toolchain ]; then
+    download_largelfi_toolchain;
+    touch ./done-largelfi-toolchain
 fi
 
 ######################################
@@ -76,6 +95,26 @@ popd
 
 ######################################
 
+if [ ! -d ../largelfi-runtime ]; then
+    git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
+fi
+
+pushd .
+cd ../largelfi-runtime
+git pull --rebase --autostash
+
+meson setup --reconfigure ./build_debug --buildtype debug \
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+ninja -C ./build_debug
+
+meson setup --reconfigure ./build_release --buildtype debug \
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+ninja -C ./build_release
+
+popd
+
+######################################
+
 if [ ! -f ./done-bootstrap ]; then
     rustup override set 1.76.0;
 
@@ -99,3 +138,4 @@ MOZCONFIG=./mozconfig_wasm_release ./mach build
 
 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
 
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
