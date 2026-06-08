@@ -595,12 +595,14 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   }
 
   for (CodeOffset offset : nextCodeOffsets_) {
-    Assembler::PatchDataWithValueCheck(CodeLocationLabel(newStubCode, offset),
+    Assembler::PatchDataWithValueCheck(CodeLocationLabel(masm.buffer() + offset.offset()),
+                                       CodeLocationLabel(newStubCode, offset),
                                        ImmPtr(stub->nextCodeRawPtr()),
                                        ImmPtr((void*)-1));
   }
   if (stubJitCodeOffset_) {
     Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + stubJitCodeOffset_->offset()),
         CodeLocationLabel(newStubCode, *stubJitCodeOffset_),
         ImmPtr(newStubCode.get()), ImmPtr((void*)-1));
   }

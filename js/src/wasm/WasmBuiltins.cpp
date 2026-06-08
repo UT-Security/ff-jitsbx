@@ -1837,8 +1837,10 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   }
 
   masm.executableCopy(thunks->codeBase);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   memset(thunks->codeBase + masm.execSize(), 0,
          execAllocSize - masm.execSize());
+#endif
 
   MOZ_ASSERT(masm.gcDataSectionBytes() == 0);
 
@@ -1866,10 +1868,19 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   MOZ_ASSERT(masm.trapSites().empty());
   MOZ_ASSERT(masm.tryNotes().empty());
 
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  sys_jitcode_create(thunks->codeBase, masm.buffer(), masm.execSize());
+#else
+
+#  ifdef JS_LINK_IN_PLACE
+  memcpy(thunks->codeBase, masm.buffer(), masm.execSize());
+#  endif
+
   if (!ExecutableAllocator::makeExecutableAndFlushICache(thunks->codeBase,
                                                          thunks->codeSize)) {
     return false;
   }
+#endif
 
   builtinThunks = thunks.release();
   return true;

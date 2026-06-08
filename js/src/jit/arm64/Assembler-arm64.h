@@ -469,6 +469,9 @@ class Assembler : public vixl::Assembler {
   bool reserve(size_t size);
   bool swapBuffer(wasm::Bytes& bytes);
 
+  uint8_t* buffer() { return armbuffer_.data(); }
+  uint8_t* extractBuffer() { return armbuffer_.extractData(); }
+
   void emitJitCodeHeader(uint8_t* header, JitCode* code);
   // Emit the jump table, returning the BufferOffset to the first entry in the
   // table.
@@ -555,15 +558,27 @@ class Assembler : public vixl::Assembler {
   void processDataLoads(uint8_t* rawCode, uint8_t* rawData) {
     for (size_t i = 0; i < dataSectionValue_.length(); i++) {
       intptr_t offset = dataSectionValue_[i].first.offset();
+#ifdef JS_LINK_IN_PLACE
+      Instruction* inst = (Instruction*)(armbuffer_.data() + offset);
+      Instruction* target = (Instruction*)(rawCode + offset);
+#else
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      Instruction* target = inst;
+#endif
+      UpdateLoad64Address(inst, target, reinterpret_cast<uint64_t*>(rawData));
       rawData += sizeof(Value);
     }
 
     for (size_t i = 0; i < dataSectionGCPtr_.length(); i++) {
       intptr_t offset = dataSectionGCPtr_[i].first.offset();
+#ifdef JS_LINK_IN_PLACE
+      Instruction* inst = (Instruction*)(armbuffer_.data() + offset);
+      Instruction* target = (Instruction*)(rawCode + offset);
+#else
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      Instruction* target = inst;
+#endif
+      UpdateLoad64Address(inst, target, reinterpret_cast<uint64_t*>(rawData));
       rawData += sizeof(gc::Cell*);
     }
 
@@ -571,56 +586,84 @@ class Assembler : public vixl::Assembler {
 
     for (size_t i = 0; i < codeImm64_.length(); i++) {
       intptr_t offset = codeImm64(i).patchAt().offset();
+#ifdef JS_LINK_IN_PLACE
+      Instruction* inst = (Instruction*)(armbuffer_.data() + offset);
+      Instruction* target = (Instruction*)(rawCode + offset);
+#else
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoad64Address(inst, reinterpret_cast<uint64_t*>(rawData));
+      Instruction* target = inst;
+#endif
+      UpdateLoad64Address(inst, target, reinterpret_cast<uint64_t*>(rawData));
       rawData += sizeof(uint64_t);
     }
 
     for (size_t i = 0; i < codeFimm64_.length(); i++) {
       intptr_t offset = codeFimm64(i).patchAt().offset();
+#ifdef JS_LINK_IN_PLACE
+      Instruction* inst = (Instruction*)(armbuffer_.data() + offset);
+      Instruction* target = (Instruction*)(rawCode + offset);
+#else
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoadF64Address(inst, reinterpret_cast<double*>(rawData));
+      Instruction* target = inst;
+#endif
+      UpdateLoadF64Address(inst, target, reinterpret_cast<double*>(rawData));
       rawData += sizeof(double);
     }
 
     for (size_t i = 0; i < codeFimm32_.length(); i++) {
       intptr_t offset = codeFimm32(i).patchAt().offset();
+#ifdef JS_LINK_IN_PLACE
+      Instruction* inst = (Instruction*)(armbuffer_.data() + offset);
+      Instruction* target = (Instruction*)(rawCode + offset);
+#else
       Instruction* inst = (Instruction*)(rawCode + offset);
-      UpdateLoadF32Address(inst, reinterpret_cast<float*>(rawData));
+      Instruction* target = inst;
+#endif
+      UpdateLoadF32Address(inst, target, reinterpret_cast<float*>(rawData));
       rawData += sizeof(float);
     }
   }
 
   void processCodeLabels(uint8_t* rawCode) {
     for (const CodeLabel& label : codeLabels_) {
-      Bind(rawCode, label);
+#ifdef JS_LINK_IN_PLACE
+      Bind(armbuffer_.data(), rawCode, label);
+#else
+      Bind(rawCode, rawCode, label);
+#endif
     }
   }
 
   static void ClearLoad64Address(CodeLocationLabel label);
   static void ClearLoad64Address(Instruction* inst0);
-  static void UpdateLoad64Address(CodeLocationLabel label, uint64_t* address);
-  static void UpdateLoad64Address(Instruction* inst0, uint64_t* address);
+  static void UpdateLoad64Address(CodeLocationLabel buffer,
+                                  CodeLocationLabel label, uint64_t* address);
+  static void UpdateLoad64Address(Instruction* inst0, Instruction* target,
+                                  uint64_t* address);
 
   static void ClearLoadF64Address(CodeLocationLabel label);
   static void ClearLoadF64Address(Instruction* inst0);
-  static void UpdateLoadF64Address(CodeLocationLabel label, double* address);
-  static void UpdateLoadF64Address(Instruction* inst0, double* address);
+  static void UpdateLoadF64Address(CodeLocationLabel buffer,
+                                   CodeLocationLabel label, double* address);
+  static void UpdateLoadF64Address(Instruction* inst0, Instruction* target,
+                                   double* address);
 
   static void ClearLoadF32Address(CodeLocationLabel label);
   static void ClearLoadF32Address(Instruction* inst0);
-  static void UpdateLoadF32Address(CodeLocationLabel, float* address);
-  static void UpdateLoadF32Address(Instruction* inst0, float* address);
+  static void UpdateLoadF32Address(CodeLocationLabel buffer,
+                                   CodeLocationLabel label, float* address);
+  static void UpdateLoadF32Address(Instruction* inst0, Instruction* target,
+                                   float* address);
 
   static void UpdateLoad64Value(Instruction* inst0, uint64_t value);
 
-  static void Bind(uint8_t* rawCode, const CodeLabel& label) {
+  static void Bind(uint8_t* buffer, uint8_t* rawCode, const CodeLabel& label) {
     auto mode = label.linkMode();
     size_t patchAtOffset = label.patchAt().offset();
     size_t targetOffset = label.target().offset();
 
     if (mode == CodeLabel::MoveImmediate) {
-      Instruction* inst = (Instruction*)(rawCode + patchAtOffset);
+      Instruction* inst = (Instruction*)(buffer + patchAtOffset);
 #ifdef JS_SANDBOX_LFI
       Instruction* inst0 = inst->NextInstruction();
       MOZ_ASSERT(inst0->IsMovk());
@@ -654,7 +697,7 @@ class Assembler : public vixl::Assembler {
       movk(inst3, dest, (targetAddr >> 48) & 0xFFFF, 48);     
 #endif
     } else {
-      *reinterpret_cast<const void**>(rawCode + patchAtOffset) =
+      *reinterpret_cast<const void**>(buffer + patchAtOffset) =
           rawCode + targetOffset;
     }
   }
@@ -705,12 +748,15 @@ class Assembler : public vixl::Assembler {
 
   static void PatchWrite_NearCall(CodeLocationLabel start,
                                   CodeLocationLabel toCall);
-  static void PatchDataWithValueCheck(CodeLocationLabel label,
+
+  static void PatchDataWithValueCheck(CodeLocationLabel buffer,
+                                      CodeLocationLabel label,
                                       PatchedImmPtr newValue,
                                       PatchedImmPtr expected);
 
-  static void PatchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue,
-                                      ImmPtr expected);
+  static void PatchDataWithValueCheck(CodeLocationLabel buffer,
+                                      CodeLocationLabel label,
+                                      ImmPtr newValue, ImmPtr expected);
 
   static void PatchWrite_Imm32(CodeLocationLabel label, Imm32 imm) {
     // Raw is going to be the return address.
@@ -727,6 +773,18 @@ class Assembler : public vixl::Assembler {
     // the call instruction.
     Instruction* branch = reinterpret_cast<Instruction*>(raw - 1);
     b(branch, imm.value);
+  }
+#endif
+
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  static void PatchWrite_Imm32Runtime(CodeLocationLabel label, Imm32 imm) {
+    // Raw is going to be the return address.
+    uint32_t* raw = (uint32_t*)label.raw();
+    // Overwrite the 4 bytes before the return address, which will end up being
+    // the call instruction.
+    const Instruction* branch = reinterpret_cast<const Instruction*>(raw - 1);
+    uint32_t val = b(branch, imm.value);
+    sys_jitcode_modify(reinterpret_cast<uint8_t*>(branch), val, sizeof(int32_t));
   }
 #endif
 
@@ -755,6 +813,10 @@ class Assembler : public vixl::Assembler {
   // Toggle a jmp or cmp emitted by toggledJump().
   static void ToggleToJmp(CodeLocationLabel inst_);
   static void ToggleToCmp(CodeLocationLabel inst_);
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  static void ToggleToJmp(CodeLocationLabel inst_);
+  static void ToggleToCmp(CodeLocationLabel inst_);
+#endif
   static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 
   static void TraceGCDataSection(JSTracer* trc, JitCode* code);

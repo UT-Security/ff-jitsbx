@@ -373,6 +373,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   size_t instructionsSize() const { return size(); }
 
+  uint8_t* buffer() { return MacroAssemblerSpecific::buffer(); }
+  uint8_t* extractBuffer() { return MacroAssemblerSpecific::extractBuffer(); }
+
   CompileRealm* realm() const {
     MOZ_ASSERT(maybeRealm_);
     return maybeRealm_;
@@ -662,8 +665,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Note: "Near" applies to ARM64 where the target must be within 1 MB (this is
   // release-asserted).
   CodeOffset moveNearAddressWithPatch(Register dest) PER_ARCH;
-  static void patchNearAddressMove(CodeLocationLabel loc,
-                                   CodeLocationLabel target)
+  void patchNearAddressMove(CodeOffset off, CodeLocationLabel loc,
+                            CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
 
  public:

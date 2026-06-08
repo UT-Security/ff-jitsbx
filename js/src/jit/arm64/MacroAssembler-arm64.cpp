@@ -3022,12 +3022,17 @@ CodeOffset MacroAssembler::moveNearAddressWithPatch(Register dest) {
   return offset;
 }
 
-void MacroAssembler::patchNearAddressMove(CodeLocationLabel loc,
+void MacroAssembler::patchNearAddressMove(CodeOffset offset, CodeLocationLabel loc,
                                           CodeLocationLabel target) {
   ptrdiff_t off = target - loc;
   MOZ_RELEASE_ASSERT(vixl::IsInt21(off));
 
+#ifdef JS_LINK_IN_PLACE
+  Instruction* cur =
+      reinterpret_cast<Instruction*>(armbuffer_.data() + offset.offset());
+#else
   Instruction* cur = reinterpret_cast<Instruction*>(loc.raw());
+#endif
   MOZ_ASSERT(cur->IsADR());
 
   vixl::Register rd = vixl::Register::XRegFromCode(cur->Rd());

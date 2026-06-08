@@ -819,11 +819,29 @@ void BaselineScript::removePendingIonCompileTask(JSRuntime* rt,
 static void ToggleProfilerInstrumentation(JitCode* code,
                                           uint32_t profilerEnterToggleOffset,
                                           uint32_t profilerExitToggleOffset,
-                                          bool enable) {
+                                          bool enable, uint8_t* buffer) {
+#ifdef JS_LINK_IN_PLACE
+  CodeLocationLabel enterToggleLocation((buffer ? buffer : code->raw()) + profilerEnterToggleOffset);
+  CodeLocationLabel exitToggleLocation((buffer ? buffer : code->raw()) + profilerExitToggleOffset);
+#else
   CodeLocationLabel enterToggleLocation(code,
                                         CodeOffset(profilerEnterToggleOffset));
   CodeLocationLabel exitToggleLocation(code,
                                        CodeOffset(profilerExitToggleOffset));
+#endif
+
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  if (!buffer) {
+    if (enable) {
+      Assembler::ToggleToCmpRuntime(enterToggleLocation);
+      Assembler::ToggleToCmpRuntime(exitToggleLocation);
+    } else {
+      Assembler::ToggleToJmpRuntime(enterToggleLocation);
+      Assembler::ToggleToJmpRuntime(exitToggleLocation);
+    }
+    return;
+  }
+#endif
   if (enable) {
     Assembler::ToggleToCmp(enterToggleLocation);
     Assembler::ToggleToCmp(exitToggleLocation);
@@ -833,7 +851,7 @@ static void ToggleProfilerInstrumentation(JitCode* code,
   }
 }
 
-void BaselineScript::toggleProfilerInstrumentation(bool enable) {
+void BaselineScript::toggleProfilerInstrumentation(bool enable, uint8_t* buffer) {
   if (enable == isProfilerInstrumentationOn()) {
     return;
   }
@@ -842,7 +860,7 @@ void BaselineScript::toggleProfilerInstrumentation(bool enable) {
           enable ? "on" : "off", this);
 
   ToggleProfilerInstrumentation(method_, profilerEnterToggleOffset_,
-                                profilerExitToggleOffset_, enable);
+                                profilerExitToggleOffset_, enable, buffer);
 
   if (enable) {
     flags_ |= uint32_t(PROFILER_INSTRUMENTATION_ON);
@@ -858,7 +876,7 @@ void BaselineInterpreter::toggleProfilerInstrumentation(bool enable) {
 
   AutoWritableJitCode awjc(code_);
   ToggleProfilerInstrumentation(code_, profilerEnterToggleOffset_,
-                                profilerExitToggleOffset_, enable);
+                                profilerExitToggleOffset_, enable, nullptr);
 }
 
 void BaselineInterpreter::toggleDebuggerInstrumentation(bool enable) {
@@ -957,7 +975,7 @@ void jit::ToggleBaselineProfiling(JSContext* cx, bool enable) {
         continue;
       }
       AutoWritableJitCode awjc(script->baselineScript()->method());
-      script->baselineScript()->toggleProfilerInstrumentation(enable);
+      script->baselineScript()->toggleProfilerInstrumentation(enable, nullptr);
     }
   }
 }

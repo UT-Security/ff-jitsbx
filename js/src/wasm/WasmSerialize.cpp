@@ -890,18 +890,35 @@ CoderResult CodeModuleSegment(Coder<MODE_DECODE>& coder,
     return Err(OutOfMemory());
   }
 
+#ifdef JS_LINK_IN_PLACE
+  UniquePatchableBytes patchableBytes = AllocatePatchableBytes(execLength);
+  if (!patchableBytes) {
+    return Err(OutOfMemory());
+  }
+#endif
+
   UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
   if (dataLength && !dataBytes) {
     return Err(OutOfMemory());
   }
 
   // Decode the code bytes
+#ifdef JS_LINK_IN_PLACE
+  MOZ_TRY(coder.readBytes(patchableBytes.get(), execLength));
+#else
   MOZ_TRY(coder.readBytes(codeBytes.get(), execLength));
+#endif
 
   // Initialize the ModuleSegment
+#ifdef JS_LINK_IN_PLACE
+  *item = js::MakeUnique<ModuleSegment>(
+      Tier::Serialized, std::move(codeBytes), std::move(patchableBytes),
+      execLength, std::move(dataBytes), dataLength, linkData);
+#else
   *item = js::MakeUnique<ModuleSegment>(Tier::Serialized, std::move(codeBytes),
                                         execLength, std::move(dataBytes),
                                         dataLength, linkData);
+#endif
   if (!*item) {
     return Err(OutOfMemory());
   }

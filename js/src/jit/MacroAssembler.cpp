@@ -3418,7 +3418,8 @@ void MacroAssembler::linkProfilerCallSites(JitCode* code) {
   for (size_t i = 0; i < profilerCallSites_.length(); i++) {
     CodeOffset offset = profilerCallSites_[i];
     CodeLocationLabel location(code, offset);
-    PatchDataWithValueCheck(location, ImmPtr(location.raw()),
+    PatchDataWithValueCheck(CodeLocationLabel(buffer() + offset.offset()),
+                            location, ImmPtr(location.raw()),
                             ImmPtr((void*)-1));
   }
 }

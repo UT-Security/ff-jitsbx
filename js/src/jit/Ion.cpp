@@ -590,10 +590,14 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
 
-#ifndef JS_LINK_IN_PLACE
-  uint8_t header[js::jit::JitCodeHeaderSize];
-  masm.emitJitCodeHeader(&header, this);
-  //TODO: call runtime to insert header into jit executable region
+#ifdef JS_LINK_IN_PLACE
+  uint8_t headerBuf[js::jit::JitCodeHeaderSize];
+  masm.emitJitCodeHeader(headerBuf, this);
+#  ifdef JS_SANDBOX_LFI_MEMORY
+  sys_jitcode_create(header(), headerBuf, js::jit::JitCodeHeaderSize);
+#  else
+  memcpy(header(), headerBuf, js::jit::JitCodeHeaderSize);
+#  endif
 #else
   masm.emitJitCodeHeader(header(), this);
 #endif
@@ -645,6 +649,9 @@ void JitCode::finalize(JS::GCContext* gcx) {
 
   executable_.discard(gcx);
   zone()->decJitMemory(executable_.desc.xSize);
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  sys_jitcode_delete(executable_.xStart, executable_.desc.xSize);
+#endif
 }
 
 IonScript::IonScript(IonCompilationId compilationId, uint32_t localSlotsSize,
@@ -2397,7 +2404,9 @@ static void InvalidateActivation(JS::GCContext* gcx,
     CodeLocationLabel dataLabelToMunge(frame.resumePCinCurrentFrame());
     ptrdiff_t delta = ionScript->invalidateEpilogueDataOffset() -
                       (frame.resumePCinCurrentFrame() - ionCode->raw());
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+    Assembler::PatchWrite_Imm32_Runtime(dataLabelToMunge, Imm32(delta));
+#elif defined(JS_SANDBOX)
     Assembler::PatchWrite_Imm26(dataLabelToMunge, Imm32(delta));
 #else
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));

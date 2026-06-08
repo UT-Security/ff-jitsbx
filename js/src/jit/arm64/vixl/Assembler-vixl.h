@@ -1035,6 +1035,7 @@ class Assembler : public MozBaseAssembler {
   // Unconditional branch to PC offset.
   BufferOffset b(int imm26, const LabelDoc& doc);
   static void b(Instruction* at, int imm26);
+  static Instr b(const Instruction* at, int imm26);
 
   // Conditional branch to PC offset.
   BufferOffset b(int imm19, Condition cond, const LabelDoc& doc);

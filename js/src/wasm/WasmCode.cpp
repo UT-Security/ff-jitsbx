@@ -110,8 +110,10 @@ UniqueCodeBytes wasm::AllocateCodeBytes(uint32_t codeLength) {
     return nullptr;
   }
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   // Zero the padding.
   memset(((uint8_t*)p) + codeLength, 0, roundedCodeLength - codeLength);
+#endif
 
   // We account for the bytes allocated in WasmModuleObject::create, where we
   // have the necessary JSContext.
@@ -158,6 +160,18 @@ UniqueDataBytes wasm::AllocateDataBytes(uint32_t dataLength) {
   // have the necessary JSContext.
 
   return UniqueDataBytes((uint8_t*)p, FreeData(roundedDataLength));
+}
+
+UniquePatchableBytes wasm::AllocatePatchableBytes(uint32_t codeLength) {
+  uint32_t roundedCodeLength = RoundupCodeLength(codeLength);
+
+  uint8_t* p = reinterpret_cast<uint8_t*>(js_malloc(roundedCodeLength));
+      
+  if (!p) {
+    return nullptr;
+  }
+
+  return UniquePatchableBytes(p);
 }
 
 bool CodeSegment::initialize(const CodeTier& codeTier) {
@@ -221,7 +235,11 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 #ifdef JS_CODELABEL_LINKMODE
     label.setLinkMode(static_cast<CodeLabel::LinkMode>(link.mode));
 #endif
-    Assembler::Bind(ms.execBase(), label);
+#ifdef JS_LINK_IN_PLACE
+    Assembler::Bind(ms.patchableBase(), ms.execBase(), label);
+#else
+    Assembler::Bind(ms.execBase(), ms.execBase(), label);
+#endif
   }
 
   if (!EnsureBuiltinThunksInitialized()) {
@@ -239,33 +257,61 @@ bool wasm::StaticallyLink(const ModuleSegment& ms, const LinkData& linkData) {
 
     void* target = SymbolicAddressTarget(imm);
     for (uint32_t offset : offsets) {
+#ifdef JS_LINK_IN_PLACE
       uint8_t* patchAt = ms.execBase() + offset;
-      Assembler::UpdateLoad64Address(CodeLocationLabel(patchAt),
-                                     reinterpret_cast<uint64_t*>(dataPtr));
+      uint8_t* buffer =
+          ms.patchableBase() +
+          offset;
+#else
+      uint8_t* patchAt = ms.execBase() + offset;
+      uint8_t* buffer = patchAt;
+#endif
+              Assembler::UpdateLoad64Address(
+                  CodeLocationLabel(buffer), CodeLocationLabel(patchAt),
+                  reinterpret_cast<uint64_t*>(dataPtr));
     }
     *reinterpret_cast<void**>(dataPtr) = target;
     dataPtr += sizeof(void*);
   }
 
   for (LinkData::I64Immediate i64 : linkData.i64Immediates) {
+#ifdef JS_LINK_IN_PLACE
     uint8_t* patchAt = ms.execBase() + i64.patchAtOffset;
-    Assembler::UpdateLoad64Address(CodeLocationLabel(patchAt),
+    uint8_t* buffer = ms.patchableBase() + i64.patchAtOffset;
+#else
+    uint8_t* patchAt = ms.execBase() + i64.patchAtOffset;
+    uint8_t* buffer = patchAt;
+#endif
+    Assembler::UpdateLoad64Address(CodeLocationLabel(buffer),
+                                   CodeLocationLabel(patchAt),
                                    reinterpret_cast<uint64_t*>(dataPtr));
     *reinterpret_cast<int64_t*>(dataPtr) = i64.value;
     dataPtr += sizeof(int64_t);
   }
 
   for (LinkData::F64Immediate f64 : linkData.f64Immediates) {
+#ifdef JS_LINK_IN_PLACE
     uint8_t* patchAt = ms.execBase() + f64.patchAtOffset;
-    Assembler::UpdateLoadF64Address(CodeLocationLabel(patchAt),
+    uint8_t* buffer = ms.patchableBase() + f64.patchAtOffset;
+#else
+    uint8_t* patchAt = ms.execBase() + f64.patchAtOffset;
+    uint8_t* buffer = patchAt;
+#endif
+    Assembler::UpdateLoadF64Address(CodeLocationLabel(buffer), CodeLocationLabel(patchAt),
                                     reinterpret_cast<double*>(dataPtr));
     *reinterpret_cast<double*>(dataPtr) = f64.value;
     dataPtr += sizeof(double);
   }
 
   for (LinkData::F32Immediate f32 : linkData.f32Immediates) {
+#ifdef JS_LINK_IN_PLACE
     uint8_t* patchAt = ms.execBase() + f32.patchAtOffset;
-    Assembler::UpdateLoadF32Address(CodeLocationLabel(patchAt),
+    uint8_t* buffer = ms.patchableBase() + f32.patchAtOffset;
+#else
+    uint8_t* patchAt = ms.execBase() + f32.patchAtOffset;
+    uint8_t* buffer = patchAt;
+#endif
+    Assembler::UpdateLoadF32Address(CodeLocationLabel(buffer), CodeLocationLabel(patchAt),
                                     reinterpret_cast<float*>(dataPtr));
     *reinterpret_cast<float*>(dataPtr) = f32.value;
     dataPtr += sizeof(float);
@@ -282,7 +328,7 @@ void wasm::StaticallyUnlink(uint8_t* base, const LinkData& linkData) {
 #ifdef JS_CODELABEL_LINKMODE
     label.setLinkMode(static_cast<CodeLabel::LinkMode>(link.mode));
 #endif
-    Assembler::Bind(base, label);
+    Assembler::Bind(base, base, label);
   }
 
   for (auto imm : MakeEnumeratedRange(SymbolicAddress::Limit)) {
@@ -394,6 +440,16 @@ static void SendCodeRangesToProfiler(const ModuleSegment& ms,
   }
 }
 
+#ifdef JS_LINK_IN_PLACE
+ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
+                             UniquePatchableBytes patchableBytes,
+                             uint32_t codeLength, UniqueDataBytes dataBytes,
+                             uint32_t dataLength, const LinkData& linkData)
+    : CodeSegment(std::move(codeBytes), std::move(patchableBytes), codeLength, std::move(dataBytes),
+                  dataLength, CodeSegment::Kind::Module),
+      tier_(tier),
+      trapCode_(execBase() + linkData.trapOffset) {}
+#else
 ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
                              uint32_t codeLength, UniqueDataBytes dataBytes,
                              uint32_t dataLength, const LinkData& linkData)
@@ -401,6 +457,7 @@ ModuleSegment::ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
                   dataLength, CodeSegment::Kind::Module),
       tier_(tier),
       trapCode_(execBase() + linkData.trapOffset) {}
+#endif
 
 /* static */
 UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
@@ -423,34 +480,16 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
 
   masm.executableCopy(codeBytes.get());
 
+#ifdef JS_LINK_IN_PLACE
+  UniquePatchableBytes patchableBytes(masm.extractBuffer());
+  return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), std::move(patchableBytes), codeLength,
+                                       std::move(dataBytes), dataLength,
+                                       linkData);
+#else
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        std::move(dataBytes), dataLength,
                                        linkData);
-}
-
-/* static */
-UniqueModuleSegment ModuleSegment::create(Tier tier, const Bytes& unlinkedCodeBytes,
-                                          const LinkData& linkData) {
-  uint32_t codeLength = unlinkedCodeBytes.length();
-
-  UniqueCodeBytes codeBytes = AllocateCodeBytes(codeLength);
-  if (!codeBytes) {
-    return nullptr;
-  }
-
-  uint32_t dataLength = linkData.dataSize();
-
-  UniqueDataBytes dataBytes = AllocateDataBytes(dataLength);
-  if (dataLength && !dataBytes) {
-    return nullptr;
-  }
-
-  memcpy(codeBytes.get(), unlinkedCodeBytes.begin(), codeLength);
-  //memcpy(dataBytes.get(), unlinkedDataBytes.begin(), dataLength);
-
-  return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
-                                       std::move(dataBytes), dataLength,
-                                       linkData);
+#endif
 }
 
 bool ModuleSegment::initialize(const CodeTier& codeTier,
@@ -461,6 +500,13 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
     return false;
   }
 
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  sys_jitcode_create(execBase(), patchableBase(), execLength());
+#else
+
+#ifdef JS_LINK_IN_PLACE
+  memcpy(execBase(), patchableBase(), execLength());
+#endif
   // Optimized compilation finishes on a background thread, so we must make sure
   // to flush the icaches of all the executing threads.
   // Reprotect the whole region to avoid having separate RW and RX mappings.
@@ -468,6 +514,7 @@ bool ModuleSegment::initialize(const CodeTier& codeTier,
           execBase(), RoundupCodeLength(execLength()))) {
     return false;
   }
+#endif
 
   SendCodeRangesToProfiler(*this, metadata, metadataTier.codeRanges);
 
@@ -511,8 +558,13 @@ UniqueLazyStubSegment LazyStubSegment::create(const CodeTier& codeTier,
     return nullptr;
   }
 
+#ifdef JS_LINK_IN_PLACE
+  auto segment = js::MakeUnique<LazyStubSegment>(
+      std::move(codeBytes), nullptr, execLength, std::move(dataBytes), dataLength);
+#else
   auto segment = js::MakeUnique<LazyStubSegment>(
       std::move(codeBytes), execLength, std::move(dataBytes), dataLength);
+#endif
   if (!segment || !segment->initialize(codeTier)) {
     return nullptr;
   }
@@ -695,15 +747,30 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   masm.executableCopy(codePtr);
   PatchDebugSymbolicAccesses(codePtr, masm);
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   memset(codePtr + masm.execSize(), 0, codeLength - masm.execSize());
+#endif
 
   for (const CodeLabel& label : masm.codeLabels()) {
-    Assembler::Bind(codePtr, label);
+#ifdef JS_LINK_IN_PLACE
+      Assembler::Bind(masm.buffer(), codePtr, label);
+#else
+      Assembler::Bind(codePtr, codePtr, label);
+#endif
   }
+
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  sys_jitcode_create(codePtr, masm.buffer(), masm.execSize());
+#else
+
+#  ifdef JS_LINK_IN_PLACE
+  memcpy(codePtr, masm.buffer(), masm.execSize());
+#  endif
 
   if (!ExecutableAllocator::makeExecutableAndFlushICache(codePtr, codeLength)) {
     return false;
   }
+#endif
 
   // Create lazy function exports for funcIndex -> entry lookup.
   if (!exports_.reserve(exports_.length() + funcExportIndices.length())) {
@@ -1382,9 +1449,10 @@ void wasm::PatchDebugSymbolicAccesses(uint8_t* codeBase, MacroAssembler& masm) {
     ABIFunctionType abiType;
     void* target = AddressOf(access.target, &abiType);
     uint8_t* patchAt = codeBase + access.patchAt.offset();
-    Assembler::PatchDataWithValueCheck(CodeLocationLabel(patchAt),
-                                       PatchedImmPtr(target),
-                                       PatchedImmPtr((void*)-1));
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + access.patchAt.offset()),
+        CodeLocationLabel(patchAt), PatchedImmPtr(target),
+        PatchedImmPtr((void*)-1));
   }
 #else
   MOZ_ASSERT(masm.symbolicAccesses().empty());

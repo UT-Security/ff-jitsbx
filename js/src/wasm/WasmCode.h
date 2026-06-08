@@ -180,6 +180,7 @@ struct FreeData {
 };
 
 using UniqueCodeBytes = UniquePtr<uint8_t, FreeCode>;
+using UniquePatchableBytes = UniquePtr<uint8_t>;
 using UniqueDataBytes = UniquePtr<uint8_t, FreeData>;
 
 class Code;
@@ -198,6 +199,18 @@ class CodeSegment {
  protected:
   enum class Kind { LazyStubs, Module };
 
+#ifdef JS_LINK_IN_PLACE
+  CodeSegment(UniqueCodeBytes execBytes, UniquePatchableBytes patchableBytes, uint32_t execLength,
+              UniqueDataBytes dataBytes, uint32_t dataLength, Kind kind)
+      : execBytes_(std::move(execBytes)),
+        patchableBytes_(std::move(patchableBytes)),
+        execLength_(execLength),
+        dataBytes_(std::move(dataBytes)),
+        dataLength_(dataLength),
+        kind_(kind),
+        codeTier_(nullptr),
+        unregisterOnDestroy_(false) {}
+#else
   CodeSegment(UniqueCodeBytes execBytes, uint32_t execLength,
               UniqueDataBytes dataBytes, uint32_t dataLength, Kind kind)
       : execBytes_(std::move(execBytes)),
@@ -207,11 +220,15 @@ class CodeSegment {
         kind_(kind),
         codeTier_(nullptr),
         unregisterOnDestroy_(false) {}
+#endif
 
   bool initialize(const CodeTier& codeTier);
 
  private:
   const UniqueCodeBytes execBytes_;
+#ifdef JS_LINK_IN_PLACE
+  const UniquePatchableBytes patchableBytes_;
+#endif
   const uint32_t execLength_;
   const UniqueDataBytes dataBytes_;
   const uint32_t dataLength_;
@@ -241,6 +258,10 @@ class CodeSegment {
     return execLength_;
   }
 
+#ifdef JS_LINK_IN_PLACE
+  uint8_t* patchableBase() const { return patchableBytes_.get(); }
+#endif
+
   bool containsCodePC(const void* pc) const {
     return pc >= execBase() && pc < (execBase() + execLength_);
   }
@@ -269,13 +290,18 @@ class ModuleSegment : public CodeSegment {
   uint8_t* const trapCode_;
 
  public:
+#ifdef JS_LINK_IN_PLACE
+  ModuleSegment(Tier tier, UniqueCodeBytes codeBytes,
+                UniquePatchableBytes patchableBytes, uint32_t codeLength,
+                UniqueDataBytes dataBytes, uint32_t dataLength,
+                const LinkData& linkData);
+#else
   ModuleSegment(Tier tier, UniqueCodeBytes codeBytes, uint32_t codeLength,
                 UniqueDataBytes dataBytes, uint32_t dataLength,
                 const LinkData& linkData);
+#endif
 
   static UniqueModuleSegment create(Tier tier, jit::MacroAssembler& masm,
-                                    const LinkData& linkData);
-  static UniqueModuleSegment create(Tier tier, const Bytes& unlinkedCodeBytes,
                                     const LinkData& linkData);
 
   bool initialize(const CodeTier& codeTier, const LinkData& linkData,
@@ -296,6 +322,7 @@ class ModuleSegment : public CodeSegment {
 };
 
 extern UniqueCodeBytes AllocateCodeBytes(uint32_t codeLength);
+extern UniquePatchableBytes AllocatePatchableBytes(uint32_t codeLength);
 extern UniqueDataBytes AllocateDataBytes(uint32_t dataLength);
 extern bool StaticallyLink(const ModuleSegment& ms, const LinkData& linkData);
 extern void StaticallyUnlink(uint8_t* base, const LinkData& linkData);
@@ -572,11 +599,19 @@ class LazyStubSegment : public CodeSegment {
   size_t usedBytes_;
 
  public:
+#ifdef JS_LINK_IN_PLACE
+  LazyStubSegment(UniqueCodeBytes execBytes, UniquePatchableBytes patchableBytes, size_t execLength,
+                  UniqueDataBytes dataBytes, size_t dataLength)
+      : CodeSegment(std::move(execBytes), std::move(patchableBytes), execLength, std::move(dataBytes),
+                    dataLength, CodeSegment::Kind::LazyStubs),
+        usedBytes_(0) {}
+#else
   LazyStubSegment(UniqueCodeBytes execBytes, size_t execLength,
                   UniqueDataBytes dataBytes, size_t dataLength)
       : CodeSegment(std::move(execBytes), execLength, std::move(dataBytes),
                     dataLength, CodeSegment::Kind::LazyStubs),
         usedBytes_(0) {}
+#endif
 
   static UniqueLazyStubSegment create(const CodeTier& codeTier,
                                       size_t codeLength, size_t dataLength);

@@ -345,10 +345,15 @@ void Assembler::PatchWrite_NearCall(CodeLocationLabel start,
   bl(dest, relTarget00);
 }
 
-void Assembler::PatchDataWithValueCheck(CodeLocationLabel label,
+void Assembler::PatchDataWithValueCheck(CodeLocationLabel buffer,
+                                        CodeLocationLabel label,
                                         PatchedImmPtr newValue,
                                         PatchedImmPtr expected) {
+#ifdef JS_LINK_IN_PLACE
+  Instruction* inst0 = reinterpret_cast<Instruction*>(buffer.raw());
+#else
   Instruction* inst0 = reinterpret_cast<Instruction*>(label.raw());
+#endif
   MOZ_ASSERT(inst0->IsADRP());
 
   Instruction* inst1 = inst0->NextInstruction();
@@ -358,18 +363,25 @@ void Assembler::PatchDataWithValueCheck(CodeLocationLabel label,
   uint32_t imm12 = inst1->ImmLSUnsigned();  // raw encoded immediate
   unsigned scale = inst1->SizeLS();         // log2(access size)
   int64_t offset = imm12 << scale;
-
+ 
+#ifdef JS_LINK_IN_PLACE
+  Instruction* relInst = reinterpret_cast<Instruction*>(label.raw());
+#else
+  Instruction* relInst = inst0;
+#endif
+  
   uint8_t* target =
-      reinterpret_cast<uint8_t*>(inst0->ImmPCOffsetTarget()) + offset;
+      reinterpret_cast<uint8_t*>(inst0->ImmPCOffsetTarget(relInst)) + offset;
 
   void** value = reinterpret_cast<void**>(target);
   MOZ_ASSERT(*value == expected.value);
   *value = newValue.value;
 }
 
-void Assembler::PatchDataWithValueCheck(CodeLocationLabel label,
+void Assembler::PatchDataWithValueCheck(CodeLocationLabel buffer,
+                                        CodeLocationLabel label,
                                         ImmPtr newValue, ImmPtr expected) {
-  PatchDataWithValueCheck(label, PatchedImmPtr(newValue.value),
+  PatchDataWithValueCheck(buffer, label, PatchedImmPtr(newValue.value),
                           PatchedImmPtr(expected.value));
 }
 
@@ -406,6 +418,44 @@ void Assembler::ToggleToCmp(CodeLocationLabel inst_) {
               Flags(vixl::SetFlags) | Rd(vixl::xzr) |
               (imm19 << vixl::Rn_offset));
 }
+
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+static void Assembler::ToggleToJmpRuntime(CodeLocationLabel inst_) {
+  const Instruction* i = (const Instruction*)inst_.raw();
+  MOZ_ASSERT(i->IsAddSubImmediate());
+
+  // Refer to instruction layout in ToggleToCmp().
+  int imm19 = (int)i->Bits(23, 5);
+  MOZ_ASSERT(vixl::IsInt19(imm19));
+
+  uint32_t val = b(i, imm19, Always);
+  sys_jitcode_modify(reinterpret_cast<uint8_t*>(i), val, sizeof(int32_t));
+}
+
+static void Assembler::ToggleToCmpRuntime(CodeLocationLabel inst_) {
+  Instruction* i = (Instruction*)inst_.raw();
+  MOZ_ASSERT(i->IsCondB());
+
+  int imm19 = i->ImmCondBranch();
+  // bit 23 is reserved, and the simulator throws an assertion when this happens
+  // It'll be messy to decode, but we can steal bit 30 or bit 31.
+  MOZ_ASSERT(vixl::IsInt18(imm19));
+
+  // 31 - 64-bit if set, 32-bit if unset. (OK!)
+  // 30 - sub if set, add if unset. (OK!)
+  // 29 - SetFlagsBit. Must be set.
+  // 22:23 - ShiftAddSub. (OK!)
+  // 10:21 - ImmAddSub. (OK!)
+  // 5:9 - First source register (Rn). (OK!)
+  // 0:4 - Destination Register. Must be xzr.
+
+  // From the above, there is a safe 19-bit contiguous region from 5:23.
+  uint32_t val = vixl::ThirtyTwoBits | vixl::AddSubImmediateFixed | vixl::SUB |
+                 Flags(vixl::SetFlags) | Rd(vixl::xzr) |
+                 (imm19 << vixl::Rn_offset);
+  sys_jitcode_modify(reinterpret_cast<uint8_t*>(i), val, sizeof(int32_t));
+}
+#endif
 
 void Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled) {
   const Instruction* first = reinterpret_cast<Instruction*>(inst_.raw());
@@ -562,18 +612,21 @@ void Assembler::ClearLoad64Address(Instruction* inst0) {
   ldr(inst1, dest, MemOperand(dest, 0));
 }
 
-void Assembler::UpdateLoad64Address(CodeLocationLabel label, uint64_t* address) {
+void Assembler::UpdateLoad64Address(CodeLocationLabel buffer,
+                                    CodeLocationLabel label,
+                                    uint64_t* address) {
+  Instruction* b = (Instruction*)buffer.raw();
   Instruction* i = (Instruction*)label.raw();
-  UpdateLoad64Address(i, address);
+  UpdateLoad64Address(b, i, address);
 }
-  
-void Assembler::UpdateLoad64Address(Instruction* inst0, uint64_t* address) {
+
+void Assembler::UpdateLoad64Address(Instruction* inst0, Instruction* target, uint64_t* address) {
   MOZ_ASSERT(inst0->IsADRP());
   Instruction* inst1 = inst0->NextInstruction();
   MOZ_ASSERT(inst1->IsLoad());
   MOZ_ASSERT(inst0->Rd() == inst1->Rd());
 
-  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(inst0) >> vixl::kPageSizeLog2;
+  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(target) >> vixl::kPageSizeLog2;
   ptrdiff_t valueOffset = reinterpret_cast<uintptr_t>(address) >> vixl::kPageSizeLog2;
 
   vixl::Register dest = vixl::Register(inst0->Rd(), 64);
@@ -605,17 +658,19 @@ void Assembler::ClearLoadF64Address(Instruction* inst0) {
   ldr(inst1, dest, MemOperand(base, 0));
 }
 
-void Assembler::UpdateLoadF64Address(CodeLocationLabel label, double* address) {
+void Assembler::UpdateLoadF64Address(CodeLocationLabel buffer,
+                                     CodeLocationLabel label, double* address) {
+  Instruction* b = (Instruction*)buffer.raw();
   Instruction* i = (Instruction*)label.raw();
-  UpdateLoadF64Address(i, address);
+  UpdateLoadF64Address(b, i, address);
 }
 
-void Assembler::UpdateLoadF64Address(Instruction* inst0, double* address) {
+void Assembler::UpdateLoadF64Address(Instruction* inst0, Instruction* target, double* address) {
   MOZ_ASSERT(inst0->IsADRP());
   Instruction* inst1 = inst0->NextInstruction();
   MOZ_ASSERT(inst1->IsLoad());
 
-  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(inst0) >> vixl::kPageSizeLog2;
+  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(target) >> vixl::kPageSizeLog2;
   ptrdiff_t valueOffset = reinterpret_cast<uintptr_t>(address) >> vixl::kPageSizeLog2;
 
   vixl::Register base = vixl::Register(inst0->Rd(), 64);
@@ -647,17 +702,18 @@ void Assembler::ClearLoadF32Address(Instruction* inst0) {
   ldr(inst1, dest, MemOperand(base, 0));
 }
 
-void Assembler::UpdateLoadF32Address(CodeLocationLabel label, float* address) {
+void Assembler::UpdateLoadF32Address(CodeLocationLabel buffer, CodeLocationLabel label, float* address) {
   Instruction* i = (Instruction*)label.raw();
-  UpdateLoadF32Address(i, address);
+  Instruction* b = (Instruction*)buffer.raw();
+  UpdateLoadF32Address(b, i, address);
 }
 
-void Assembler::UpdateLoadF32Address(Instruction* inst0, float* address) {
+void Assembler::UpdateLoadF32Address(Instruction* inst0, Instruction* target, float* address) {
   MOZ_ASSERT(inst0->IsADRP());
   Instruction* inst1 = inst0->NextInstruction();
   MOZ_ASSERT(inst1->IsLoad());
 
-  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(inst0) >> vixl::kPageSizeLog2;
+  ptrdiff_t loadOffset = reinterpret_cast<uintptr_t>(target) >> vixl::kPageSizeLog2;
   ptrdiff_t valueOffset = reinterpret_cast<uintptr_t>(address) >> vixl::kPageSizeLog2;
 
   vixl::Register base = vixl::Register(inst0->Rd(), 64);

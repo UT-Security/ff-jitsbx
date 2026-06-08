@@ -398,6 +398,9 @@ class Instruction {
   const Instruction* ImmPCOffsetTarget() const;
   Instruction* ImmPCOffsetTarget();
 
+  const Instruction* ImmPCOffsetTarget(const Instruction* relative) const;
+  Instruction* ImmPCOffsetTarget(Instruction* relative);
+
   // Patch a PC-relative offset to refer to 'target'. 'this' may be a branch or
   // a PC-relative addressing instruction.
   void SetImmPCOffsetTarget(const Instruction* target);

@@ -13909,18 +13909,22 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   }
 
   Assembler::PatchDataWithValueCheck(
+      CodeLocationLabel(masm.buffer() + invalidateEpilogueData_.offset()),
       CodeLocationLabel(code, invalidateEpilogueData_), ImmPtr(ionScript),
       ImmPtr((void*)-1));
 
   for (CodeOffset offset : ionScriptLabels_) {
-    Assembler::PatchDataWithValueCheck(CodeLocationLabel(code, offset),
-                                       ImmPtr(ionScript), ImmPtr((void*)-1));
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + offset.offset()),
+        CodeLocationLabel(code, offset), ImmPtr(ionScript), ImmPtr((void*)-1));
   }
 
   for (NurseryObjectLabel label : ionNurseryObjectLabels_) {
     void* entry = ionScript->addressOfNurseryObject(label.nurseryIndex);
-    Assembler::PatchDataWithValueCheck(CodeLocationLabel(code, label.offset),
-                                       ImmPtr(entry), ImmPtr((void*)-1));
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + label.offset.offset()),
+        CodeLocationLabel(code, label.offset), ImmPtr(entry),
+        ImmPtr((void*)-1));
   }
 
   // for generating inline caches during the execution.
@@ -13934,9 +13938,11 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   for (size_t i = 0; i < icInfo_.length(); i++) {
     IonIC& ic = ionScript->getICFromIndex(i);
     Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + icInfo_[i].icOffsetForJump.offset()),
         CodeLocationLabel(code, icInfo_[i].icOffsetForJump),
         ImmPtr(ic.codeRawPtr()), ImmPtr((void*)-1));
     Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm.buffer() + icInfo_[i].icOffsetForPush.offset()),
         CodeLocationLabel(code, icInfo_[i].icOffsetForPush), ImmPtr(&ic),
         ImmPtr((void*)-1));
   }

@@ -350,7 +350,7 @@ class alignas(uintptr_t) BaselineScript final : public TrailingArray {
   // toggle traps at |pc|.
   void toggleDebugTraps(JSScript* script, jsbytecode* pc);
 
-  void toggleProfilerInstrumentation(bool enable);
+  void toggleProfilerInstrumentation(bool enable, uint8_t* buffer);
   bool isProfilerInstrumentationOn() const {
     return flags_ & PROFILER_INSTRUMENTATION_ON;
   }

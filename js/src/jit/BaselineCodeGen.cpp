@@ -294,7 +294,7 @@ MethodStatus BaselineCompiler::compile() {
   // If profiler instrumentation is enabled, toggle instrumentation on.
   if (cx->runtime()->jitRuntime()->isProfilerInstrumentationEnabled(
           cx->runtime())) {
-    baselineScript->toggleProfilerInstrumentation(true);
+    baselineScript->toggleProfilerInstrumentation(true, masm.buffer());
   }
 
   // Compute native resume addresses for the script's resume offsets.
@@ -6791,7 +6791,7 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
     // Patch loads now that we know the tableswitch base address.
     CodeLocationLabel tableLoc(code, CodeOffset(tableOffset_));
     for (CodeOffset off : tableLabels_) {
-      MacroAssembler::patchNearAddressMove(CodeLocationLabel(code, off),
+      masm.patchNearAddressMove(off, CodeLocationLabel(code, off),
                                            tableLoc);
     }
 

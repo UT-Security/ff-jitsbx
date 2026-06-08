@@ -204,6 +204,9 @@ void Assembler::b(Instruction* at, int imm26) {
   return EmitBranch(at, B | ImmUncondBranch(imm26));
 }
 
+Instr Assembler::b(const Instruction* at, int imm26) {
+  return (B | ImmUncondBranch(imm26));
+}
 
 BufferOffset Assembler::b(int imm19, Condition cond, const LabelDoc& doc) {
   return EmitBranch(B_cond | ImmCondBranch(imm19) | cond, doc);

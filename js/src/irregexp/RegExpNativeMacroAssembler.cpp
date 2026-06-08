@@ -991,9 +991,10 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
   }
 
   for (LabelPatch& lp : labelPatches_) {
-    Assembler::PatchDataWithValueCheck(CodeLocationLabel(code, lp.patchOffset_),
-                                       ImmPtr(code->raw() + lp.labelOffset_),
-                                       ImmPtr(nullptr));
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(masm_.buffer() + lp.patchOffset_.offset()),
+        CodeLocationLabel(code, lp.patchOffset_),
+        ImmPtr(code->raw() + lp.labelOffset_), ImmPtr(nullptr));
   }
 
   CollectPerfSpewerJitCodeProfile(code, "RegExp");

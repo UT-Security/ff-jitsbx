@@ -203,6 +203,8 @@ class AssemblerBuffer {
   uint8_t* data() { return buffer_.begin(); }
   const uint8_t* data() const { return buffer_.begin(); }
 
+  uint8_t* extractData() { return buffer_.extractOrCopyRawBuffer(); }
+
   using ThisClass = AssemblerBuffer<Inst>;
 
   class AssemblerBufferInstIterator {
