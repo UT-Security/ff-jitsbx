@@ -359,6 +359,13 @@ void Instruction::SetImmPCOffsetTarget(const Instruction* target) {
   }
 }
 
+void Instruction::SetImmPCOffsetTarget(const Instruction* branch, const Instruction* target) {
+  if (IsPCRelAddressing()) {
+    SetPCRelImmTarget(branch, target);
+  } else {
+    SetBranchImmTarget(branch, target);
+  }
+}
 
 void Instruction::SetPCRelImmTarget(const Instruction* target) {
   ptrdiff_t imm21;
@@ -375,6 +382,20 @@ void Instruction::SetPCRelImmTarget(const Instruction* target) {
   SetInstructionBits(Mask(~ImmPCRel_mask) | imm);
 }
 
+void Instruction::SetPCRelImmTarget(const Instruction* branch, const Instruction* target) {
+  ptrdiff_t imm21;
+  if ((Mask(PCRelAddressingMask) == ADR)) {
+    imm21 = target - branch;
+  } else {
+    VIXL_ASSERT(Mask(PCRelAddressingMask) == ADRP);
+    uintptr_t this_page = reinterpret_cast<uintptr_t>(branch) / kPageSize;
+    uintptr_t target_page = reinterpret_cast<uintptr_t>(target) / kPageSize;
+    imm21 = target_page - this_page;
+  }
+  Instr imm = Assembler::ImmPCRelAddress(static_cast<int32_t>(imm21));
+
+  SetInstructionBits(Mask(~ImmPCRel_mask) | imm);
+}
 
 void Instruction::SetBranchImmTarget(const Instruction* target) {
   VIXL_ASSERT(((target - this) & 3) == 0);
@@ -407,6 +428,36 @@ void Instruction::SetBranchImmTarget(const Instruction* target) {
   SetInstructionBits(Mask(~imm_mask) | branch_imm);
 }
 
+void Instruction::SetBranchImmTarget(const Instruction* branch, const Instruction* target) {
+  VIXL_ASSERT(((target - branch) & 3) == 0);
+  Instr branch_imm = 0;
+  uint32_t imm_mask = 0;
+  int offset = static_cast<int>((target - branch) >> kInstructionSizeLog2);
+  switch (BranchType()) {
+    case CondBranchType: {
+      branch_imm = Assembler::ImmCondBranch(offset);
+      imm_mask = ImmCondBranch_mask;
+      break;
+    }
+    case UncondBranchType: {
+      branch_imm = Assembler::ImmUncondBranch(offset);
+      imm_mask = ImmUncondBranch_mask;
+      break;
+    }
+    case CompareBranchType: {
+      branch_imm = Assembler::ImmCmpBranch(offset);
+      imm_mask = ImmCmpBranch_mask;
+      break;
+    }
+    case TestBranchType: {
+      branch_imm = Assembler::ImmTestBranch(offset);
+      imm_mask = ImmTestBranch_mask;
+      break;
+    }
+    default: VIXL_UNREACHABLE();
+  }
+  SetInstructionBits(Mask(~imm_mask) | branch_imm);
+}
 
 void Instruction::SetImmLLiteral(const Instruction* source) {
   VIXL_ASSERT(IsWordAligned(source));

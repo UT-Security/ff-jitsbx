@@ -204,9 +204,14 @@ BufferOffset Assembler::emitExtendedJumpTable() {
   return tableOffset;
 }
 
-void Assembler::executableCopy(uint8_t* buffer) {
+void Assembler::executableCopy(uint8_t* dest) {
+#ifdef JS_LINK_IN_PLACE
+  uint8_t* buffer = armbuffer_.data();
+#else
   // Copy the code and all constant pools into the output buffer.
-  armbuffer_.executableCopy(buffer);
+  armbuffer_.executableCopy(dest);
+  uint8_t* buffer = dest;
+#endif
 
   // Patch any relative jumps that target code outside the buffer.
   // The extended jump table may be used for distant jumps.
@@ -216,11 +221,13 @@ void Assembler::executableCopy(uint8_t* buffer) {
 
     Instruction* target = (Instruction*)rp.target;
     Instruction* branch = (Instruction*)(buffer + rp.offset.getOffset());
+    Instruction* branchFinal = (Instruction*)(dest + rp.offset.getOffset());
+
     JumpTableEntry* extendedJumpTable = reinterpret_cast<JumpTableEntry*>(
         buffer + ExtendedJumpTable_.getOffset());
     if (branch->BranchType() != vixl::UnknownBranchType) {
-      if (branch->IsTargetReachable(target)) {
-        branch->SetImmPCOffsetTarget(target);
+      if (branch->IsTargetReachable(branchFinal, target)) {
+        branch->SetImmPCOffsetTarget(branchFinal, target);
       } else {
         JumpTableEntry* entry = &extendedJumpTable[i];
 #if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
@@ -235,10 +242,10 @@ void Assembler::executableCopy(uint8_t* buffer) {
         movk->SetInstructionBits(movk->InstructionBits() |
                                  ImmMoveWide((targetAddr >> 16) & 0xFFFF));
 
-        MOZ_ASSERT(branch->IsTargetReachable(movz));
-        branch->SetImmPCOffsetTarget(movz);
+        MOZ_ASSERT(branch->IsTargetReachable(branchFinal, movz));
+        branch->SetImmPCOffsetTarget(branchFinal, movz);
 #else
-        branch->SetImmPCOffsetTarget(entry->getLdr());
+        branch->SetImmPCOffsetTarget(branchFinal, entry->getLdr());
         entry->data = target;
 #endif
       }

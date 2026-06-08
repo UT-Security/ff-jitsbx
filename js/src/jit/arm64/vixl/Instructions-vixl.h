@@ -296,6 +296,7 @@ class Instruction {
   bool IsMovk() const;
   bool IsBranchLinkImm() const;
   bool IsTargetReachable(const Instruction* target) const;
+  bool IsTargetReachable(const Instruction* branch, const Instruction* target) const;
   ptrdiff_t ImmPCRawOffset() const;
   void SetImmPCRawOffset(ptrdiff_t offset);
   void SetBits32(int msb, int lsb, unsigned value);
@@ -400,6 +401,7 @@ class Instruction {
   // Patch a PC-relative offset to refer to 'target'. 'this' may be a branch or
   // a PC-relative addressing instruction.
   void SetImmPCOffsetTarget(const Instruction* target);
+  void SetImmPCOffsetTarget(const Instruction* branch, const Instruction* target);
   // Patch a literal load instruction to load from 'source'.
   void SetImmLLiteral(const Instruction* source);
 
@@ -486,9 +488,10 @@ class Instruction {
   static double Imm8ToFP64(uint32_t imm8);
 
   void SetPCRelImmTarget(const Instruction* target);
+  void SetPCRelImmTarget(const Instruction* branch, const Instruction* target);
   void SetBranchImmTarget(const Instruction* target);
+  void SetBranchImmTarget(const Instruction* branch, const Instruction* target);
 };
-
 
 // Functions for handling NEON vector format information.
 enum VectorFormat {

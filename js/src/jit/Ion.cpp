@@ -6,6 +6,7 @@
 
 #include "jit/Ion.h"
 
+#include "JitCode.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/IntegerPrintfMacros.h"
@@ -589,7 +590,13 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
 
+#ifndef JS_LINK_IN_PLACE
+  uint8_t header[js::jit::JitCodeHeaderSize];
+  masm.emitJitCodeHeader(&header, this);
+  //TODO: call runtime to insert header into jit executable region
+#else
   masm.emitJitCodeHeader(header(), this);
+#endif
 
   // Copy data and patch the code.
   MOZ_ASSERT(executable_.desc.rwSize >= masm.dataSize());

@@ -90,3 +90,32 @@ def js_sandbox_dom_reflectors(enable_js_sandbox_dom_reflectors):
 
 set_config("JS_SANDBOX_DOM_REFLECTORS", js_sandbox_dom_reflectors)
 set_define("JS_SANDBOX_DOM_REFLECTORS", js_sandbox_dom_reflectors)
+
+option(
+    "--enable-js-sandbox-lfi-jit-memory",
+    default=False,
+    help="{Enable|Disable} using LFI system calls to manage JIT memory",
+)
+
+@depends("--js-sandbox-lfi-jit-memory", when=js_sandbox_lfi)
+def js_sandbox_lfi_jit_memory(enable_js_sandbox_lfi_jit_memory):
+	if enable_js_sandbox_lfi_jit_memory:
+		return True
+
+set_config("JS_SANDBOX_LFI_JIT_MEMORY", js_sandbox_lfi_jit_memory)
+set_define("JS_SANDBOX_LFI_JIT_MEMORY", js_sandbox_lfi_jit_memory)
+
+imply_option("--enable-js-link-in-place", True, when=js_sandbox_lfi_jit_memory)
+option(
+    "--enable-js-link-in-place",
+    default=False,
+    help="{Enable|Disable} linking executable code in place",
+)
+
+@depends("--js-link-in-place")
+def js_link_in_place(enable_js_link_in_place):
+	if enable_js_link_in_place:
+		return True
+
+set_config("JS_LINK_IN_PLACE", js_link_in_place)
+set_define("JS_LINK_IN_PLACE", js_link_in_place)

@@ -133,6 +133,22 @@ bool Instruction::IsTargetReachable(const Instruction* target) const {
     }
 }
 
+bool Instruction::IsTargetReachable(const Instruction* branch, const Instruction* target) const {
+    VIXL_ASSERT(((target - branch) & 3) == 0);
+    int offset = (target - branch) >> kInstructionSizeLog2;
+    switch (BranchType()) {
+      case CondBranchType:
+        return IsInt19(offset);
+      case UncondBranchType:
+        return IsInt26(offset);
+      case CompareBranchType:
+        return IsInt19(offset);
+      case TestBranchType:
+        return IsInt14(offset);
+      default:
+        VIXL_UNREACHABLE();
+    }
+}
 
 ptrdiff_t Instruction::ImmPCRawOffset() const {
   ptrdiff_t offset;
