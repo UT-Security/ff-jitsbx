@@ -1098,6 +1098,7 @@ bool js::jit::AddressIsInExecutableMemory(const void* p) {
   return jitMemory.containsAddress(p);
 }
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
 bool js::jit::ReprotectRegion(void* start, size_t size,
                               ProtectionSetting protection,
                               MustFlushICache flushICache) {
@@ -1162,6 +1163,7 @@ bool js::jit::ReprotectRegion(void* start, size_t size,
   jitMemory.assertValidProtection(pageStart, size, protection);
   return true;
 }
+#endif
 
 #if defined(XP_WIN) && defined(NEED_JIT_UNWIND_HANDLING)
 static PRUNTIME_FUNCTION RuntimeFunctionCallback(DWORD64 ControlPc,

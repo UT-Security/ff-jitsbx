@@ -83,6 +83,7 @@ uint32_t CPU::GetCacheType() {
 #endif
 }
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
 void CPU::EnsureIAndDCacheCoherency(void* address, size_t length) {
 #if defined(JS_SIMULATOR_ARM64) && defined(JS_CACHE_SIMULATOR_ARM64)
   // This code attempts to emulate what the following assembly sequence is
@@ -205,6 +206,7 @@ void CPU::EnsureIAndDCacheCoherency(void* address, size_t length) {
   USE(address, length);
 #endif
 }
+#endif
 
 void CPU::FlushExecutionContext() {
 #if defined(JS_SIMULATOR_ARM64) && defined(JS_CACHE_SIMULATOR_ARM64)

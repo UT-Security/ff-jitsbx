@@ -219,6 +219,15 @@ JitCode* BaselineCacheIRCompiler::compile() {
     return nullptr;
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(newStubCode->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(newStubCode->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   return newStubCode;
 }
 

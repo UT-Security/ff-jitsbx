@@ -30,7 +30,9 @@ inline void FlushICache(void* code, size_t size) {
 // execution context for this core. If this code is to be executed on another
 // thread, that thread must perform an execution context flush first using
 // `FlushExecutionContext` below.
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
 extern void FlushICache(void* code, size_t size);
+#endif
 
 #elif defined(JS_CODEGEN_NONE) || defined(JS_CODEGEN_WASM32)
 

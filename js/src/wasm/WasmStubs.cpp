@@ -2661,7 +2661,7 @@ static const LiveRegisterSet RegsToPreserve(
     GeneralRegisterSet(Registers::AllMask &
                        ~((Registers::SetType(1) << RealStackPointer.code()) |
 #ifdef JS_SANDBOX
-    (Registers::SetType(1) << Registers::x24) | (Registers::SetType(1) << Registers::x26) |
+    (Registers::SetType(1) << Registers::x24) | (Registers::SetType(1) << Registers::x25) |
     (Registers::SetType(1) << Registers::x27) | (Registers::SetType(1) << Registers::x28) |
 #endif
                          (Registers::SetType(1) << Registers::lr))),

@@ -512,12 +512,14 @@ void ExecutablePoolAllocator::addSizeOfCode(JS::CodeSizes* sizes) const {
 void ExecutableAllocator::reprotectPool(JSRuntime* rt, ExecutablePool* pool,
                                         ProtectionSetting protection,
                                         MustFlushICache flushICache) {
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   char* start = pool->m_allocation.pages;
   AutoEnterOOMUnsafeRegion oomUnsafe;
   if (!ReprotectRegion(start, pool->m_freePtr - start, protection,
                        flushICache)) {
     oomUnsafe.crash("ExecutableAllocator::reprotectPool");
   }
+#endif
 }
 
 /* static */

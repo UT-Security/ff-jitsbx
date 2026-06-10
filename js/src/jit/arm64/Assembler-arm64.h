@@ -777,14 +777,14 @@ class Assembler : public vixl::Assembler {
 #endif
 
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
-  static void PatchWrite_Imm32Runtime(CodeLocationLabel label, Imm32 imm) {
+  static void PatchWrite_Imm32_Runtime(CodeLocationLabel label, Imm32 imm) {
     // Raw is going to be the return address.
     uint32_t* raw = (uint32_t*)label.raw();
     // Overwrite the 4 bytes before the return address, which will end up being
     // the call instruction.
     const Instruction* branch = reinterpret_cast<const Instruction*>(raw - 1);
     uint32_t val = b(branch, imm.value);
-    sys_jitcode_modify(reinterpret_cast<uint8_t*>(branch), val, sizeof(int32_t));
+    sys_jitcode_modify(reinterpret_cast<uint8_t*>(raw) - 4, val, sizeof(int32_t));
   }
 #endif
 
@@ -814,8 +814,8 @@ class Assembler : public vixl::Assembler {
   static void ToggleToJmp(CodeLocationLabel inst_);
   static void ToggleToCmp(CodeLocationLabel inst_);
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
-  static void ToggleToJmp(CodeLocationLabel inst_);
-  static void ToggleToCmp(CodeLocationLabel inst_);
+  static void ToggleToJmpRuntime(CodeLocationLabel inst_);
+  static void ToggleToCmpRuntime(CodeLocationLabel inst_);
 #endif
   static void ToggleCall(CodeLocationLabel inst_, bool enabled);
 

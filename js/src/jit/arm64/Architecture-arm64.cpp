@@ -119,9 +119,11 @@ uint32_t GetARM64Flags() { return 0; }
 // computed".
 bool CPUFlagsHaveBeenComputed() { return true; }
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
 void FlushICache(void* code, size_t size) {
   vixl::CPU::EnsureIAndDCacheCoherency(code, size);
 }
+#endif
 
 void FlushExecutionContext() { vixl::CPU::FlushExecutionContext(); }
 

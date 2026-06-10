@@ -988,6 +988,7 @@ struct AssemblerBufferWithConstantPools : public AssemblerBuffer<Inst> {
     // Fill them in.
     BufferOffset afterPool = this->nextOffset();
     Asm::WritePoolGuard(guard, this->getInst(guard), afterPool);
+    Asm::WritePoolHeader((uint8_t*)this->getInst(header), &pool_, false);
 
     // With the pool's final position determined it is now possible to patch
     // the instructions that reference entries in this pool, and this is

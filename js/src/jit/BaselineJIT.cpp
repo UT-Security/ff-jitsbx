@@ -889,11 +889,19 @@ void BaselineInterpreter::toggleDebuggerInstrumentation(bool enable) {
   // Toggle jumps for debugger instrumentation.
   for (uint32_t offset : debugInstrumentationOffsets_) {
     CodeLocationLabel label(code_, CodeOffset(offset));
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+    if (enable) {
+      Assembler::ToggleToCmpRuntime(label);
+    } else {
+      Assembler::ToggleToJmpRuntime(label);
+    }
+#else
     if (enable) {
       Assembler::ToggleToCmp(label);
     } else {
       Assembler::ToggleToJmp(label);
     }
+#endif
   }
 
   // Toggle DebugTrapHandler calls.

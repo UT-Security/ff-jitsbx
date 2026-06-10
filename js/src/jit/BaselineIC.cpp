@@ -2483,6 +2483,15 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
     return false;
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   rangeRecorder.collectRangesForJitCode(code);
 
 #ifdef MOZ_VTUNE

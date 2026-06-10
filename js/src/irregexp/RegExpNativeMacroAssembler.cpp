@@ -997,6 +997,15 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
         ImmPtr(code->raw() + lp.labelOffset_), ImmPtr(nullptr));
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm_.buffer(),
+                                        masm_.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm_.buffer(), masm_.execSize());
+#  endif
+#endif
+
   CollectPerfSpewerJitCodeProfile(code, "RegExp");
 
 #ifdef MOZ_VTUNE
@@ -1232,7 +1241,12 @@ void SMRegExpMacroAssembler::exitHandler() {
   // Now restore the value that was in the PSP register on entry, and return.
 
   // Obtain the correct SP from the PSP.
+#ifdef JS_SANDBOX_HEAP
+  masm_.And(js::jit::SandboxOffsetReg64, js::jit::PseudoStackPointer64, js::jit::SANDBOX_MASK);
+  masm_.Add(js::jit::sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+#else
   masm_.Mov(js::jit::sp, js::jit::PseudoStackPointer64);
+#endif
 
   // Restore the saved value of the PSP register, this value is whatever the
   // caller had saved in it, not any actual SP value, and it must not be

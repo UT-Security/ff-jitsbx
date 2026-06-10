@@ -263,6 +263,14 @@ JitCode* JitRuntime::generateEntryTrampolineForScript(JSContext* cx,
   if (!code) {
     return nullptr;
   }
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
   rangeRecorder.collectRangesForJitCode(code);
   JitSpew(JitSpew_Codegen, "# code = %p", code->raw());
   return code;

@@ -2046,6 +2046,17 @@ void MacroAssembler::Claim(const Operand& size) {
     }
   }
 
+#ifdef JS_SANDBOX_HEAP
+  if (sp.Is(GetStackPointer64())) {
+    Sub(js::jit::SandboxTemporaryReg64, GetStackPointer64(), size);
+    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64, js::jit::SANDBOX_MASK);
+    Add(GetStackPointer64(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+  } else {
+    Sub(GetStackPointer64(), GetStackPointer64(), size);
+    And(js::jit::SandboxOffsetReg64, GetStackPointer64(), js::jit::SANDBOX_MASK);
+    Add(sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+  }
+#else
   Sub(GetStackPointer64(), GetStackPointer64(), size);
 
   // Make sure the real stack pointer reflects the claimed stack space.
@@ -2054,6 +2065,7 @@ void MacroAssembler::Claim(const Operand& size) {
   if (!sp.Is(GetStackPointer64())) {
     Mov(sp, GetStackPointer64());
   }
+#endif
 }
 
 
@@ -2070,7 +2082,17 @@ void MacroAssembler::Drop(const Operand& size) {
     }
   }
 
+#ifdef JS_SANDBOX_HEAP
+  if (sp.Is(GetStackPointer64())) {
+    Add(js::jit::SandboxTemporaryReg64, GetStackPointer64(), size);
+    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64, js::jit::SANDBOX_MASK);
+    Add(GetStackPointer64(), js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+  } else {
+    Add(GetStackPointer64(), GetStackPointer64(), size);
+  }
+#else
   Add(GetStackPointer64(), GetStackPointer64(), size);
+#endif
 }
 
 
@@ -2202,8 +2224,15 @@ void MacroAssembler::BumpSystemStackPointer(const Operand& space) {
   // TODO: Several callers rely on this not using scratch registers, so we use
   // the assembler directly here. However, this means that large immediate
   // values of 'space' cannot be handled.
+#ifdef JS_SANDBOX_HEAP
+  sub(js::jit::SandboxTemporaryReg64, GetStackPointer64(), space);
+  and_(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+       Operand(js::jit::SANDBOX_MASK));
+  add(sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+#else
   InstructionAccurateScope scope(this, 1);
   sub(sp, GetStackPointer64(), space);
+#endif
 }
 
 

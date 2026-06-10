@@ -217,6 +217,9 @@ void Assembler::b(Instruction* at, int imm19, Condition cond) {
   EmitBranch(at, B_cond | ImmCondBranch(imm19) | cond);
 }
 
+Instr Assembler::b(const Instruction* at, int imm19, Condition cond) {
+  return (B_cond | ImmCondBranch(imm19) | cond);
+}
 
 BufferOffset Assembler::b(Label* label) {
   // Encode the relative offset from the inserted branch to the label.
@@ -585,17 +588,9 @@ struct PoolHeader {
 void MozBaseAssembler::WritePoolHeader(uint8_t* start, js::jit::Pool* p, bool isNatural) {
   static_assert(sizeof(PoolHeader) == 4);
 
-  // Get the total size of the pool.
-  const uintptr_t totalPoolSize = sizeof(PoolHeader) + p->getPoolSize();
-  const uintptr_t totalPoolInstructions = totalPoolSize / kInstructionSize;
-
-  VIXL_ASSERT((totalPoolSize & 0x3) == 0);
-  VIXL_ASSERT(totalPoolInstructions < (1 << 15));
-
-  PoolHeader header(totalPoolInstructions, isNatural);
-  *(PoolHeader*)start = header;
+  Instruction* hlt = reinterpret_cast<Instruction*>(start);
+  Emit(hlt, vixl::HLT | Assembler::ImmException(0xBAAD));
 }
-
 
 void MozBaseAssembler::WritePoolFooter(uint8_t* start, js::jit::Pool* p, bool isNatural) {
   return;

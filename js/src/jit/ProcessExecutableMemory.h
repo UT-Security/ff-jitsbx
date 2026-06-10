@@ -75,7 +75,7 @@ static const size_t ExecutableCodePageSize = 64 * 1024;
 // Unfortunately the ratio of data pages compared to code pages is 1/10, which
 // implies that data pages have their own data-allocator, which is managed
 // separately.
-static const size_t ReadWriteDataPageSize = 8 * 1024;
+static const size_t ReadWriteDataPageSize = 16 * 1024;
 
 enum class ProtectionSetting {
   Protected,  // Not readable, writable, or executable.
@@ -87,9 +87,11 @@ enum class ProtectionSetting {
 
 enum class MustFlushICache { No, Yes };
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
 [[nodiscard]] extern bool ReprotectRegion(void* start, size_t size,
                                           ProtectionSetting protection,
                                           MustFlushICache flushICache);
+#endif
 
 // Functions called at process start-up/shutdown to initialize/release the
 // executable memory region.

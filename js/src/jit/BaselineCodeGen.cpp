@@ -304,6 +304,15 @@ MethodStatus BaselineCompiler::compile() {
     baselineScript->setHasDebugInstrumentation();
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   // Always register a native => bytecode mapping entry, since profiler can be
   // turned on with baseline jitcode on stack, and baseline jitcode cannot be
   // invalidated.
@@ -6795,6 +6804,15 @@ bool BaselineInterpreterGenerator::generate(BaselineInterpreter& interpreter) {
                                            tableLoc);
     }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+    MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                          masm.execSize()) != -1);
+#  else
+    memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
     perfSpewer_.saveProfile(code);
 
 #ifdef MOZ_VTUNE
@@ -6899,6 +6917,15 @@ JitCode* JitRuntime::generateDebugTrapHandler(JSContext* cx,
   if (!handlerCode) {
     return nullptr;
   }
+
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(handlerCode->raw(),
+                                        masm.buffer(), masm.execSize()) != -1);
+#  else
+  memcpy(handlerCode->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
 
   CollectPerfSpewerJitCodeProfile(handlerCode, "DebugTrapHandler");
 

@@ -247,6 +247,15 @@ bool JitRuntime::generateTrampolines(JSContext* cx) {
     return false;
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(trampolineCode_->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(trampolineCode_->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   rangeRecorder.collectRangesForJitCode(trampolineCode_);
 #ifdef MOZ_VTUNE
   vtune::MarkStub(trampolineCode_, "Trampolines");
@@ -589,11 +598,10 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   // As long as JitCode isn't moveable, we can avoid tracing this and
   // mutating executable data.
   MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
-
 #ifdef JS_LINK_IN_PLACE
   uint8_t headerBuf[js::jit::JitCodeHeaderSize];
   masm.emitJitCodeHeader(headerBuf, this);
-#  ifdef JS_SANDBOX_LFI_MEMORY
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
   sys_jitcode_create(header(), headerBuf, js::jit::JitCodeHeaderSize);
 #  else
   memcpy(header(), headerBuf, js::jit::JitCodeHeaderSize);

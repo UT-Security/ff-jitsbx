@@ -161,11 +161,13 @@ class CPU {
   // Initialise CPU support.
   static void SetUp();
 
+#ifndef JS_SANDBOX_LFI_JIT_MEMORY
   // Ensures the data at a given address and with a given size is the same for
   // the I and D caches. I and D caches are not automatically coherent on ARM
   // so this operation is required before any dynamically generated code can
   // safely run.
   static void EnsureIAndDCacheCoherency(void* address, size_t length);
+#endif
 
   // Flush the local instruction pipeline, forcing a reload of any instructions
   // beyond this barrier from the icache.

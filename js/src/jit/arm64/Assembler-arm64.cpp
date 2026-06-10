@@ -342,7 +342,13 @@ void Assembler::PatchWrite_NearCall(CodeLocationLabel start,
   MOZ_RELEASE_ASSERT((relTarget & 0x3) == 0);
   MOZ_RELEASE_ASSERT(vixl::IsInt26(relTarget00));
 
+#ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  sys_jitcode_modify(start.raw(),
+                     vixl::BL | ImmUncondBranch(relTarget00),
+                     sizeof(int32_t));
+#else
   bl(dest, relTarget00);
+#endif
 }
 
 void Assembler::PatchDataWithValueCheck(CodeLocationLabel buffer,
@@ -420,7 +426,7 @@ void Assembler::ToggleToCmp(CodeLocationLabel inst_) {
 }
 
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
-static void Assembler::ToggleToJmpRuntime(CodeLocationLabel inst_) {
+void Assembler::ToggleToJmpRuntime(CodeLocationLabel inst_) {
   const Instruction* i = (const Instruction*)inst_.raw();
   MOZ_ASSERT(i->IsAddSubImmediate());
 
@@ -429,10 +435,10 @@ static void Assembler::ToggleToJmpRuntime(CodeLocationLabel inst_) {
   MOZ_ASSERT(vixl::IsInt19(imm19));
 
   uint32_t val = b(i, imm19, Always);
-  sys_jitcode_modify(reinterpret_cast<uint8_t*>(i), val, sizeof(int32_t));
+  sys_jitcode_modify(reinterpret_cast<uint8_t*>(inst_.raw()), val, sizeof(int32_t));
 }
 
-static void Assembler::ToggleToCmpRuntime(CodeLocationLabel inst_) {
+void Assembler::ToggleToCmpRuntime(CodeLocationLabel inst_) {
   Instruction* i = (Instruction*)inst_.raw();
   MOZ_ASSERT(i->IsCondB());
 
@@ -453,7 +459,7 @@ static void Assembler::ToggleToCmpRuntime(CodeLocationLabel inst_) {
   uint32_t val = vixl::ThirtyTwoBits | vixl::AddSubImmediateFixed | vixl::SUB |
                  Flags(vixl::SetFlags) | Rd(vixl::xzr) |
                  (imm19 << vixl::Rn_offset);
-  sys_jitcode_modify(reinterpret_cast<uint8_t*>(i), val, sizeof(int32_t));
+  sys_jitcode_modify(reinterpret_cast<uint8_t*>(inst_.raw()), val, sizeof(int32_t));
 }
 #endif
 

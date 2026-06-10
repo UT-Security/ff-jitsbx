@@ -1387,9 +1387,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
         MemOperand(GetStackPointer64(), ptrdiff_t(n.value), vixl::PostIndex));
     syncStackPtr();  // SP is always used to transmit the stack between calls.
 #ifdef JS_SANDBOX_CFI
-    sandboxCodePointer(ScratchReg64.asUnsized());
-#endif
+    Ret(ARMRegister(sandboxCodePointer(ScratchReg64.asUnsized(), SandboxAddressReg), 64));
+#else
     Ret(ScratchReg64);
+#endif
   }
 
   void j(Condition cond, Label* dest) { B(dest, cond); }

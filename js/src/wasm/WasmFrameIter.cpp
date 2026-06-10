@@ -385,9 +385,15 @@ static const unsigned PoppedFPJitEntry = 0;
 // PushedRetAddr and PushedFP are used in some restricted contexts
 // and must be superficially meaningful.
 static const unsigned BeforePushRetAddr = 0;
+#ifdef JS_SANDBOX_HEAP
+static const unsigned PushedRetAddr = 16;
+static const unsigned PushedFP = 20;
+static const unsigned SetFP = 24;
+#else
 static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 12;
 static const unsigned SetFP = 16;
+#endif
 #ifdef JS_SANDBOX_CFI
 static const unsigned PoppedFP = 8;
 #else
@@ -514,11 +520,18 @@ static void GenerateCallablePrologue(MacroAssembler& masm, uint32_t* entry) {
     masm.SetStackPointer64(vixl::sp);
 
     AutoForbidPoolsAndNops afp(&masm,
-                               /* number of instructions in scope = */ 4);
+                               /* number of instructions in scope = */ 10);
 
     *entry = masm.currentOffset();
 
+#ifdef JS_SANDBOX_HEAP
+    masm.Sub(js::jit::SandboxTemporaryReg64, sp, sizeof(Frame));
+    masm.And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+             js::jit::SANDBOX_MASK);
+    masm.Add(sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+#  else
     masm.Sub(sp, sp, sizeof(Frame));
+#  endif
     masm.Str(ARMRegister(lr, 64), MemOperand(sp, Frame::returnAddressOffset()));
     MOZ_ASSERT_IF(!masm.oom(), PushedRetAddr == masm.currentOffset() - *entry);
     masm.Str(ARMRegister(FramePointer, 64),
@@ -607,7 +620,7 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   masm.SetStackPointer64(vixl::sp);
 
 #  ifdef JS_SANDBOX_CFI
-  AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 6);
+  AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 10);
 
   masm.Ldr(ARMRegister(FramePointer, 64),
            MemOperand(sp, Frame::callerFPOffset()));
@@ -617,7 +630,13 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
                lr);
   *ret = masm.currentOffset();
 
+#ifdef JS_SANDBOX_HEAP
+  masm.Add(js::jit::SandboxTemporaryReg64, sp, sizeof(Frame));
+  masm.And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64, js::jit::SANDBOX_MASK);
+  masm.Add(sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+#else
   masm.Add(sp, sp, sizeof(Frame));
+#endif
 #  else
   AutoForbidPoolsAndNops afp(&masm, /* number of instructions in scope = */ 5);
 
@@ -883,11 +902,18 @@ void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
     masm.push(ra);
 #elif defined(JS_CODEGEN_ARM64)
     AutoForbidPoolsAndNops afp(&masm,
-                               /* number of instructions in scope = */ 4);
+                               /* number of instructions in scope = */ 8);
     offsets->begin = masm.currentOffset();
     static_assert(BeforePushRetAddr == 0);
     // Subtract from SP first as SP must be aligned before offsetting.
+#ifdef JS_SANDBOX_HEAP
+    masm.Sub(js::jit::SandboxTemporaryReg64, sp, 16);
+    masm.And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
+             js::jit::SANDBOX_MASK);
+    masm.Add(sp, js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
+#  else
     masm.Sub(sp, sp, 16);
+#  endif
     static_assert(JitFrameLayout::offsetOfReturnAddress() == 8);
     masm.Str(ARMRegister(lr, 64), MemOperand(sp, 8));
 #else

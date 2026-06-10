@@ -88,9 +88,6 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   if (masm.embedsNurseryPointers()) {
     cx->runtime()->gc.storeBuffer().putWholeCell(code);
   }
-#ifdef JS_LINK_IN_PLACE
-  this->code.emplace(cx, code);
-#endif
   return code;
 }
 

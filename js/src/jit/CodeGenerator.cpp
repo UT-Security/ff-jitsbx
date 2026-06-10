@@ -2794,6 +2794,15 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
     return nullptr;
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   const char* name = isExecMatch ? "RegExpExecMatchStub" : "RegExpMatcherStub";
   CollectPerfSpewerJitCodeProfile(code, name);
 #ifdef MOZ_VTUNE
@@ -3063,6 +3072,15 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
     return nullptr;
   }
 
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+
   CollectPerfSpewerJitCodeProfile(code, "RegExpSearcherStub");
 #ifdef MOZ_VTUNE
   vtune::MarkStub(code, "RegExpSearcherStub");
@@ -3243,6 +3261,15 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   if (!code) {
     return nullptr;
   }
+
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
 
   CollectPerfSpewerJitCodeProfile(code, "RegExpExecTestStub");
 #ifdef MOZ_VTUNE
@@ -11416,6 +11443,17 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   Linker linker(masm);
   JitCode* code = linker.newCode(cx, CodeKind::Other);
 
+  if (code) {
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+    MOZ_RELEASE_ASSERT(
+        sys_jitcode_create(code->raw(), masm.buffer(), masm.execSize()) != -1);
+#  else
+    memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
+  }
+
   CollectPerfSpewerJitCodeProfile(code, "StringConcatStub");
 #ifdef MOZ_VTUNE
   vtune::MarkStub(code, "StringConcatStub");
@@ -13957,6 +13995,15 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     ionScript->setOsrEntryOffset(getOsrEntryOffset());
   }
   ionScript->setInvalidationEpilogueOffset(invalidate_.offset());
+
+#ifdef JS_LINK_IN_PLACE
+#  ifdef JS_SANDBOX_LFI_JIT_MEMORY
+  MOZ_RELEASE_ASSERT(sys_jitcode_create(code->raw(), masm.buffer(),
+                                        masm.execSize()) != -1);
+#  else
+  memcpy(code->raw(), masm.buffer(), masm.execSize());
+#  endif
+#endif
 
   perfSpewer_.saveProfile(cx, script, code);
 
