@@ -1835,7 +1835,11 @@ void* jit::SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount, uint
     // masm.breakpoint();
     Label dummy;
     masm.call(&dummy);
+#ifdef JS_SANDBOX_CFI
+    masm.alignJmp(ImmPtr((void*) savedAddresses[i], ImmPtr::NoCheckToken()));
+#else
     masm.jmp(ImmPtr((void*) savedAddresses[i], ImmPtr::NoCheckToken()));
+#endif
     masm.bind(&dummy);
     // Save pushed return address
     masm.pop(tempSavedAddrReg);

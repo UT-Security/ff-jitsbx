@@ -1488,6 +1488,20 @@ class Assembler : public AssemblerX86Shared {
     bundle.end();
     addPendingJump(src, target, reloc, code);
   }
+#if defined(JS_SANDBOX_CET) && defined(JS_SANDBOX_CFI)
+  void alignJmp(ImmPtr target, RelocationKind reloc = RelocationKind::HARDCODED,
+           JitCode* code = nullptr) {
+    MOZ_ASSERT(hasCreator());
+    AutoBundleGroupScope bundle_group(*this);
+    AutoBundleInstructionScope bundle(*this);
+    bundle_group.nopToEnd(JmpSize(target));
+    JmpSrc src = masm.jmp();
+    bundle.end();
+    bundle_group.freeze();
+    bundle_group.end();
+    addPendingJump(src, target, reloc, code);
+  }
+#endif
   static size_t JmpSize(ImmPtr target) {
     return X86Encoding::BaseAssembler::jmp_size();
   }
