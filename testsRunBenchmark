@@ -77,6 +77,18 @@ function runTest(){
 
 SAVEDDIR=$PWD
 
+if [[ "$(uname -m)" != "x86_64" ]]; then
+	# For some reason Firefox sandboxes on ESR 115 crash on Ampere ARM machines. This even on the stock build.
+	# Just disable it as it doesn't matter for our tests.
+	export MOZ_DISABLE_CONTENT_SANDBOX="1";
+	export MOZ_DISABLE_RDD_SANDBOX="1";
+	export MOZ_DISABLE_SOCKET_PROCESS_SANDBOX="1";
+	export MOZ_DISABLE_GPU_SANDBOX="1";
+	export MOZ_DISABLE_GMP_SANDBOX="1";
+	export MOZ_DISABLE_NPAPI_SANDBOX="1";
+	export MOZ_DISABLE_VR_SANDBOX="1";
+fi
+
 for (( j = 0; j < ${#FFVersions[@]}; j++ )); do
 	runTest "${OUTPUTPATH}/${FFVersions[$j]}" "mozconfig_${FFVersions[$j]}_release" $2
 	cd $SAVEDDIR
