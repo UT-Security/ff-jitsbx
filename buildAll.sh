@@ -133,7 +133,7 @@ if [ ! -f ./done-bootstrap ]; then
     # Bootstrap will fail
     # MOZCONFIG=./mozconfig_stock_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
 
-    sudo apt install -y libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common;
+    sudo apt install -y libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common cpufrequtils python3-simplejson;
 
     if [ ! -x "$(command -v rustup)" ] ; then
         curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.76.0 -y;
