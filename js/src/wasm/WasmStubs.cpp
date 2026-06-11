@@ -2769,7 +2769,23 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
 #else
 #ifdef JS_SANDBOX_CET
   masm.pop(SandboxScratchReg);
+#ifdef JS_SANDBOX_CFI
+  AutoBundleGroupScope bundle(masm);
+#ifdef JS_SANDBOX_CFI_MASKS
+#ifdef JS_SANDBOX_4GB_CFI_MASKS
+  masm.andl(Imm32(js::sandbox::BUNDLE_MASK), Operand(rax));
+#else
+  masm.andq(SandboxMaskReg, Operand(rax));
+  masm.andq(Imm32(js::sandbox::BUNDLE_MASK), Operand(rax));
+#endif
+  masm.orq(SandboxBaseReg, Operand(rax));
+#endif
+  // Jump to saved return address
+  masm.jmp(Operand(rax));
+  bundle.end();
+#else
   masm.jmp(Operand(SandboxScratchReg));
+#endif
 #else
   masm.ret();
 #endif
