@@ -6103,7 +6103,15 @@ class AssemblerX86Shared : public AssemblerShared {
     uint8_t* start = startLabel.raw();
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = 0xE8;
-    uint32_t dist = target - startLabel - PatchWrite_NearCallSize();
+#ifdef JS_SANDBOX_CFI
+    // bundle-align target
+    uint64_t base;
+    __asm__("movq %%r14, %0" : "=r"(base));
+    uint8_t* new_target = (uint8_t*)(((uint64_t)target.raw() & sandbox::BUNDLE_MASK) | base);
+#else
+    uint8_t* new_target = target.raw();
+#endif
+    uint32_t dist = new_target - startLabel.raw() - PatchWrite_NearCallSize();
     val |= ((size_t)dist << 8);
     sys_jitcode_modify(start, val, 5, 0);
 #else
