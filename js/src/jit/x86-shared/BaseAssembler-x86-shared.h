@@ -150,14 +150,12 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = OP_CALL_rel32;
 #ifdef JS_SANDBOX_CFI
-    // bundle-align target
     uint64_t base;
     __asm__("movq %%r14, %0" : "=r"(base));
     uint8_t* new_target = (uint8_t*)(((uint64_t)target & sandbox::BUNDLE_MASK) | base);
-#else
-    uint8_t* new_target = target;
+    MOZ_RELEASE_ASSERT(target == new_target);
 #endif
-    uint32_t dist = new_target - callsite;
+    uint32_t dist = target - callsite;
     val |= ((size_t)dist << 8);
     sys_jitcode_modify(inst, val, 5, 0);
 #else

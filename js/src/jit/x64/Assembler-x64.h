@@ -1493,11 +1493,8 @@ class Assembler : public AssemblerX86Shared {
            JitCode* code = nullptr) {
     MOZ_ASSERT(hasCreator());
     AutoBundleGroupScope bundle_group(*this);
-    AutoBundleInstructionScope bundle(*this);
     bundle_group.nopToEnd(JmpSize(target));
     JmpSrc src = masm.jmp();
-    bundle.end();
-    bundle_group.freeze();
     bundle_group.end();
     addPendingJump(src, target, reloc, code);
   }

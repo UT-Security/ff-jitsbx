@@ -1862,7 +1862,6 @@ void* jit::SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount, uint
 #endif
   // Jump to saved return address
   masm.jmp(Operand(rax));
-  bundle.freeze();
   bundle.end();
 #else
   masm.jmp(Operand(rax));
