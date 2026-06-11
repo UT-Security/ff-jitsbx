@@ -2222,19 +2222,13 @@ static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
                                           Register scratch) {
 #if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
   if (address.offset == 0) {
-    masm.And(js::jit::SandboxOffsetReg64, X(masm, address.base),
-             Operand(js::jit::SANDBOX_MASK));
-    masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-             js::jit::SandboxOffsetReg64);
+    masm.SandboxComputeAddress(X(masm, address.base));
     return MemOperand(js::jit::SandboxAddressReg64, 0);
   }
 
   masm.Add(js::jit::SandboxTemporaryReg64, X(masm, address.base),
            address.offset);
-  masm.And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
-           Operand(js::jit::SANDBOX_MASK));
-  masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-           js::jit::SandboxOffsetReg64);
+  masm.SandboxComputeAddress(js::jit::SandboxTemporaryReg64);
   return MemOperand(js::jit::SandboxAddressReg64, 0);
 #else
   if (address.offset == 0) {
@@ -2255,10 +2249,7 @@ static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
     masm.Add(X(scratch), X(scratch), address.offset);
   }
 #if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
-  masm.And(js::jit::SandboxOffsetReg64, X(scratch),
-           Operand(js::jit::SANDBOX_MASK));
-  masm.Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-           js::jit::SandboxOffsetReg64);
+  masm.SandboxComputeAddress(X(scratch));
   return MemOperand(js::jit::SandboxAddressReg64, 0);
 #else
   return MemOperand(X(scratch), 0);

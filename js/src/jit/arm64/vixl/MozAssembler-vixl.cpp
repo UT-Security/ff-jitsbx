@@ -38,6 +38,165 @@ void Assembler::FinalizeCode() {
 #endif
 }
 
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+// Conservative classification of an AArch64 instruction word for LFI guard
+// elimination, mirroring the invalidation rules of the LLVM
+// AArch64MCLFIRewriter (which queries MCInstrDesc for control flow effects
+// and register defs; here the fixed encoding groups are decoded directly).
+//
+// Returns false when the instruction may affect control flow, may later be
+// patched into control flow (hints/nops at toggled call sites, HLT-encoded
+// patch points), or is not positively recognized; the caller must then drop
+// all guard state. Returns true otherwise and sets *writtenMask to a
+// conservative over-approximation of the general-purpose registers the
+// instruction may write (one bit per register code 0-31).
+//
+// The decoding follows the top-level encoding table of the Arm ARM
+// (op0 = bits 28:25), subdividing loads/stores and SIMD/FP just enough to
+// find every possible general-purpose register write.
+bool MozBaseAssembler::LFIInstrWrittenRegs(Instr inst, uint32_t* writtenMask) {
+  *writtenMask = 0;
+  const uint32_t op0 = (inst >> 25) & 0xF;
+
+  // Branches, exception generating and system instructions (op0 = 101x):
+  // B/BL/CBZ/TBZ/B.cond/BR/BLR/RET, BRK/HLT/SVC, all hints (a NOP may be a
+  // toggled call site that is later patched into a BL), barriers, MRS/MSR.
+  if ((op0 & 0xE) == 0xA) {
+    return false;
+  }
+
+  // Data processing -- immediate (op0 = 100x): PC-rel addressing, add/sub
+  // immediate, logical immediate, move wide, bitfield, extract. Writes Rd.
+  if ((op0 & 0xE) == 0x8) {
+    *writtenMask = 1u << (inst & 31);
+    return true;
+  }
+
+  // Data processing -- register (op0 = x101): writes Rd (plus flags, which
+  // do not matter here). In the condition-compare/flags subgroups bits 4:0
+  // are not a destination register; treating them as one over-approximates.
+  if ((op0 & 0x7) == 0x5) {
+    *writtenMask = 1u << (inst & 31);
+    return true;
+  }
+
+  // Loads and stores (op0 = x1x0).
+  if ((op0 & 0x5) == 0x4) {
+    // Load/store exclusive, ordered (LDAR/STLR) and CAS: these write status
+    // and transfer registers in forms not worth decoding precisely.
+    if ((inst & LoadStoreExclusiveFMask) == LoadStoreExclusiveFixed) {
+      return false;
+    }
+    // AdvSIMD load/store structures (LD1-LD4/ST1-ST4, all index forms):
+    // possible base register writeback.
+    if ((inst & 0xBE000000) == 0x0C000000) {
+      return false;
+    }
+    // Load literal: writes Rt (a vector register when V=1, a prefetch
+    // operation for PRFM; both only over-approximate).
+    if ((inst & LoadLiteralFMask) == LoadLiteralFixed) {
+      *writtenMask = 1u << (inst & 31);
+      return true;
+    }
+    // Load/store pair (post-index, offset, pre-index, non-temporal).
+    if ((inst & LoadStorePairAnyFMask) == LoadStorePairAnyFixed) {
+      const bool writeback = (inst >> 23) & 1;
+      const bool isLoad = (inst >> 22) & 1;
+      const bool isVector = (inst >> 26) & 1;
+      uint32_t mask = 0;
+      if (writeback) {
+        mask |= 1u << ((inst >> 5) & 31);  // Rn
+      }
+      if (isLoad && !isVector) {
+        mask |= 1u << (inst & 31);          // Rt
+        mask |= 1u << ((inst >> 10) & 31);  // Rt2
+      }
+      *writtenMask = mask;
+      return true;
+    }
+    // Load/store register (bits 29:28 = 11): unsigned offset, unscaled,
+    // pre/post-index, register offset, unprivileged, and atomic memory
+    // operations. opc == 0 (with V = 0) is a plain store; everything else
+    // is treated as writing Rt.
+    if ((inst & 0x30000000) == 0x30000000) {
+      const bool isVector = (inst >> 26) & 1;
+      const uint32_t opc = (inst >> 22) & 3;
+      uint32_t mask = 0;
+      if ((inst & 0x01000000) != 0) {
+        // Unsigned immediate offset: no writeback.
+        if (!isVector && opc != 0) {
+          mask |= 1u << (inst & 31);  // Rt
+        }
+        *writtenMask = mask;
+        return true;
+      }
+      const uint32_t b21 = (inst >> 21) & 1;
+      const uint32_t b11_10 = (inst >> 10) & 3;
+      if (b21) {
+        if (b11_10 == 2) {
+          // Register offset form: no writeback.
+          if (!isVector && opc != 0) {
+            mask |= 1u << (inst & 31);  // Rt
+          }
+          *writtenMask = mask;
+          return true;
+        }
+        if (b11_10 == 0) {
+          // Atomic memory operations (LDADD/LDCLR/.../SWP/LDAPR): write Rt.
+          *writtenMask = 1u << (inst & 31);
+          return true;
+        }
+        // PAC loads (LDRAA/LDRAB): Rt plus possible writeback of Rn.
+        *writtenMask = (1u << (inst & 31)) | (1u << ((inst >> 5) & 31));
+        return true;
+      }
+      // b21 == 0: unscaled (00), post-index (01), unprivileged (10),
+      // pre-index (11).
+      if (b11_10 == 1 || b11_10 == 3) {
+        mask |= 1u << ((inst >> 5) & 31);  // Rn writeback
+      }
+      if (!isVector && opc != 0) {
+        mask |= 1u << (inst & 31);  // Rt
+      }
+      *writtenMask = mask;
+      return true;
+    }
+    // Anything else in the load/store space (memory tags, future
+    // extensions).
+    return false;
+  }
+
+  // Data processing -- scalar FP and SIMD (op0 = x111).
+  if ((op0 & 0x7) == 0x7) {
+    // Scalar FP space (bits 28:24 = 11110, bit 30 = 0). Only the
+    // FP<->integer conversions (bit 21 = 1, bits 15:10 = 0: FMOV general,
+    // FCVT*, SCVTF/UCVTF register, FJCVTZS) and the fixed-point conversions
+    // (bit 21 = 0) can write a general-purpose register. Bits 4:0 are
+    // treated as written for both directions; the to-vector direction only
+    // over-approximates.
+    if ((inst & 0x5F000000) == 0x1E000000) {
+      const uint32_t b21 = (inst >> 21) & 1;
+      const uint32_t b15_10 = (inst >> 10) & 0x3F;
+      if (!b21 || b15_10 == 0) {
+        *writtenMask = 1u << (inst & 31);
+      }
+      return true;
+    }
+    // AdvSIMD copy: UMOV/SMOV write a GPR (INS/DUP from general only
+    // over-approximate).
+    if ((inst & NEONCopyFMask) == NEONCopyFixed) {
+      *writtenMask = 1u << (inst & 31);
+      return true;
+    }
+    // Everything else in this group writes only SIMD/FP registers.
+    return true;
+  }
+
+  // Reserved, SVE, or unallocated encodings.
+  return false;
+}
+#endif  // JS_SANDBOX_HEAP && JS_SANDBOX_LFI
+
 // Unbound Label Representation.
 //
 // We can have multiple branches using the same label before it is bound.

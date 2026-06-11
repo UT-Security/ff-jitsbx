@@ -261,6 +261,11 @@ void Assembler::bind(Label* label, BufferOffset targetOffset) {
 #ifdef JS_DISASM_ARM64
   spew_.spewBind(label);
 #endif
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  // A bound label is a potential branch target: code after it may be reached
+  // without executing a preceding LFI guard, so stop eliding guards.
+  resetLFIGuardState();
+#endif
   // Nothing has seen the label yet: just mark the location.
   // If we've run out of memory, don't attempt to modify the buffer which may
   // not be there. Just mark the label as bound to the (possibly bogus)

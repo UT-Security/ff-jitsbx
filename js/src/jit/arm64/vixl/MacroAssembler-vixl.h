@@ -333,6 +333,19 @@ class MacroAssembler : public js::jit::Assembler {
                           const MemOperand& addr,
                           LoadStorePairOp op);
 
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  // LFI data guard emitters with redundant guard elimination (the analogue
+  // of the guard elimination optimization in the LLVM AArch64MCLFIRewriter).
+  //
+  // SandboxMaskOffset establishes x24 == base & SANDBOX_MASK, for accesses
+  // of the form [x27, x24]. SandboxComputeAddress additionally establishes
+  // x28 == x27 + (base & SANDBOX_MASK), for accesses of the form
+  // [x28, #imm]. Both elide instructions whose effect is still active from
+  // a previous guard of the same base register in the same basic block.
+  void SandboxMaskOffset(const Register& base);
+  void SandboxComputeAddress(const Register& base);
+#endif
+
   void Prfm(PrefetchOperation op, const MemOperand& addr);
 
   // Push or pop up to 4 registers of the same width to or from the stack,

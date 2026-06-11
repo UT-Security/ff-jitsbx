@@ -488,7 +488,14 @@ class Assembler : public vixl::Assembler {
 
   void bind(Label* label) { bind(label, nextOffset()); }
   void bind(Label* label, BufferOffset boff);
-  void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
+  void bind(CodeLabel* label) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    // The current position becomes an indirect branch target (e.g. a jump
+    // table entry), so stop eliding LFI guards.
+    resetLFIGuardState();
+#endif
+    label->target()->bind(currentOffset());
+  }
 
   void setUnlimitedBuffer() { armbuffer_.setUnlimited(); }
   bool oom() const {

@@ -818,12 +818,29 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
 #endif
   }
 
-  void align(int alignment) { armbuffer_.align(alignment); }
+  // Alignment is requested for positions that may become entry points
+  // (function/stub starts, jump table targets) without necessarily binding a
+  // label there, and the fill instructions bypass Emit(); stop eliding LFI
+  // guards across alignment.
+  void align(int alignment) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    resetLFIGuardState();
+#endif
+    armbuffer_.align(alignment);
+  }
 
   void haltingAlign(int alignment) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    resetLFIGuardState();
+#endif
     armbuffer_.align(alignment, vixl::HLT | ImmException(0xBAAD));
   }
-  void nopAlign(int alignment) { armbuffer_.align(alignment); }
+  void nopAlign(int alignment) {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    resetLFIGuardState();
+#endif
+    armbuffer_.align(alignment);
+  }
 
   void movePtr(Register src, Register dest) {
     Mov(ARMRegister(dest, 64), ARMRegister(src, 64));

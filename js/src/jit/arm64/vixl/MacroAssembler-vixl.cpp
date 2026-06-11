@@ -1215,6 +1215,29 @@ static bool IsStoreOp(LoadStoreOp op) {
 #endif
 
 #if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+void MacroAssembler::SandboxMaskOffset(const Register& base) {
+  // Elide the mask when x24 still holds base & SANDBOX_MASK from a previous
+  // guard of the same register in this basic block.
+  if (LFIGuardElimEnabled() && lfiOffsetGuardActiveFor(base.code())) {
+    return;
+  }
+  And(js::jit::SandboxOffsetReg64, base, Operand(js::jit::SANDBOX_MASK));
+  recordLFIOffsetGuard(base.code());
+}
+
+void MacroAssembler::SandboxComputeAddress(const Register& base) {
+  // Elide both guard instructions when x28 still holds
+  // x27 + (base & SANDBOX_MASK) from a previous guard of the same register
+  // in this basic block.
+  if (LFIGuardElimEnabled() && lfiAddrGuardActiveFor(base.code())) {
+    return;
+  }
+  SandboxMaskOffset(base);
+  Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
+      js::jit::SandboxOffsetReg64);
+  recordLFIAddrGuard(base.code());
+}
+
 js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
                                                    const MemOperand& addr,
                                                    LoadStoreOp op) {
@@ -1242,8 +1265,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     if (IsStoreOp(op)) {
       Add(js::jit::SandboxTemporaryReg64, addr.base(),
           js::jit::SandboxTemporaryReg64);
-      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(js::jit::SandboxTemporaryReg64);
 #ifdef JS_SANDBOX_DEBUG
       Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
           js::jit::SandboxOffsetReg64);
@@ -1265,8 +1287,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     // Post-index beyond unscaled addressing range.
     MemOperand sandboxedAddr(addr.base());
     if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Cmp(addr.base(), xzr);
@@ -1299,8 +1320,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     MemOperand sandboxedAddr(addr.base());
     if (IsStoreOp(op) && addr.base().code() != js::jit::sp.code()) {
       Add(addr.base(), addr.base(), Operand(offset));
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
@@ -1330,8 +1350,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
     MemOperand sandboxedAddr = addr;
     if (addr.IsEquivalentToPlainRegister() && IsStoreOp(op) &&
         addr.base().code() != js::jit::sp.code()) {
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Cmp(addr.base(), xzr);
@@ -1347,10 +1366,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
           MemOperand(js::jit::SandboxBaseReg64, js::jit::SandboxOffsetReg64);
     } else if (addr.IsImmediateOffset() && IsStoreOp(op) &&
                addr.base().code() != js::jit::sp.code()) {
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
-      Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-          js::jit::SandboxOffsetReg64);
+      SandboxComputeAddress(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Cmp(addr.base(), xzr);
@@ -1371,8 +1387,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
       } else {
         Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.regoffset());
       }
-      And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(js::jit::SandboxTemporaryReg64);
 #ifdef JS_SANDBOX_DEBUG
       Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
           js::jit::SandboxOffsetReg64);
@@ -1391,8 +1406,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
       } else {
         Add(addr.base(), addr.base(), addr.regoffset());
       }
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Add(js::jit::SandboxTemporaryReg64, js::jit::SandboxBaseReg64,
@@ -1413,8 +1427,7 @@ js::jit::CodeOffset MacroAssembler::LoadStoreMacro(const CPURegister& rt,
       sandboxedAddr = MemOperand(addr.base());
     } else if (addr.IsPostIndex() && IsStoreOp(op) &&
                addr.base().code() != js::jit::sp.code()) {
-      And(js::jit::SandboxOffsetReg64, addr.base(),
-          Operand(js::jit::SANDBOX_MASK));
+      SandboxMaskOffset(addr.base());
 #ifdef JS_SANDBOX_DEBUG
       Label ok;
       Cmp(addr.base(), xzr);
@@ -1632,36 +1645,24 @@ void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
 #if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
   if (addr.IsEquivalentToPlainRegister() && IsStorePairOp(op) &&
       addr.base().code() != js::jit::sp.code()) {
-    And(js::jit::SandboxOffsetReg64, addr.base(),
-        Operand(js::jit::SANDBOX_MASK));
-    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-        js::jit::SandboxOffsetReg64);
+    SandboxComputeAddress(addr.base());
     LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
     return;
   } else if (IsImmLSPair(offset, access_size) && addr.IsImmediateOffset() &&
              IsStorePairOp(op) && addr.base().code() != js::jit::sp.code()) {
-    And(js::jit::SandboxOffsetReg64, addr.base(),
-        Operand(js::jit::SANDBOX_MASK));
-    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-        js::jit::SandboxOffsetReg64);
+    SandboxComputeAddress(addr.base());
     LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64, offset),
                   op);
     return;
   } else if (!IsImmLSPair(offset, access_size) && addr.IsImmediateOffset() &&
              IsStorePairOp(op)) {
     Add(js::jit::SandboxTemporaryReg64, addr.base(), addr.offset());
-    And(js::jit::SandboxOffsetReg64, js::jit::SandboxTemporaryReg64,
-        Operand(js::jit::SANDBOX_MASK));
-    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-        js::jit::SandboxOffsetReg64);
+    SandboxComputeAddress(js::jit::SandboxTemporaryReg64);
     LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
     return;
   } else if (addr.IsPostIndex() && IsStorePairOp(op) &&
              addr.base().code() != js::jit::sp.code()) {
-    And(js::jit::SandboxOffsetReg64, addr.base(),
-        Operand(js::jit::SANDBOX_MASK));
-    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-        js::jit::SandboxOffsetReg64);
+    SandboxComputeAddress(addr.base());
     LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
     Add(addr.base(), addr.base(), offset);
     return;
@@ -1675,10 +1676,7 @@ void MacroAssembler::LoadStorePairMacro(const CPURegister& rt,
   } else if (addr.IsPreIndex() && IsStorePairOp(op) &&
              addr.base().code() != js::jit::sp.code()) {
     Add(addr.base(), addr.base(), addr.offset());
-    And(js::jit::SandboxOffsetReg64, addr.base(),
-        Operand(js::jit::SANDBOX_MASK));
-    Add(js::jit::SandboxAddressReg64, js::jit::SandboxBaseReg64,
-        js::jit::SandboxOffsetReg64);
+    SandboxComputeAddress(addr.base());
     LoadStorePair(rt, rt2, MemOperand(js::jit::SandboxAddressReg64), op);
     return;
   } else if (!IsImmLSPair(offset, access_size) && addr.IsPreIndex() &&

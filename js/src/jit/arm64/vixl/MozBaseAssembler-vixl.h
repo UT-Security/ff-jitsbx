@@ -33,6 +33,7 @@
 
 #include <stddef.h>  // size_t
 #include <stdint.h>  // uint8_t, uint32_t
+#include <stdlib.h>  // getenv
 #include <string.h>  // strstr
 
 #include "jit/arm64/vixl/Constants-vixl.h"     // vixl::{HINT, NOP, ImmHint_offset}
@@ -106,6 +107,92 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
       spew_.spewOrphans();
 #endif
   }
+
+ public:
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+  // LFI guard elimination (mirrors the guard elimination optimization in the
+  // LLVM AArch64MCLFIRewriter): when a register has already been guarded and
+  // neither it nor the guard result registers have been modified since, a
+  // subsequent guard of the same register within the same basic block is
+  // redundant and can be elided.
+  //
+  // Two invariants are tracked, identified by the source register code:
+  //  - offset guard: x24 == Xsrc & SANDBOX_MASK
+  //  - address guard: x28 == x27 + (Xsrc & SANDBOX_MASK)
+  //
+  // The state is invalidated by Emit() when an instruction may write the
+  // source register (X or W view), the guard result register, or may affect
+  // control flow (including instructions that can later be patched into
+  // control flow, e.g. nops at toggled call sites). It is also reset at every
+  // potential branch target: bound labels, code labels, alignment points, and
+  // inline data.
+  static constexpr uint8_t kLFIGuardInvalid = 0xFF;
+
+  void resetLFIGuardState() {
+    lfiOffsetGuardSrc_ = kLFIGuardInvalid;
+    lfiAddrGuardSrc_ = kLFIGuardInvalid;
+  }
+
+  bool lfiOffsetGuardActiveFor(unsigned code) const {
+    return lfiOffsetGuardSrc_ == code;
+  }
+  bool lfiAddrGuardActiveFor(unsigned code) const {
+    return lfiAddrGuardSrc_ == code;
+  }
+
+  // Record that a guard of the register with the given code was just emitted.
+  // x24 and x28 are never tracked: guarding them overwrites the very register
+  // the invariant is expressed in. sp/xzr (31, or 63 for vixl's internal sp
+  // code) never reach the guard emitters and are excluded defensively.
+  static bool lfiTrackableGuardSrc(unsigned code) {
+    return code <= 30 && code != 24 && code != 28;
+  }
+  void recordLFIOffsetGuard(unsigned code) {
+    if (lfiTrackableGuardSrc(code)) {
+      lfiOffsetGuardSrc_ = uint8_t(code);
+    }
+  }
+  void recordLFIAddrGuard(unsigned code) {
+    if (lfiTrackableGuardSrc(code)) {
+      lfiAddrGuardSrc_ = uint8_t(code);
+    }
+  }
+
+  // Kill switch for the optimization, the analogue of LLVM's
+  // -aarch64-lfi-no-guard-elim flag.
+  static bool LFIGuardElimEnabled() {
+    static const bool disabled = !!getenv("JS_LFI_NO_GUARD_ELIM");
+    return !disabled;
+  }
+
+ protected:
+  // Conservatively classify an emitted instruction. Returns false if the
+  // instruction may affect control flow or cannot be positively classified
+  // (the guard state must be reset entirely). Returns true otherwise, with
+  // *writtenMask holding a bit for each register code the instruction may
+  // write. Defined in MozAssembler-vixl.cpp.
+  static bool LFIInstrWrittenRegs(Instr inst, uint32_t* writtenMask);
+
+  void lfiTrackEmittedInstr(Instr inst) {
+    uint32_t written;
+    if (!LFIInstrWrittenRegs(inst, &written)) {
+      resetLFIGuardState();
+      return;
+    }
+    // Recorded source codes are always <= 30, so the shifts are defined.
+    if (lfiOffsetGuardSrc_ != kLFIGuardInvalid &&
+        (written & ((1u << 24) | (1u << lfiOffsetGuardSrc_)))) {
+      lfiOffsetGuardSrc_ = kLFIGuardInvalid;
+    }
+    if (lfiAddrGuardSrc_ != kLFIGuardInvalid &&
+        (written & ((1u << 28) | (1u << lfiAddrGuardSrc_)))) {
+      lfiAddrGuardSrc_ = kLFIGuardInvalid;
+    }
+  }
+
+  uint8_t lfiOffsetGuardSrc_ = kLFIGuardInvalid;
+  uint8_t lfiAddrGuardSrc_ = kLFIGuardInvalid;
+#endif  // JS_SANDBOX_HEAP && JS_SANDBOX_LFI
 
  public:
   // Return the Instruction at a given byte offset.
@@ -249,6 +336,12 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
     // TODO: isBranch is obsolete and should be removed.
     (void)isBranch;
     MOZ_ASSERT(hasCreator());
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    if (lfiOffsetGuardSrc_ != kLFIGuardInvalid ||
+        lfiAddrGuardSrc_ != kLFIGuardInvalid) {
+      lfiTrackEmittedInstr(instruction);
+    }
+#endif
     BufferOffset offs = armbuffer_.putInt(*(uint32_t*)(&instruction));
 #ifdef JS_DISASM_ARM64
     if (!isBranch)
@@ -281,6 +374,9 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
   BufferOffset EmitData(void const * data, unsigned size) {
     VIXL_ASSERT(size % 4 == 0);
     MOZ_ASSERT(hasCreator());
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    resetLFIGuardState();
+#endif
     return armbuffer_.allocEntry(size / sizeof(uint32_t), 0, (uint8_t*)(data), nullptr);
   }
 
@@ -292,6 +388,9 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
 
   // Move the pool into the instruction stream.
   void flushBuffer() {
+#if defined(JS_SANDBOX_HEAP) && defined(JS_SANDBOX_LFI)
+    resetLFIGuardState();
+#endif
     armbuffer_.flushPool();
   }
 
