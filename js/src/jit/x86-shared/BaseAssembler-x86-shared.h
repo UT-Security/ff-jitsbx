@@ -34,6 +34,7 @@
 #include "jit/JitCode.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerPrintfMacros.h"
+#include "sandbox/Bundle.h"
 
 #ifdef JS_SANDBOX_BUNDLE
 #  include "jit/x86-shared/AssemblerBundleBuffer-x86-shared.h"
@@ -148,7 +149,15 @@ class BaseAssembler : public GenericAssembler {
                       inst[3] == OP_NOP_00 || inst[4] == OP_NOP_00);
 #ifdef JS_SANDBOX_LFI_JIT_MEMORY
     size_t val = OP_CALL_rel32;
-    uint32_t dist = target - callsite;
+#ifdef JS_SANDBOX_CFI
+    // bundle-align target
+    uint64_t base;
+    __asm__("movq %%r14, %0" : "=r"(base));
+    uint8_t* new_target = (uint8_t*)(((uint64_t)target & sandbox::BUNDLE_MASK) | base);
+#else
+    uint8_t* new_target = target;
+#endif
+    uint32_t dist = new_target - callsite;
     val |= ((size_t)dist << 8);
     sys_jitcode_modify(inst, val, 5, 0);
 #else

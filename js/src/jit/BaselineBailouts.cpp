@@ -1849,6 +1849,8 @@ void* jit::SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount, uint
     masm.subq(Imm32(savedOffsets[i]), tempSavedOffReg);
     masm.storePtr(tempSavedAddrReg, Address(tempSavedOffReg, 0));
   }
+#ifdef JS_SANDBOX_CFI
+  AutoBundleGroupScope bundle(masm);
 #ifdef JS_SANDBOX_CFI_MASKS
 #ifdef JS_SANDBOX_4GB_CFI_MASKS
   masm.andl(Imm32(sandbox::BUNDLE_MASK), Operand(rax));
@@ -1860,6 +1862,11 @@ void* jit::SetupShstkReconstruction(JSContext* cx, uint64_t savedAddrCount, uint
 #endif
   // Jump to saved return address
   masm.jmp(Operand(rax));
+  bundle.freeze();
+  bundle.end();
+#else
+  masm.jmp(Operand(rax));
+#endif
   
   Linker linker(masm);
   return linker.newCode(cx, CodeKind::Other)->raw();
