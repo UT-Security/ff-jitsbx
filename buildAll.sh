@@ -150,12 +150,28 @@ fi
 # Use the system compiler and libc++ as the Firefox one is too old
 # export MOZBUILD_STATE_PATH="$(realpath .)/default-build-toolchain/"
 
+# Stock release
 MOZCONFIG=./mozconfig_stock_release ./mach build
 
+# Wasm release
 MOZCONFIG=./mozconfig_wasm_release ./mach build
 
+# LFI release
 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
 
+# Stock debug
+# MOZCONFIG=./mozconfig_stock_debug ./mach build
+
+# Wasm debug
+# MOZCONFIG=./mozconfig_wasm_debug ./mach build
+
+# LFI debug
+# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug ./mach build
+
 if [[ "$(uname -m)" == "x86_64" ]]; then
+    # LFI large release
     LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+
+    # LFI large debug
+    # LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_debug ./mach build
 fi
