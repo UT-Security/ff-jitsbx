@@ -1,6 +1,6 @@
 ac_add_options --enable-application=browser
 
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_lfi_debugmixrr
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_lfi_debug_rrarm64_lfirelease
 ac_add_options --enable-debug
 ac_add_options --disable-optimize
 
@@ -19,3 +19,4 @@ ac_add_options --with-wasm-sandboxed-libraries=graphite
 
 ac_add_options --enable-wasm-use-lfi
 ac_add_options --with-lfi-runtime-dir="../lfi-runtime"
+ac_add_options --with-rlbox-lfi-bin-release-suffix="$topsrcdir/rlbox_release.lfi"

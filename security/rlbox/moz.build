@@ -103,5 +103,6 @@ GeneratedFile(
     "rlbox.wasm.c", "lfiincstub.s",
     script="/config/wasm2c.py",
     entry_point="wasm2c",
-    inputs=["!/dist/host/bin/wasm2c" + CONFIG["HOST_BIN_SUFFIX"], "!rlbox.wasm", "lfiincstub.s"],
+    inputs=["!/dist/host/bin/wasm2c" + CONFIG["HOST_BIN_SUFFIX"], "!rlbox.wasm", "lfiincstub.s"], 
+    flags = [ CONFIG["CUSTOM_RLBOX_LFI_BIN"] ],
 )
