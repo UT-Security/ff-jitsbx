@@ -280,10 +280,10 @@
         '<(DEPTH)/exports.gyp:nss_exports'
       ],
       'cflags': [
-        '-march=armv8-a+crypto'
+        '-march=armv8-a+lse+crypto'
       ],
       'cflags_mozilla': [
-        '-march=armv8-a+crypto'
+        '-march=armv8-a+lse+crypto'
       ]
     },
     {
@@ -467,21 +467,21 @@
       'conditions': [
         [ 'target_arch=="arm"', {
           'cflags': [
-            '-march=armv8-a',
+            '-march=armv8-a+lse',
             '-mfpu=crypto-neon-fp-armv8',
             '<@(softfp_cflags)',
           ],
           'cflags_mozilla': [
-            '-march=armv8-a',
+            '-march=armv8-a+lse',
             '-mfpu=crypto-neon-fp-armv8',
             '<@(softfp_cflags)',
           ],
         }, 'target_arch=="arm64" or target_arch=="aarch64"', {
           'cflags': [
-            '-march=armv8-a+crypto'
+            '-march=armv8-a+crypto+lse'
           ],
           'cflags_mozilla': [
-            '-march=armv8-a+crypto'
+            '-march=armv8-a+crypto+lse'
           ],
         }]
       ]

@@ -2053,7 +2053,7 @@ with only_when(compile_environment):
         if target.cpu == "arm":
             return neon_flags
         elif target.cpu == "aarch64":
-            return ("-march=armv8-a",)
+            return ("-march=armv8-a+lse",)
 
     @depends("--with-system-jpeg", target)
     def in_tree_jpeg_mips64(system_jpeg, target):

@@ -24,9 +24,9 @@ endif()
 set(CMAKE_C_COMPILER ${CROSS}gcc)
 set(CMAKE_CXX_COMPILER ${CROSS}g++)
 set(AS_EXECUTABLE ${CROSS}as)
-set(CMAKE_C_COMPILER_ARG1 "-march=armv8-a")
-set(CMAKE_CXX_COMPILER_ARG1 "-march=armv8-a")
-set(AOM_AS_FLAGS "-march=armv8-a")
+set(CMAKE_C_COMPILER_ARG1 "-march=armv8-a+lse")
+set(CMAKE_CXX_COMPILER_ARG1 "-march=armv8-a+lse")
+set(AOM_AS_FLAGS "-march=armv8-a+lse")
 set(CMAKE_SYSTEM_PROCESSOR "arm64")
 
 # No intrinsics flag required for arm64-linux-gcc.

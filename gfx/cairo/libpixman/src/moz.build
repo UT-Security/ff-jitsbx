@@ -80,7 +80,7 @@ elif CONFIG['CPU_ARCH'] == 'aarch64' and CONFIG['OS_TARGET'] in ('Android', 'Lin
         'pixman-arma64-neon-asm-bilinear.S',
         'pixman-arma64-neon-asm.S',
     ]
-    SOURCES['pixman-arm-neon.c'].flags += ['-march=armv8-a']
+    SOURCES['pixman-arm-neon.c'].flags += ['-march=armv8-a+lse']
 elif CONFIG['CPU_ARCH'] == 'arm':
     if CONFIG['HAVE_ARM_NEON']:
         DEFINES['USE_ARM_NEON'] = True

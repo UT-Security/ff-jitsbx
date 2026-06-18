@@ -101,7 +101,7 @@ if (target_cpu == "arm" || v8_target_cpu == "arm") {
     }
   } else if (arm_version == 8) {
     if (arm_arch == "") {
-      arm_arch = "armv8-a"
+      arm_arch = "armv8-a+lse"
     }
     if (arm_tune == "") {
       arm_tune = "generic-armv8-a"
