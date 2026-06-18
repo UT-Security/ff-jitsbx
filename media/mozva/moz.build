@@ -8,4 +8,9 @@ SOURCES += [
     "mozva.c",
 ]
 
+if CONFIG["OS_ARCH"] == "Linux":
+    OS_LIBS += [
+        "dl",
+    ]
+
 Library("mozva")

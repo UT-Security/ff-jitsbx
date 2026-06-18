@@ -252,3 +252,8 @@ EXPORTS.nspr.private += [
     "/nsprpub/pr/include/private/pprthred.h",
     "/nsprpub/pr/include/private/prpriv.h",
 ]
+
+if CONFIG["OS_ARCH"] == "Linux":
+    OS_LIBS += [
+        "dl",
+    ]

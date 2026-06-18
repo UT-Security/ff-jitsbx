@@ -21,4 +21,9 @@ if CONFIG["MOZ_LINKER"] and CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "/mozglue/linker",
     ]
 
+if CONFIG["OS_ARCH"] == "Linux":
+    OS_LIBS += [
+        "dl",
+    ]
+
 FINAL_LIBRARY = "mozglue"

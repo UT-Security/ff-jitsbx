@@ -120,3 +120,8 @@ if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
 # user doesn't move auxiliary files along with the main database.
 # This is in bytes.
 DEFINES['SQLITE_DEFAULT_JOURNAL_SIZE_LIMIT'] = 1572864
+
+if CONFIG["OS_ARCH"] == "Linux":
+    OS_LIBS += [
+        "dl",
+    ]

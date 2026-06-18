@@ -141,6 +141,11 @@ DIRS += [
     "reporter",
 ]
 
+if CONFIG["OS_ARCH"] == "Linux":
+    OS_LIBS += [
+        "dl",
+    ]
+
 TEST_DIRS += [
     "gtest",
 ]
