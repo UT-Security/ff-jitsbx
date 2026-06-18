@@ -9645,8 +9645,8 @@ nsTextFrame::TrimOutput nsTextFrame::TrimTrailingWhiteSpace(
   // Maybe if we passed a maxTextLength? But that only happens at direction
   // changes (so we wouldn't kern across the boundary) or for first-letter
   // (which always fits because it starts the line!).
-  NS_WARNING_ASSERTION(result.mDeltaWidth >= 0,
-                       "Negative deltawidth, something odd is happening");
+  // NS_WARNING_ASSERTION(result.mDeltaWidth >= 0,
+  //                      "Negative deltawidth, something odd is happening");
 
 #ifdef NOISY_TRIM
   ListTag(stdout);

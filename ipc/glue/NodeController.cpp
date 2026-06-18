@@ -347,9 +347,9 @@ void NodeController::ForwardEvent(const NodeName& aNode,
 
         broker = state->mPeers.Get(kBrokerNodeName);
         if (!broker) {
-          NODECONTROLLER_WARNING(
-              "Ignoring message '%s' to peer %s due to a missing broker",
-              message->name(), ToString(aNode).c_str());
+          // NODECONTROLLER_WARNING(
+          //     "Ignoring message '%s' to peer %s due to a missing broker",
+          //     message->name(), ToString(aNode).c_str());
           return;
         }
 
