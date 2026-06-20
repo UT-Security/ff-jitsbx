@@ -1086,9 +1086,9 @@ export class RemoteSettingsClient extends EventEmitter {
           metadata
         );
       } catch (e) {
-        lazy.console.error(
-          `${this.identifier} Signature failed ${retry ? "again" : ""} ${e}`
-        );
+        // lazy.console.error(
+        //   `${this.identifier} Signature failed ${retry ? "again" : ""} ${e}`
+        // );
         if (!(e instanceof InvalidSignatureError)) {
           // If it failed for any other kind of error (eg. shutdown)
           // then give up quickly.
@@ -1121,7 +1121,7 @@ export class RemoteSettingsClient extends EventEmitter {
           lazy.console.debug(`${this.identifier} clear local data`);
           await this.db.clear();
           // Local data was tampered, throw and it will retry from empty DB.
-          lazy.console.error(`${this.identifier} local data was corrupted`);
+          // lazy.console.error(`${this.identifier} local data was corrupted`);
           throw new CorruptedDataError(this.identifier);
         } else if (retry) {
           // We retried already, we will restore the previous local data
