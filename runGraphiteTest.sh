@@ -11,7 +11,11 @@ sudo cpufreq-set -c 2 -g performance
 sudo cpufreq-set -c 2 --min 2200MHz --max 2200MHz
 
 # disable_hyperthreading
-sudo bash -c "echo off > /sys/devices/system/cpu/smt/control"
+export DEACTIVATED_HYPERTHREADS=0
+if [ "$(cat /sys/devices/system/cpu/smt/active)" != "0" ]; then
+  export DEACTIVATED_HYPERTHREADS=1;
+  sudo bash -c "echo off > /sys/devices/system/cpu/smt/control"
+fi
 
 # isolate_cpu2
 CGROOT=/sys/fs/cgroup
@@ -54,7 +58,10 @@ sudo cpufreq-set -c 2 -g ${POLICYINFO[2]} && \
 sudo cpufreq-set -c 2 --min ${POLICYINFO[0]}MHz --max ${POLICYINFO[1]}MHz
 
 # restore_hyperthreading
-sudo bash -c "echo on > /sys/devices/system/cpu/smt/control"
+if [ "$DEACTIVATED_HYPERTHREADS" == "1" ]; then
+  sudo bash -c "echo on > /sys/devices/system/cpu/smt/control";
+fi
+unset DEACTIVATED_HYPERTHREADS
 
 # Kill Xvfb
 unset DISPLAY
