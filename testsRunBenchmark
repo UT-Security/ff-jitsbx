@@ -101,6 +101,6 @@ done
 ./testsAnalyzeExtractedLogs.py "${OUTPUTPATH}/"
 
 echo "-----------------------------------"
-echo "Results are saved in ${OUTPUTPATH}/"
+echo "Results are saved in \"${OUTPUTPATH}/\""
 echo "-----------------------------------"
 cat "${OUTPUTPATH}/compare_stock_terminal_analysis.json.dat"
