@@ -46,10 +46,10 @@ if [[ "$(uname -m)" != "x86_64" ]]; then
   CONFIGS_TO_TEST="stock wasm lfi"
 fi
 
-# ./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
+./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
 
-sudo systemctl stop benchmark.slice # extra check to stop any other programs
-systemd-run --slice=benchmark.slice --scope -u benchmarkunit echo "hi"
+# sudo systemctl stop benchmark.slice # extra check to stop any other programs
+# systemd-run --slice=benchmark.slice --scope -u benchmarkunit echo "hi"
 
 # restore_cpu2
 sudo systemctl stop benchmark.slice # extra check to stop any other programs
