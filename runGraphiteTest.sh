@@ -45,7 +45,10 @@ if [[ "$(uname -m)" != "x86_64" ]]; then
   CONFIGS_TO_TEST="stock wasm lfi"
 fi
 
-./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
+# ./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
+
+sudo systemctl stop benchmark.slice # extra check to stop any other programs
+systemd-run --slice=benchmark.slice --scope -u benchmarkunit echo "hi"
 
 # restore_cpu2
 sudo systemctl stop benchmark.slice # extra check to stop any other programs
@@ -55,7 +58,7 @@ sudo systemctl stop benchmark.slice # extra check to stop any other programs
 # restore_cpufreq
 POLICYINFO=($(cpufreq-info -c 0 -p)) && \
 sudo cpufreq-set -c 2 -g ${POLICYINFO[2]} && \
-sudo cpufreq-set -c 2 --min ${POLICYINFO[0]}MHz --max ${POLICYINFO[1]}MHz
+sudo cpufreq-set -c 2 --min ${POLICYINFO[0]} --max ${POLICYINFO[1]}
 
 # restore_hyperthreading
 if [ "$DEACTIVATED_HYPERTHREADS" == "1" ]; then
