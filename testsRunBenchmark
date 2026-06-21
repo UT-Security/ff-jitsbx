@@ -40,8 +40,8 @@ for (( i = 0; i < ${#FFVersions[@]}; i++ )); do
 	fi
 done
 
-echo "Starting. Make sure to isolate cpus 2 then disable scaling."
-sleep 3
+echo "Starting. Assuming this is called by a harness that has setup the CPU for benchmarking."
+sleep 1
 
 # param: outputDir/prefix
 # param: mozconfig
