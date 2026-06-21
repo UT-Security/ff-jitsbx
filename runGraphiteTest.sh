@@ -59,6 +59,7 @@ sudo systemctl stop benchmark.slice # extra check to stop any other programs
 # restore_cpufreq
 sudo cpufreq-set -c 2 -g ${CPUPOLICYINFO[2]}
 sudo cpufreq-set -c 2 --min ${CPUPOLICYINFO[0]} --max ${CPUPOLICYINFO[1]}
+unset CPUPOLICYINFO
 
 # restore_hyperthreading
 if [ "$DEACTIVATED_HYPERTHREADS" == "1" ]; then
