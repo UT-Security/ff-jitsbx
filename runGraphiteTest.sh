@@ -7,8 +7,9 @@ fi
 export DISPLAY=:99
 
 # disable_cpufreq
+export CPUPOLICYINFO=($(cpufreq-info -c 0 -p))
 sudo cpufreq-set -c 2 -g performance
-sudo cpufreq-set -c 2 --min 2200MHz --max 2200MHz
+sudo cpufreq-set -c 2 --min $((${CPUPOLICYINFO[1]}/2)) --max $((${CPUPOLICYINFO[1]}/2))
 
 # disable_hyperthreading
 export DEACTIVATED_HYPERTHREADS=0
@@ -56,9 +57,8 @@ sudo systemctl stop benchmark.slice # extra check to stop any other programs
 /bin/echo "" | sudo tee $CGDIR/cpuset.cpus
 
 # restore_cpufreq
-POLICYINFO=($(cpufreq-info -c 0 -p)) && \
-sudo cpufreq-set -c 2 -g ${POLICYINFO[2]} && \
-sudo cpufreq-set -c 2 --min ${POLICYINFO[0]} --max ${POLICYINFO[1]}
+sudo cpufreq-set -c 2 -g ${CPUPOLICYINFO[2]}
+sudo cpufreq-set -c 2 --min ${CPUPOLICYINFO[0]} --max ${CPUPOLICYINFO[1]}
 
 # restore_hyperthreading
 if [ "$DEACTIVATED_HYPERTHREADS" == "1" ]; then
