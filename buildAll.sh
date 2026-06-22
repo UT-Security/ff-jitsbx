@@ -99,7 +99,7 @@ meson setup --reconfigure ./build_debug --buildtype debug \
     -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true
 ninja -C ./build_debug
 
-meson setup --reconfigure ./build_release --buildtype debug \
+meson setup --reconfigure ./build_release --buildtype release \
     -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true
 ninja -C ./build_release
 
@@ -119,7 +119,7 @@ meson setup --reconfigure ./build_debug --buildtype debug \
     -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
 ninja -C ./build_debug
 
-meson setup --reconfigure ./build_release --buildtype debug \
+meson setup --reconfigure ./build_release --buildtype release \
     -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
 ninja -C ./build_release
 
