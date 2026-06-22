@@ -51,7 +51,9 @@ function download_largelfi_toolchain() {
         tar -xzf x86_64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=2
         rm x86_64-lfi-large-clang.tar.gz
     else
-        echo "!!!!!!!!!Large sandbox toolchain not yet supported on aarch64"
+        scp $USER@rashford.csres.utexas.edu:/var/tmp/largesbx-data/toolchains/aarch64-lfi-large-clang.tar.gz ./aarch64-lfi-large-clang.tar.gz
+        tar -xzf aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=1
+        rm aarch64-lfi-large-clang.tar.gz
     fi
 }
 
@@ -108,7 +110,13 @@ popd
 ######################################
 
 if [ ! -d ../largelfi-runtime ]; then
-    git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
+        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+    else
+        git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
+        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true
+    fi
 fi
 
 pushd .
@@ -116,13 +124,14 @@ cd ../largelfi-runtime
 git pull --rebase --autostash
 
 meson setup --reconfigure ./build_debug --buildtype debug \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" $LARGELFI_RT_FLAGS
 ninja -C ./build_debug
 
 meson setup --reconfigure ./build_release --buildtype release \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" $LARGELFI_RT_FLAGS
 ninja -C ./build_release
 
+unset LARGELFI_RT_FLAGS
 popd
 
 ######################################
@@ -159,6 +168,9 @@ MOZCONFIG=./mozconfig_wasm_release ./mach build
 # LFI release
 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
 
+# LFI large release
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+
 # Stock debug
 # MOZCONFIG=./mozconfig_stock_debug ./mach build
 
@@ -168,10 +180,12 @@ LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_relea
 # LFI debug
 # LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug ./mach build
 
-if [[ "$(uname -m)" == "x86_64" ]]; then
-    # LFI large release
-    LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+# LFI large debug
+# LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_debug ./mach build
 
-    # LFI large debug
-    # LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_debug ./mach build
-fi
+# LFI aarch64 debug arm64
+# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug_rrarm64 ./mach build
+
+# LFI aarch64 debug, lfibinrelease arm64
+# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug_rrarm64_lfirelease ./mach build
+
