@@ -42,9 +42,6 @@ CURR_TIME=$(date --iso=seconds)
 mkdir -p ../benchmarks
 
 CONFIGS_TO_TEST="stock wasm lfi largelfi"
-if [[ "$(uname -m)" != "x86_64" ]]; then
-  CONFIGS_TO_TEST="stock wasm lfi"
-fi
 
 ./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
 
