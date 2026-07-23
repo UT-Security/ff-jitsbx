@@ -1,5 +1,11 @@
 #!/bin/bash
 
+tasksetoutput=$(taskset -c -p 1 2>&1)
+if [[ ",${tasksetoutput}," == *",2,"* ]]; then
+  echo "WARNING: CPU 2 does not appear to be isolated when testing with the command 'taskset -c -p 1'. Isolate CPU 2 with isolcpus=2 kernel boot parameter. Will continue anyway, but benchmark results may not be as accurate."
+  sleep 5
+fi
+
 # Setup Xvfb
 if [ -z "$(pgrep Xvfb)" ]; then \
     Xvfb :99 & \
@@ -45,13 +51,7 @@ CONFIGS_TO_TEST="stock wasm lfi largelfi"
 
 ./testsRunBenchmark "../benchmarks/firefox_lfi_graphite_$CURR_TIME" "graphite_perf_test" "$CONFIGS_TO_TEST"
 
-# sudo systemctl stop benchmark.slice # extra check to stop any other programs
-# systemd-run --slice=benchmark.slice --scope -u benchmarkunit echo "hi"
-
-# restore_cpu2
-sudo systemctl stop benchmark.slice # extra check to stop any other programs
-/bin/echo "" | sudo tee $CGDIR/cpuset.cpus.exclusive
-/bin/echo "" | sudo tee $CGDIR/cpuset.cpus
+# taskset -c 2 echo "hi"
 
 # restore_cpufreq
 sudo cpufreq-set -c 2 -g ${CPUPOLICYINFO[2]}
