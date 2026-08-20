@@ -24,25 +24,6 @@ if [ "$(cat /sys/devices/system/cpu/smt/active)" != "0" ]; then
   sudo bash -c "echo off > /sys/devices/system/cpu/smt/control"
 fi
 
-# isolate_cpu2
-CGROOT=/sys/fs/cgroup
-CGDIR=$CGROOT/benchmark.slice
-
-sudo mkdir -p $CGDIR
-
-sudo systemctl stop benchmark.slice # extra check to stop any other programs
-
-if ! grep -q "cpuset" ${CGROOT}/cgroup.subtree_control; then
-  /bin/echo "+cpuset" | sudo tee $CGROOT/cgroup.subtree_control
-fi
-
-POLICY=$(cat ${CGDIR}/cpuset.cpus.partition)
-if [ "$POLICY" != "root" ]; then
-  /bin/echo root | sudo tee $CGDIR/cpuset.cpus.partition
-fi
-/bin/echo 2 | sudo tee $CGDIR/cpuset.cpus.exclusive
-/bin/echo 2 | sudo tee $CGDIR/cpuset.cpus
-
 # Run the benchmark
 CURR_TIME=$(date --iso=seconds)
 mkdir -p ../benchmarks
