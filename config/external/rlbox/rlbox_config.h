@@ -29,4 +29,6 @@
 
 #define RLBOX_LFI_NO_VERIFY
 
+#define RLBOX_LFI_NO_SIGALTSTACK
+
 #endif

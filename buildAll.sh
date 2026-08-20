@@ -112,10 +112,10 @@ popd
 if [ ! -d ../largelfi-runtime ]; then
     if [[ "$(uname -m)" == "x86_64" ]]; then
         git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false -Ddisable_signals=true
     else
         git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true
+        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true -Ddisable_signals=true
     fi
 fi
 
