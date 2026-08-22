@@ -49,6 +49,7 @@ def add_required_flags(args):
         "-static-pie",
         "-L", os.path.join(lfi_toolchain_dir, "sysroot/usr/lib"),
         "-lboxrt",
+        "-lmimalloc",
     ]
 
 
