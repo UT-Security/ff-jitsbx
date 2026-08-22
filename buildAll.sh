@@ -98,11 +98,11 @@ cd ../lfi-runtime
 git pull --rebase --autostash
 
 meson setup --reconfigure ./build_debug --buildtype debug \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true -Denable_tlsexec=true
 ninja -C ./build_debug
 
 meson setup --reconfigure ./build_release --buildtype release \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true
+    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dsegue_cache_gs=true -Denable_tlsexec=true
 ninja -C ./build_release
 
 popd
@@ -112,10 +112,10 @@ popd
 if [ ! -d ../largelfi-runtime ]; then
     if [[ "$(uname -m)" == "x86_64" ]]; then
         git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false -Ddisable_signals=true
+        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false -Ddisable_signals=true -Denable_tlsexec=true
     else
         git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true -Ddisable_signals=true
+        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true -Ddisable_signals=true -Denable_tlsexec=true
     fi
 fi
 
