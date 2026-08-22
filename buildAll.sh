@@ -47,11 +47,11 @@ function download_largelfi_toolchain() {
     mkdir -p ./largelfi-toolchain
 
     if [[ "$(uname -m)" == "x86_64" ]]; then
-        scp $USER@rashford.csres.utexas.edu:/var/tmp/largesbx-data/toolchains/x86_64-lfi-large-clang.tar.gz ./x86_64-lfi-large-clang.tar.gz
-        tar -xzf x86_64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=2
+        wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/x86_64-lfi-large-clang.tar.gz
+        tar -xzf x86_64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=1
         rm x86_64-lfi-large-clang.tar.gz
     else
-        scp $USER@rashford.csres.utexas.edu:/var/tmp/largesbx-data/toolchains/aarch64-lfi-large-clang.tar.gz ./aarch64-lfi-large-clang.tar.gz
+        wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/aarch64-lfi-large-clang.tar.gz
         tar -xzf aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=1
         rm aarch64-lfi-large-clang.tar.gz
     fi
