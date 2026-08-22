@@ -90,7 +90,11 @@ popd
 ######################################
 
 if [ ! -d ../lfi-runtime ]; then
-    git clone --recursive git@github.com:lfi-project/lfi-runtime.git ../lfi-runtime
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        git clone --recursive git@github.com:lfi-project/lfi-runtime.git ../lfi-runtime
+    else
+        git clone --recursive -b springboard git@github.com:lfi-project/lfi-runtime.git ../lfi-runtime
+    fi
 fi
 
 pushd .
