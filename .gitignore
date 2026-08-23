@@ -224,7 +224,7 @@ docs/mots/index.rst
 
 default-build-toolchain
 default-android-build-toolchain
-*lfi*toolchain
+*lfi-toolchain*/
 done-*
 *.develop
 screenshots
