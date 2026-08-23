@@ -19,11 +19,14 @@ elif not os.path.isdir(lfi_toolchain_dir):
     exit(1)
 
 lfi_toolchain_dir = os.path.realpath(lfi_toolchain_dir)
-compile_for_android = os.environ.get("FIREFOX_COMPILE_FOR_ANDROID") is not None
 lfi_target_toolchain_dir = lfi_toolchain_dir
+cross_compile_for_android = os.environ.get("CROSS_COMPILE_FOR_ANDROID")
 
-if compile_for_android:
-    lfi_target_toolchain_dir = lfi_toolchain_dir + "-aarch64"
+if cross_compile_for_android is not None:
+    if not os.path.isdir(cross_compile_for_android):
+        print("Specified CROSS_COMPILE_FOR_ANDROID env var does not exist: " + cross_compile_for_android)
+        exit(1)
+    lfi_target_toolchain_dir = os.path.realpath(cross_compile_for_android)
 
 def replace_wasm_extensions(args):
     return [re.sub(r"\.wasm(?=\.|$)", ".lfi", arg) for arg in args]
@@ -46,7 +49,7 @@ def replace_tools_sysroot_flags(args):
     ]
     args = list(filter(lambda arg: not arg.endswith("/sysroot-wasm32-wasi") and arg not in removed_args, args))
 
-    if compile_for_android:
+    if cross_compile_for_android is not None:
         args += [
             "--target=aarch64_lfi-linux-musl",
             "--sysroot=" + os.path.join(lfi_target_toolchain_dir, "sysroot"),

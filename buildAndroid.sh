@@ -46,17 +46,11 @@ function download_lfi_toolchain() {
 }
 
 function download_largelfi_toolchain() {
-    mkdir -p ./largelfi-toolchain
-
-    wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/x86_64-lfi-large-clang.tar.gz
-    tar -xzf x86_64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=1
-    rm x86_64-lfi-large-clang.tar.gz
-
     mkdir -p ./largelfi-toolchain-aarch64
 
-    wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/aarch64-lfi-large-clang.tar.gz
-    tar -xzf aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain-aarch64 --strip-components=1
-    rm aarch64-lfi-large-clang.tar.gz
+    wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/cross-aarch64-lfi-large-clang.tar.gz
+    tar -xzf cross-aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain-aarch64 --strip-components=1
+    rm cross-aarch64-lfi-large-clang.tar.gz
 }
 
 if [ ! -f ./done-default-build-toolchain ]; then
@@ -105,12 +99,14 @@ if [ ! -d ../lfi-runtime-aarch64 ]; then
     git clone --recursive -b springboard git@github.com:lfi-project/lfi-runtime.git ../lfi-runtime-aarch64
 fi
 
+CROSSFILE=$(realpath .)/aarch64-android.meson
+
 pushd .
 cd ../lfi-runtime-aarch64
 git pull --rebase --autostash
 
 # Cross compile for aarch64
-meson setup --reconfigure ./build_release_aarch64 --buildtype release --cross-file toolchains/aarch64-android.meson \
+meson setup --reconfigure ./build_release_aarch64 --buildtype release --cross-file $CROSSFILE \
     -D c_args="-fno-exceptions -fno-emulated-tls" -D cpp_args="-fno-exceptions -fno-emulated-tls" -D c_link_args="-fno-exceptions"
 ninja -C ./build_release_aarch64 liblfi.a
 
@@ -128,7 +124,7 @@ cd ../largelfi-runtime-aarch64
 git pull --rebase --autostash
 
 # Cross compile for aarch64
-meson setup --reconfigure ./build_release_aarch64 --buildtype release --cross-file toolchains/aarch64-android.meson \
+meson setup --reconfigure ./build_release_aarch64 --buildtype release --cross-file $CROSSFILE \
     -D c_args="-fno-exceptions -fno-emulated-tls" -D cpp_args="-fno-exceptions -fno-emulated-tls" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true
 
 ninja -C ./build_release_aarch64 liblfi.a
@@ -159,17 +155,17 @@ rustup target add aarch64-linux-android;
 ######################################
 
 # Android stock release
-MOZCONFIG=mozconfig_android_stock_release ./mach build && \
-MOZCONFIG=mozconfig_android_stock_release ./mach package
+# MOZCONFIG=mozconfig_android_stock_release ./mach build && \
+# MOZCONFIG=mozconfig_android_stock_release ./mach package
 
 # Android wasm release
-MOZCONFIG=mozconfig_android_wasm_release ./mach build && \
-MOZCONFIG=mozconfig_android_wasm_release ./mach package
+# MOZCONFIG=mozconfig_android_wasm_release ./mach build && \
+# MOZCONFIG=mozconfig_android_wasm_release ./mach package
 
 # Android lfi release
-FIREFOX_COMPILE_FOR_ANDROID=1 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build && \
-FIREFOX_COMPILE_FOR_ANDROID=1 LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
+# CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build && \
+# CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
 
 # Android largelfi release
-FIREFOX_COMPILE_FOR_ANDROID=1 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach build && \
-FIREFOX_COMPILE_FOR_ANDROID=1 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach build && \
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
