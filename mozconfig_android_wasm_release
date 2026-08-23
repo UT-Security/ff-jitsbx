@@ -1,0 +1,25 @@
+ac_add_options --enable-project=mobile/android
+ac_add_options --target=aarch64-linux-android
+ac_add_options --enable-linker=lld
+
+ac_add_options --with-android-sdk=@TOPSRCDIR@/default-android-build-toolchain/android-sdk-linux
+ac_add_options --with-android-ndk=@TOPSRCDIR@/default-android-build-toolchain/android-ndk-r23c
+ac_add_options --with-java-bin-path=@TOPSRCDIR@/default-android-build-toolchain/jdk/jdk-17.0.7+7/bin
+
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_android_wasm_release
+
+export MOZBUILD_STATE_PATH="$topsrcdir/default-build-toolchain"
+export CC="$topsrcdir/default-build-toolchain/clang/bin/clang"
+export CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++"
+export JAVA_HOME="$topsrcdir/default-android-build-toolchain/jdk/jdk-17.0.7+7"
+export NODEJS="$topsrcdir/default-build-toolchain/node/bin/node"
+ac_add_options --with-libclang-path=@TOPSRCDIR@/default-build-toolchain/clang/lib/
+
+export WASM_CC="$topsrcdir/default-build-toolchain/clang/bin/clang --target=wasm32-wasi"
+export WASM_CXX="$topsrcdir/default-build-toolchain/clang/bin/clang++ --target=wasm32-wasi"
+export WASI_SYSROOT="$topsrcdir/default-build-toolchain/sysroot-wasm32-wasi"
+
+export CBINDGEN="$topsrcdir/default-build-toolchain/cbindgen/cbindgen"
+export NASM="$topsrcdir/default-build-toolchain/nasm/nasm"
+
+ac_add_options --with-wasm-sandboxed-libraries=graphite

@@ -180,19 +180,32 @@ rustup target add aarch64-linux-android;
 # export MOZBUILD_STATE_PATH="$(realpath .)/default-build-toolchain/"
 
 # Stock release
-MOZCONFIG=./mozconfig_stock_release ./mach build
+# MOZCONFIG=./mozconfig_stock_release ./mach build
 
 # Wasm release
-MOZCONFIG=./mozconfig_wasm_release ./mach build
+# MOZCONFIG=./mozconfig_wasm_release ./mach build
 
 # LFI release
-LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
+# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_release ./mach build
 
 # LFI large release
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
+# LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
 
 # Android stock release
-MOZCONFIG=mozconfig_android_stock_release ./mach build
+MOZCONFIG=mozconfig_android_stock_release ./mach build && \
+MOZCONFIG=mozconfig_android_stock_release ./mach package
+
+# Android wasm release
+MOZCONFIG=mozconfig_android_wasm_release ./mach build && \
+MOZCONFIG=mozconfig_android_wasm_release ./mach package
+
+# Android lfi release
+LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build && \
+LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
+
+# Android largelfi release
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach build && \
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
 
 # Stock debug
 # MOZCONFIG=./mozconfig_stock_debug ./mach build
