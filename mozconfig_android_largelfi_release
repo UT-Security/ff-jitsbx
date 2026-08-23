@@ -6,7 +6,7 @@ ac_add_options --with-android-sdk=@TOPSRCDIR@/default-android-build-toolchain/an
 ac_add_options --with-android-ndk=@TOPSRCDIR@/default-android-build-toolchain/android-ndk-r23c
 ac_add_options --with-java-bin-path=@TOPSRCDIR@/default-android-build-toolchain/jdk/jdk-17.0.7+7/bin
 
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_android_lfi_release
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj_firefox_latest_android_largelfi_release
 
 export MOZBUILD_STATE_PATH="$topsrcdir/default-build-toolchain"
 export CC="$topsrcdir/default-build-toolchain/clang/bin/clang"
@@ -25,4 +25,4 @@ export NASM="$topsrcdir/default-build-toolchain/nasm/nasm"
 ac_add_options --with-wasm-sandboxed-libraries=graphite
 
 ac_add_options --enable-wasm-use-lfi
-ac_add_options --with-lfi-runtime-dir="../lfi-runtime"
+ac_add_options --with-lfi-runtime-dir="../largelfi-runtime"
