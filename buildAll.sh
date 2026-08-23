@@ -12,7 +12,7 @@ PYTHON_MINOR_VER=$(python3 -c "import sys; print(sys.version_info[1])")
 
 if [ "$PYTHON_MINOR_VER" != "11" ]; then
     if [ ! -d "../ff_build_py" ]; then
-        python3.11 -m venv ff_build_py
+        python3.11 -m venv ../ff_build_py
     fi
     source ../ff_build_py/bin/activate
 fi
@@ -29,6 +29,12 @@ function download_toolchain() {
         tar -xf firefox-esr115-mozbuild-aarch64.tar.xz -C default-build-toolchain --strip-components=1
         rm firefox-esr115-mozbuild-aarch64.tar.xz
     fi
+}
+
+function download_android_toolchain() {
+    mkdir -p ./default-android-build-toolchain
+    MOZBUILD_STATE_PATH="$(realpath .)/default-android-build-toolchain" \
+        ./mach python python/mozboot/mozboot/android.py --no-interactive
 }
 
 function download_lfi_toolchain() {
@@ -62,6 +68,13 @@ function download_largelfi_toolchain() {
 if [ ! -f ./done-default-build-toolchain ]; then
     download_toolchain;
     touch ./done-default-build-toolchain
+fi
+
+######################################
+
+if [ ! -f ./done-default-android-build-toolchain ]; then
+    download_android_toolchain;
+    touch ./done-default-android-build-toolchain
 fi
 
 ######################################
@@ -156,9 +169,10 @@ if [ ! -f ./done-bootstrap ]; then
     fi
 
     rustup override set 1.76.0;
-
     touch ./done-bootstrap
 fi
+
+rustup target add aarch64-linux-android;
 
 ######################################
 
@@ -177,6 +191,9 @@ LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_relea
 # LFI large release
 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
 
+# Android stock release
+MOZCONFIG=mozconfig_android_stock_release ./mach build
+
 # Stock debug
 # MOZCONFIG=./mozconfig_stock_debug ./mach build
 
@@ -194,4 +211,3 @@ LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_larg
 
 # LFI aarch64 debug, lfibinrelease arm64
 # LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug_rrarm64_lfirelease ./mach build
-
