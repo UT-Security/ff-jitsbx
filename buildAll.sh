@@ -31,12 +31,6 @@ function download_toolchain() {
     fi
 }
 
-function download_android_toolchain() {
-    mkdir -p ./default-android-build-toolchain
-    MOZBUILD_STATE_PATH="$(realpath .)/default-android-build-toolchain" \
-        ./mach python python/mozboot/mozboot/android.py --no-interactive
-}
-
 function download_lfi_toolchain() {
     mkdir -p ./lfi-toolchain
 
@@ -68,13 +62,6 @@ function download_largelfi_toolchain() {
 if [ ! -f ./done-default-build-toolchain ]; then
     download_toolchain;
     touch ./done-default-build-toolchain
-fi
-
-######################################
-
-if [ ! -f ./done-default-android-build-toolchain ]; then
-    download_android_toolchain;
-    touch ./done-default-android-build-toolchain
 fi
 
 ######################################
@@ -191,21 +178,6 @@ LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_relea
 # LFI large release
 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
 
-# Android stock release
-MOZCONFIG=mozconfig_android_stock_release ./mach build && \
-MOZCONFIG=mozconfig_android_stock_release ./mach package
-
-# Android wasm release
-MOZCONFIG=mozconfig_android_wasm_release ./mach build && \
-MOZCONFIG=mozconfig_android_wasm_release ./mach package
-
-# Android lfi release
-LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build && \
-LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
-
-# Android largelfi release
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach build && \
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
 
 # Stock debug
 # MOZCONFIG=./mozconfig_stock_debug ./mach build

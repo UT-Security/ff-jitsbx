@@ -17,17 +17,31 @@ EXPORTS += [
 
 SOURCES += [ "lfi-test.c" ]
 
-if CONFIG["MOZ_DEBUG"]:
-    OS_LIBS += [
-        "-Wl,--whole-archive",
-        "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_debug/liblfi.a",
-        "-Wl,--no-whole-archive"
-    ]
+if CONFIG["OS_TARGET"] == "Android":
+    if CONFIG["MOZ_DEBUG"]:
+        OS_LIBS += [
+            "-Wl,--whole-archive",
+            "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_debug_aarch64/liblfi.a",
+            "-Wl,--no-whole-archive"
+        ]
+    else:
+        OS_LIBS += [
+            "-Wl,--whole-archive",
+            "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_release_aarch64/liblfi.a",
+            "-Wl,--no-whole-archive"
+        ]
 else:
-    OS_LIBS += [
-        "-Wl,--whole-archive",
-        "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_release/liblfi.a",
-        "-Wl,--no-whole-archive"
-    ]
+    if CONFIG["MOZ_DEBUG"]:
+        OS_LIBS += [
+            "-Wl,--whole-archive",
+            "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_debug/liblfi.a",
+            "-Wl,--no-whole-archive"
+        ]
+    else:
+        OS_LIBS += [
+            "-Wl,--whole-archive",
+            "$(topsrcdir)/" + CONFIG["LFI_RUNTIME_DIR"] + "/build_release/liblfi.a",
+            "-Wl,--no-whole-archive"
+        ]
 
 FINAL_LIBRARY = "xul"
