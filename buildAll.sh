@@ -3,16 +3,18 @@ set -e
 set -o pipefail
 set -o xtrace
 
+if ! command -v python3.11 >/dev/null 2>&1
+then
+    sudo apt install -y python3.11 python3.11-venv
+fi
 
 PYTHON_MINOR_VER=$(python3 -c "import sys; print(sys.version_info[1])")
 
 if [ "$PYTHON_MINOR_VER" != "11" ]; then
-    echo "Python 3.11 is not the installed version. You need to setup venv with python3.11 first."
-    echo "1. Install python 3.11"
-    echo "2. Run 'python3.11 -m venv ff_build_py && source ff_build_py/bin/activate'"
-    echo "3. Rerun this build script"
-    echo "You can run 'deactivate' to close your venv"
-    exit 1
+    if [ ! -d "../ff_build_py" ]; then
+        python3.11 -m venv ff_build_py
+    fi
+    source ../ff_build_py/bin/activate
 fi
 
 function download_toolchain() {
@@ -116,10 +118,8 @@ popd
 if [ ! -d ../largelfi-runtime ]; then
     if [[ "$(uname -m)" == "x86_64" ]]; then
         git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
     else
         git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime
-        export LARGELFI_RT_FLAGS=-Dlarge_sandbox=true -Ddisable_signals=true
     fi
 fi
 
@@ -127,15 +127,17 @@ pushd .
 cd ../largelfi-runtime
 git pull --rebase --autostash
 
-meson setup --reconfigure ./build_debug --buildtype debug \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" $LARGELFI_RT_FLAGS
-ninja -C ./build_debug
+if [[ "$(uname -m)" == "x86_64" ]]; then
+    meson setup --reconfigure ./build_debug --buildtype debug \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+else
+    meson setup --reconfigure ./build_release --buildtype release \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true
+fi
 
-meson setup --reconfigure ./build_release --buildtype release \
-    -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" $LARGELFI_RT_FLAGS
+ninja -C ./build_debug
 ninja -C ./build_release
 
-unset LARGELFI_RT_FLAGS
 popd
 
 ######################################
