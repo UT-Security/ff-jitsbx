@@ -50,9 +50,20 @@
 
 #include <algorithm>
 
+#if defined(__ANDROID__)
+#include <sched.h>
+
+static thread_local bool g_is_curr_thread_pinned = false;
+
+#define GRAPHITELOGPREFIX "GRAPHITEBENCH "
+
+#endif
+
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::unicode;
+
+static mozilla::LazyLogModule sMTETestLog("MTETestLog");
 
 void gfxCharacterMap::NotifyMaybeReleased(gfxCharacterMap* aCmap) {
   // Tell gfxPlatformFontList that a charmap's refcount was decremented,
@@ -662,6 +673,47 @@ struct gfxFontEntry::GrSandboxData {
       grGetGlyphAdvanceCallback;
 
   GrSandboxData() {
+
+#if defined(__ANDROID__)
+    if (g_is_curr_thread_pinned == false) {
+      cpu_set_t orig_set, new_set;
+
+      CPU_ZERO(&orig_set);
+      if (sched_getaffinity(0, sizeof(cpu_set_t), &orig_set) < 0) {
+        MOZ_LOG(sMTETestLog, LogLevel::Error, (GRAPHITELOGPREFIX "sched_getaffinity failed"));
+        abort();
+      }
+
+      CPU_ZERO(&new_set);
+
+      const char *cpupin = getenv("GRAPHITE_PIN_CORE");
+      // #define CHOSEN_CPU 0 // Little Core
+      // #define CHOSEN_CPU 4 // Big Core
+      // #define CHOSEN_CPU 8 // X Core pixel 8
+      // #define CHOSEN_CPU 7 // X Core pixel 9
+      // #define CHOSEN_CPU 1 // Ampere standard core
+
+      if (!cpupin) {
+        MOZ_LOG(sMTETestLog, LogLevel::Error, (GRAPHITELOGPREFIX "env \"GRAPHITE_PIN_CORE\" not set. Please set it."));
+        abort();
+      }
+
+      int CHOSEN_CPU = atoi(cpupin);
+
+      CPU_SET(CHOSEN_CPU, &new_set);
+
+      // check if affinity is wrong
+      if (!CPU_EQUAL(&orig_set, &new_set)) {
+        if (sched_setaffinity(0, sizeof(cpu_set_t), &new_set) < 0) {
+          MOZ_LOG(sMTETestLog, LogLevel::Error, (GRAPHITELOGPREFIX "sched_setaffinity failed on core : %d\n", CHOSEN_CPU));
+          abort();
+        } else {
+          g_is_curr_thread_pinned = true;
+          MOZ_LOG(sMTETestLog, LogLevel::Warning, (GRAPHITELOGPREFIX "sched_setaffinity on core : %d (PID:%lu)\n", CHOSEN_CPU, (long unsigned) getpid()));
+        }
+      }
+    }
+#endif
 
 #ifdef WASM_USE_LFI
     sandbox.create_sandbox(rlbox_lfi_start, rlbox_lfi_end);
