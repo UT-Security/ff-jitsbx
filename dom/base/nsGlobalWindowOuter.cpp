@@ -4825,7 +4825,12 @@ static bool CheckGraphiteString(const char* msg) {
     long int time_ns = time_val;
 
     auto graphite_count = g_graphite_count++;
-    printf("Capture_Time:Graphite,%u,%ld,%lu|\n", graphite_count, time_ns, (long unsigned) getpid());
+    // printf_stderr rather than printf: on Android this routes to
+    // __android_log_vprint(ANDROID_LOG_INFO, "Gecko", ...) (nsCRTGlue.cpp) so the
+    // samples are readable via `adb logcat -s Gecko:I`, where raw stdout is
+    // discarded. On desktop it is vfprintf(stderr), which testsRunBenchmark still
+    // captures via `2>&1 | tee`.
+    printf_stderr("Capture_Time:Graphite,%u,%ld,%lu|\n", graphite_count, time_ns, (long unsigned) getpid());
 
     return true;
   }
