@@ -1,11 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 set -o pipefail
 set -o xtrace
 
 if ! command -v python3.11 >/dev/null 2>&1
 then
-    sudo apt install -y python3.11 python3.11-venv
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt install -y python3.11 python3.11-venv
+    else
+        echo "python3.11 not found and apt is unavailable. Install it with your package manager (nix: python311)." >&2
+        exit 1
+    fi
 fi
 
 PYTHON_MINOR_VER=$(python3 -c "import sys; print(sys.version_info[1])")
@@ -65,8 +70,16 @@ if [ ! -f ./done-default-android-build-toolchain ]; then
     touch ./done-default-android-build-toolchain
 fi
 
-ANDROID_NDK_BIN="$(realpath .)/default-android-build-toolchain/android-ndk-r23c/toolchains/llvm/prebuilt/linux-x86_64/bin"
+ANDROID_NDK="$(realpath .)/default-android-build-toolchain/android-ndk-r23c"
+ANDROID_NDK_BIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
 export PATH="$ANDROID_NDK_BIN:$PATH"
+
+# NixOS workaround
+if [ ! -e /bin/bash ]; then
+    # grep exits 1 once every script is already patched; that is success here.
+    { grep -rl '^#!/bin/bash' "$ANDROID_NDK_BIN" "$ANDROID_NDK/build" "$ANDROID_NDK/prebuilt/linux-x86_64/bin" || true; } \
+        | xargs -r sed -i '1s|^#!/bin/bash$|#!/usr/bin/env bash|'
+fi
 
 ######################################
 
@@ -139,33 +152,54 @@ if [ ! -f ./done-bootstrap ]; then
     # Bootstrap will fail
     # MOZCONFIG=./mozconfig_stock_debug ./mach --no-interactive bootstrap --application-choice browser || echo "---------Ignoring bootstrap failure------";
 
-    sudo apt install -y libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common cpufrequtils python3-simplejson;
+    if command -v apt >/dev/null 2>&1; then
+        sudo apt install -y libasound2-dev libpulse-dev libpango1.0-dev libx11-xcb-dev libxrandr-dev libxcomposite-dev libxcursor-dev libxdamage-dev libxfixes-dev libxi-dev libxtst-dev libgtk-3-dev libdbus-glib-1-dev xvfb linux-tools-common cpufrequtils python3-simplejson;
+    else
+        echo "---------Skipping apt system packages (no apt); expecting them from the environment------";
+    fi
 
     if [ ! -x "$(command -v rustup)" ] ; then
         curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.76.0 -y;
         . "$HOME/.cargo/env"
     fi
 
-    rustup override set 1.76.0;
     touch ./done-bootstrap
 fi
 
-rustup target add aarch64-linux-android;
+# When rustc/cargo come from the environment (e.g. a nix devShell) rather than from
+# rustup, rustup is not the active toolchain driver, so its overrides and installed
+# targets have no effect. Only drive rustup when it actually owns the active rustc.
+RUSTC_SYSROOT=$(rustc --print sysroot)
+case "$RUSTC_SYSROOT" in
+    "${RUSTUP_HOME:-$HOME/.rustup}"/*)
+        rustup override set 1.76.0;
+        rustup target add aarch64-linux-android;
+        ;;
+    *)
+        if [ ! -d "$(rustc --print target-libdir --target aarch64-linux-android)" ]; then
+            echo "rustc at $RUSTC_SYSROOT is not rustup-managed and has no aarch64-linux-android std." >&2
+            echo "Add the target to your environment (nix: rust-bin.stable.\"1.76.0\".default.override { targets = [ \"aarch64-linux-android\" ]; })." >&2
+            exit 1
+        fi
+        ;;
+esac
 
 ######################################
 
+# NOTE: `a && b` is exempt from `set -e`, so don't chain
+
 # Android stock release
-MOZCONFIG=mozconfig_android_stock_release ./mach build && \
+MOZCONFIG=mozconfig_android_stock_release ./mach build
 MOZCONFIG=mozconfig_android_stock_release ./mach package
 
 # Android wasm release
-MOZCONFIG=mozconfig_android_wasm_release ./mach build && \
+MOZCONFIG=mozconfig_android_wasm_release ./mach build
 MOZCONFIG=mozconfig_android_wasm_release ./mach package
 
 # Android lfi release
-CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build && \
+CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build
 CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
 
 # Android largelfi release
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach build && \
+LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach build
 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
