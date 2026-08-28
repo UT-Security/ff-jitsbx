@@ -32,4 +32,12 @@ for k, v in graphite_defines:
 # We allow warnings for third-party code that can be updated from upstream.
 AllowCompilerWarnings()
 
+# The sandboxed builds of this same library compile at -Os
+# (COMPUTED_WASM_CXXFLAGS), while the native build otherwise inherits
+# MOZ_OPTIMIZE_FLAGS' -Oz. -Oz is "-Os but reduces code size further", i.e. it
+# gives up more speed, which confounds stock-vs-sandboxed comparisons. Local
+# CXXFLAGS are appended after MOZ_OPTIMIZE_FLAGS, so this -Os wins.
+CXXFLAGS += ['-Os']
+CFLAGS += ['-Os']
+
 FINAL_LIBRARY = 'gkmedias'
