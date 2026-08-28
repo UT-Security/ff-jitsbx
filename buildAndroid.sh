@@ -189,8 +189,12 @@ esac
 # NOTE: `a && b` is exempt from `set -e`, so don't chain
 
 # Android stock release
-MOZCONFIG=mozconfig_android_stock_release ./mach build
-MOZCONFIG=mozconfig_android_stock_release ./mach package
+# MOZCONFIG=mozconfig_android_stock_release ./mach build
+# MOZCONFIG=mozconfig_android_stock_release ./mach package
+
+# Android stock release
+MOZCONFIG=mozconfig_android_stockc23_release ./mach build
+MOZCONFIG=mozconfig_android_stockc23_release ./mach package
 
 # Android wasm release
 MOZCONFIG=mozconfig_android_wasm_release ./mach build
