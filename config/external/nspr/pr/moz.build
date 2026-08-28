@@ -257,3 +257,6 @@ if CONFIG["OS_ARCH"] == "Linux":
     OS_LIBS += [
         "dl",
     ]
+
+if CONFIG["OS_TARGET"] == "Android":
+    CFLAGS += ["-Wno-error=implicit-function-declaration"]
