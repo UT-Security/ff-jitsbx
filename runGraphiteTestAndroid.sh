@@ -17,7 +17,7 @@ FFBuildDir=$(realpath ./)
 
 SAMPLES="${SAMPLES:-100}"
 PORT="${PORT:-8000}"
-CONFIGS_TO_TEST="${CONFIGS_TO_TEST:-stockc23 wasm lfi largelfi}"
+CONFIGS_TO_TEST="${CONFIGS_TO_TEST:-stockc23 wasm lfi smalllfi}"
 
 PIN_CORE="${PIN_CORE:-8}"
 

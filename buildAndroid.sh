@@ -36,26 +36,20 @@ function download_android_toolchain() {
         ./mach python python/mozboot/mozboot/android.py --no-interactive
 }
 
-function download_lfi_toolchain() {
-    mkdir -p ./lfi-toolchain
+function download_crosslfi_toolchain() {
+    mkdir -p ./crosslfi-toolchain-aarch64
 
-    wget https://github.com/lfi-project/lfi/releases/download/v0.12/x86_64-lfi-clang.tar.gz
-    tar -xzf x86_64-lfi-clang.tar.gz -C lfi-toolchain --strip-components=1
-    rm x86_64-lfi-clang.tar.gz
-
-    mkdir -p ./lfi-toolchain-aarch64
-
-    wget https://github.com/lfi-project/lfi/releases/download/v0.12/aarch64-lfi-clang.tar.gz
-    tar -xzf aarch64-lfi-clang.tar.gz -C lfi-toolchain-aarch64 --strip-components=1
-    rm aarch64-lfi-clang.tar.gz
+    wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/aarch64-lfi-clang-host-x86_64-rw.tar.gz
+    tar -xzf aarch64-lfi-clang-host-x86_64-rw.tar.gz -C crosslfi-toolchain-aarch64 --strip-components=1
+    rm aarch64-lfi-clang-host-x86_64-rw.tar.gz
 }
 
-function download_largelfi_toolchain() {
-    mkdir -p ./largelfi-toolchain-aarch64
+function download_smalllfi_toolchain() {
+    mkdir -p ./smalllfi-toolchain-aarch64
 
-    wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/cross-aarch64-lfi-large-clang.tar.gz
-    tar -xzf cross-aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain-aarch64 --strip-components=1
-    rm cross-aarch64-lfi-large-clang.tar.gz
+    wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/aarch64-lfi-clang-host-x86_64-small_rw.tar.gz
+    tar -xzf aarch64-lfi-clang-host-x86_64-small_rw.tar.gz -C smalllfi-toolchain-aarch64 --strip-components=1
+    rm aarch64-lfi-clang-host-x86_64-small_rw.tar.gz
 }
 
 if [ ! -f ./done-default-build-toolchain ]; then
@@ -83,16 +77,16 @@ fi
 
 ######################################
 
-if [ ! -f ./done-lfi-toolchain-aarch64 ]; then
-    download_lfi_toolchain;
-    touch ./done-lfi-toolchain-aarch64
+if [ ! -f ./done-crosslfi-toolchain-aarch64 ]; then
+    download_crosslfi_toolchain;
+    touch ./done-crosslfi-toolchain-aarch64
 fi
 
 ######################################
 
-if [ ! -f ./done-largelfi-toolchain-aarch64 ]; then
-    download_largelfi_toolchain;
-    touch ./done-largelfi-toolchain-aarch64
+if [ ! -f ./done-smalllfi-toolchain-aarch64 ]; then
+    download_smalllfi_toolchain;
+    touch ./done-smalllfi-toolchain-aarch64
 fi
 
 ######################################
@@ -127,18 +121,18 @@ popd
 
 ######################################
 
-if [ ! -d ../largelfi-runtime-aarch64 ]; then
+if [ ! -d ../smalllfi-runtime-aarch64 ]; then
     # Cross build
-    git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../largelfi-runtime-aarch64
+    git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../smalllfi-runtime-aarch64
 fi
 
 pushd .
-cd ../largelfi-runtime-aarch64
+cd ../smalllfi-runtime-aarch64
 git pull --rebase --autostash
 
 # Cross compile for aarch64
 meson setup --reconfigure ./build_release_aarch64 --buildtype release --cross-file $CROSSFILE \
-    -D c_args="-fno-exceptions -fno-emulated-tls" -D cpp_args="-fno-exceptions -fno-emulated-tls" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true
+    -D c_args="-fno-exceptions -fno-emulated-tls" -D cpp_args="-fno-exceptions -fno-emulated-tls" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true -Dlarge_sandbox_bits=24
 
 ninja -C ./build_release_aarch64 liblfi.a
 
@@ -201,9 +195,13 @@ MOZCONFIG=mozconfig_android_wasm_release ./mach build
 MOZCONFIG=mozconfig_android_wasm_release ./mach package
 
 # Android lfi release
-CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach build
-CROSS_COMPILE_FOR_ANDROID="$(realpath .)/lfi-toolchain-aarch64" LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=mozconfig_android_lfi_release ./mach package
+LFI_TOOLCHAIN_PATH="$(realpath .)/crosslfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_lfi_release ./mach build
+LFI_TOOLCHAIN_PATH="$(realpath .)/crosslfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_lfi_release ./mach package
 
-# Android largelfi release
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach build
-LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
+# Android smalllfi release
+LFI_TOOLCHAIN_PATH="$(realpath .)/smalllfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_smalllfi_release ./mach build
+LFI_TOOLCHAIN_PATH="$(realpath .)/smalllfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_smalllfi_release ./mach package
+
+# # Android largelfi release
+# LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach build
+# LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain-aarch64" MOZCONFIG=mozconfig_android_largelfi_release ./mach package
