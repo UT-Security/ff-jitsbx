@@ -716,7 +716,13 @@ struct gfxFontEntry::GrSandboxData {
 #endif
 
 #ifdef WASM_USE_LFI
+
+#ifdef WASM_USE_LFI_SMALL
+    sandbox.create_sandbox(rlbox_lfi_start, rlbox_lfi_end, true /* infallible default */, 0x1000000 /* 16mb */);
+#else
     sandbox.create_sandbox(rlbox_lfi_start, rlbox_lfi_end);
+#endif
+
 #else
     sandbox.create_sandbox();
 #endif

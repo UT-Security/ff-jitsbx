@@ -26,4 +26,5 @@ export NASM="$topsrcdir/default-build-toolchain/nasm/nasm"
 ac_add_options --with-wasm-sandboxed-libraries=graphite
 
 ac_add_options --enable-wasm-use-lfi
+ac_add_options --enable-wasm-use-lfi-small
 ac_add_options --with-lfi-runtime-dir="../smalllfi-runtime-aarch64"
