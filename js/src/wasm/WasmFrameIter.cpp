@@ -394,8 +394,10 @@ static const unsigned PushedRetAddr = 8;
 static const unsigned PushedFP = 12;
 static const unsigned SetFP = 16;
 #endif
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX_CFI_4GB
 static const unsigned PoppedFP = 8;
+#elif defined(JS_SANDBOX_CFI)
+static const unsigned PoppedFP = 12;
 #else
 static const unsigned PoppedFP = 4;
 #endif

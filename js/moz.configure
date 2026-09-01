@@ -352,6 +352,20 @@ def js_sandbox_cfi(js_sandbox_cfi, js_sandbox):
 set_config("JS_SANDBOX_CFI", js_sandbox_cfi)
 set_define("JS_SANDBOX_CFI", js_sandbox_cfi)
 
+option(
+    "--enable-js-sandbox-4gb-cfi-masks",
+    default=False,
+    help="{Enable|Disable} JS sandbox 4GB CFI masks.",
+)
+
+@depends("--enable-js-sandbox-4gb-cfi-masks", js_sandbox_cfi)
+def js_sandbox_cfi_4gb(js_sandbox_cfi_4gb, js_sandbox_cfi):
+    if js_sandbox_cfi and js_sandbox_cfi_4gb:
+        return True
+
+set_config("JS_SANDBOX_CFI_4GB", js_sandbox_cfi_4gb)
+set_define("JS_SANDBOX_CFI_4GB", js_sandbox_cfi_4gb)
+
 # Profiling
 # =======================================================
 option(

@@ -105,7 +105,7 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Add(scratch64, base, Operand(index, vixl::LSL, scale));
     return LoadStoreMacro(rt, MemOperand(scratch64, addr.offset), op);
   }
-#if defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+#if defined(JS_SANDBOX_CFI_4GB) && defined(JS_SANDBOX_LFI)
   void sandboxCodePointer(Register reg) {
     Add(ARMRegister(reg, 64), SandboxBaseReg64,
         Operand(ARMRegister(reg, 32), vixl::Extend::UXTW));
@@ -116,7 +116,38 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
         Operand(ARMRegister(src, 32), vixl::Extend::UXTW));
     return dest;
   }
+#elif defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_LFI)
+  void sandboxCodePointer(Register reg) {
+    And(SandboxOffsetReg64, ARMRegister(reg, 64), Operand(SANDBOX_MASK));
+    Add(ARMRegister(reg, 64), SandboxBaseReg64, SandboxOffsetReg64);
+  }
+
+  Register sandboxCodePointer(Register src, Register dest) {
+    And(SandboxOffsetReg64, ARMRegister(src, 64), Operand(SANDBOX_MASK));
+    Add(ARMRegister(dest, 64), SandboxBaseReg64, SandboxOffsetReg64);
+    return dest;
+  }
+#elif defined(JS_SANDBOX_CFI_4GB) && defined(JS_SANDBOX_NOOP)
+  void sandboxCodePointer(Register reg) {
+    vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
+  }
+
+  Register sandboxCodePointer(Register src, Register dest) {
+    vixl::MacroAssembler::mov(ARMRegister(src, 64), ARMRegister(src, 64));
+    return src;
+  }
 #elif defined(JS_SANDBOX_CFI) && defined(JS_SANDBOX_NOOP)
+  void sandboxCodePointer(Register reg) {
+    vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
+    vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
+  }
+
+  Register sandboxCodePointer(Register src, Register dest) {
+    vixl::MacroAssembler::mov(ARMRegister(src, 64), ARMRegister(src, 64));
+    vixl::MacroAssembler::mov(ARMRegister(src, 64), ARMRegister(src, 64));
+    return src;
+  }
+#elif defined(JS_SANDBOX_CFI_4GB) && defined(JS_SANDBOX_NOOP)
   void sandboxCodePointer(Register reg) {
     vixl::MacroAssembler::mov(ARMRegister(reg, 64), ARMRegister(reg, 64));
   }
