@@ -151,11 +151,14 @@ git pull --rebase --autostash
 if [[ "$(uname -m)" == "x86_64" ]]; then
     meson setup --reconfigure ./build_debug --buildtype debug \
         -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+    meson setup --reconfigure ./build_release --buildtype release \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
 else
+    meson setup --reconfigure ./build_debug --buildtype debug \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true
     meson setup --reconfigure ./build_release --buildtype release \
         -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true
 fi
-
 ninja -C ./build_debug
 ninja -C ./build_release
 
@@ -178,7 +181,11 @@ git pull --rebase --autostash
 if [[ "$(uname -m)" == "x86_64" ]]; then
     meson setup --reconfigure ./build_debug --buildtype debug \
         -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+    meson setup --reconfigure ./build_release --buildtype release \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
 else
+    meson setup --reconfigure ./build_debug --buildtype debug \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true -Dlarge_sandbox_bits=24
     meson setup --reconfigure ./build_release --buildtype release \
         -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true -Dlarge_sandbox_bits=24
 fi
