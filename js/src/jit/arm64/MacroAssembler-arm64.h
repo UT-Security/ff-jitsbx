@@ -13,9 +13,7 @@
 #include "jit/arm64/vixl/MacroAssembler-vixl.h"
 #include "jit/AtomicOp.h"
 #include "jit/MoveResolver.h"
-#ifdef JS_SANDBOX_HEAP
 #include "jit/Sandbox.h"
-#endif
 #include "vm/BigIntType.h"  // JS::BigInt
 #include "wasm/WasmBuiltins.h"
 

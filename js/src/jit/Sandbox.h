@@ -10,7 +10,7 @@
 namespace js {
 namespace jit {
 
-#ifdef JS_SANDBOX_HEAP
+#if defined(JS_SANDBOX_HEAP) || defined(JS_SANDBOX_CFI)
 const size_t SANDBOX_SIZE = 1UL * 1024 * 1024 * 1024 * 1024;
 const size_t SANDBOX_MASK = SANDBOX_SIZE - 1;
 #endif
