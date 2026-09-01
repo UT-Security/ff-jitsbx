@@ -35,13 +35,13 @@ function download_lfi_toolchain() {
     mkdir -p ./lfi-toolchain
 
     if [[ "$(uname -m)" == "x86_64" ]]; then
-        wget https://github.com/lfi-project/lfi/releases/download/v0.12/x86_64-lfi-clang.tar.gz
-        tar -xzf x86_64-lfi-clang.tar.gz -C lfi-toolchain --strip-components=1
-        rm x86_64-lfi-clang.tar.gz
+        wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/x86_64-lfi-clang-rw.tar.gz
+        tar -xzf x86_64-lfi-clang-rw.tar.gz -C lfi-toolchain --strip-components=1
+        rm x86_64-lfi-clang-rw.tar.gz
     else
-        wget https://github.com/lfi-project/lfi/releases/download/v0.12/aarch64-lfi-clang.tar.gz
-        tar -xzf aarch64-lfi-clang.tar.gz -C lfi-toolchain --strip-components=1
-        rm aarch64-lfi-clang.tar.gz
+        wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/aarch64-lfi-clang-rw.tar.gz
+        tar -xzf aarch64-lfi-clang-rw.tar.gz -C lfi-toolchain --strip-components=1
+        rm aarch64-lfi-clang-rw.tar.gz
     fi
 }
 
@@ -56,6 +56,20 @@ function download_largelfi_toolchain() {
         wget https://github.com/UT-Security/-largesbx-compiler-builds/releases/download/curr/aarch64-lfi-large-clang.tar.gz
         tar -xzf aarch64-lfi-large-clang.tar.gz -C largelfi-toolchain --strip-components=1
         rm aarch64-lfi-large-clang.tar.gz
+    fi
+}
+
+function download_smalllfi_toolchain() {
+    mkdir -p ./smalllfi-toolchain
+
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/x86_64-lfi-clang-small_rw.tar.gz
+        tar -xzf x86_64-lfi-clang-small_rw.tar.gz -C smalllfi-toolchain --strip-components=1
+        rm x86_64-lfi-clang-small_rw.tar.gz
+    else
+        wget https://github.com/UT-Security/largesbx-compiler-builds/releases/download/curr2/aarch64-lfi-clang-small_rw.tar.gz
+        tar -xzf aarch64-lfi-clang-small_rw.tar.gz -C smalllfi-toolchain --strip-components=1
+        rm aarch64-lfi-clang-small_rw.tar.gz
     fi
 }
 
@@ -76,6 +90,13 @@ fi
 if [ ! -f ./done-largelfi-toolchain ]; then
     download_largelfi_toolchain;
     touch ./done-largelfi-toolchain
+fi
+
+######################################
+
+if [ ! -f ./done-smalllfi-toolchain ]; then
+    download_smalllfi_toolchain;
+    touch ./done-smalllfi-toolchain
 fi
 
 ######################################
@@ -142,6 +163,33 @@ popd
 
 ######################################
 
+if [ ! -d ../smalllfi-runtime ]; then
+    if [[ "$(uname -m)" == "x86_64" ]]; then
+        git clone --recursive -b large-sandbox git@github.com:lfi-project/lfi-runtime.git ../smalllfi-runtime
+    else
+        git clone --recursive -b large-sandbox-aarch64 git@github.com:lfi-project/lfi-runtime.git ../smalllfi-runtime
+    fi
+fi
+
+pushd .
+cd ../smalllfi-runtime
+git pull --rebase --autostash
+
+if [[ "$(uname -m)" == "x86_64" ]]; then
+    meson setup --reconfigure ./build_debug --buildtype debug \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Denable_large_sandbox=true -Denable_gs_context=true -Denable_segue=false
+else
+    meson setup --reconfigure ./build_release --buildtype release \
+        -D c_args="-fno-exceptions" -D cpp_args="-fno-exceptions" -D c_link_args="-fno-exceptions" -Dlarge_sandbox=true -Ddisable_signals=true -Dlarge_sandbox_bits=24
+fi
+
+ninja -C ./build_debug
+ninja -C ./build_release
+
+popd
+
+######################################
+
 if [ ! -f ./done-bootstrap ]; then
 
     # Don't use the bootstrap as the firefox sysroot is too restricted. Just use the system compiler
@@ -178,21 +226,5 @@ LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_relea
 # LFI large release
 LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_release ./mach build
 
-
-# Stock debug
-# MOZCONFIG=./mozconfig_stock_debug ./mach build
-
-# Wasm debug
-# MOZCONFIG=./mozconfig_wasm_debug ./mach build
-
-# LFI debug
-# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug ./mach build
-
-# LFI large debug
-# LFI_TOOLCHAIN_PATH="$(realpath .)/largelfi-toolchain" MOZCONFIG=./mozconfig_largelfi_debug ./mach build
-
-# LFI aarch64 debug arm64
-# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug_rrarm64 ./mach build
-
-# LFI aarch64 debug, lfibinrelease arm64
-# LFI_TOOLCHAIN_PATH="$(realpath .)/lfi-toolchain" MOZCONFIG=./mozconfig_lfi_debug_rrarm64_lfirelease ./mach build
+# LFI small release
+LFI_TOOLCHAIN_PATH="$(realpath .)/smalllfi-toolchain" MOZCONFIG=./mozconfig_smalllfi_release ./mach build
